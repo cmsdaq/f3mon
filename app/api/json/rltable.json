@@ -4,7 +4,8 @@
   "sort": [
     {
       "startTime": {
-        "order": "desc"
+        "order": "desc",
+        "missing" : "_first"
       }
     }
   ],

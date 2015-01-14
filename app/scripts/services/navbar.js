@@ -171,7 +171,7 @@ angular.module('f3monApp')
             if(this.collector.status)
                 {this.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is running on server: "+this.collector.host,isWorking:true}}
             else {if(this.messages.length >1){this.messages.splice(1,1);}}
-        } else {this.messages[1]={msg:"Collector for run"+runInfoService.runNumber+" is not running" ,isWorking:false}}
+        } else {this.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is not running" ,isWorking:false}}
         this.broadcast('updated');
     };
 

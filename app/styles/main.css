@@ -54,3 +54,19 @@ body {
 .pagination { margin: 0px; }
 .table { margin-bottom: 0px; }
 .panel-body { padding: 5px;}
+
+.clickable
+{
+    cursor: pointer;
+}
+
+.panel-heading.contains-buttons {
+    .clearfix;
+    .panel-title {
+        .pull-left;
+        padding-top:5px;
+    }
+    .btn {
+        .pull-right;
+    }
+}

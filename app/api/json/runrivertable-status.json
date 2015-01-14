@@ -1,0 +1,21 @@
+{
+   "query": {
+      "bool": {
+         "must": [
+            {
+               "term": {
+                  "_id": {
+                     "value": "_status"
+                  }
+               }
+            },{
+                "terms": {
+                   "_type": [
+                      "runriver"
+                   ]
+                }
+            }
+         ]
+      }
+   }
+}

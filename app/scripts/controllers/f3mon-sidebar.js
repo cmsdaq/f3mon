@@ -55,39 +55,92 @@
         $scope.noData = true;
         $scope.displayed = [];
         $scope.numRuns = 0;
+        $scope.numFiltered = 0;
         $scope.currentPage = 1;
-        $scope.pageNum = 200;
+        $scope.itemsPerPage = 5;
         $scope.searchText = '';
+        $scope.sortBy = 'runNumber';
+        $scope.sortOrder = 'desc';
 
+        $scope.pageChanged = function(newPageNumber) {
+            runListService.pageChanged(newPageNumber);
+        };
 
+        $scope.sortedClass = function(field){
+            if(field != $scope.sortBy){return 'fa-unsorted'}
+                else { return $scope.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc' }
+        };
+        
+        $scope.changeSorting = function(field){
+            if(field != $scope.sortBy ) {
+                $scope.sortBy = field;
+                $scope.sortOrder = 'desc';
+            } else {
+                $scope.sortOrder = ($scope.sortOrder == 'desc') ? 'asc' : 'desc';
+            }
+            sortingChanged();
+        };
+
+        var sortingChanged = function(){
+            runListService.sortingChanged($scope.sortBy,$scope.sortOrder);
+        };
 
         $scope.search = function(){
-            console.log('search')
+            runListService.search($scope.searchText);
         }
 
         $scope.$on( 'runList.updated', function( event ) {
             $scope.displayed = runListService.displayed;
-            $scope.numRuns = 100;
+            $scope.numRuns = runListService.total;
+            $scope.numFiltered = runListService.numFiltered;
+
             $scope.noData = false;
         })
-
-
-    
-        $scope.pagination = {
-            current: 1
-        };
-    
-        $scope.pageChanged = function(newPage) {
-            getResultsPage(newPage);
-        };
-    
-        function getResultsPage(pageNumber) {
-            // this is just an example, in reality this stuff should be in a service
-            console.log('resultpage')
-        }
         
     })
 
+    .controller('riverListCtrl', function($scope, riverListService) {        
+        $scope.noData = true;
+        $scope.displayed = [];
+        $scope.total = 0;
+        $scope.numFiltered = 0;
+        $scope.currentPage = 1;
+        $scope.itemsPerPage = 5;
+        $scope.sortBy = 'role';
+        $scope.sortOrder = 'desc';
+
+        $scope.pageChanged = function(newPageNumber) {
+            riverListService.pageChanged(newPageNumber);
+        };
+
+        $scope.sortedClass = function(field){
+            if(field != $scope.sortBy){return 'fa-unsorted'}
+                else { return $scope.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc' }
+        };
+        
+        $scope.changeSorting = function(field){
+            if(field != $scope.sortBy ) {
+                $scope.sortBy = field;
+                $scope.sortOrder = 'desc';
+            } else {
+                $scope.sortOrder = ($scope.sortOrder == 'desc') ? 'asc' : 'desc';
+            }
+            sortingChanged();
+        };
+
+        var sortingChanged = function(){
+            riverListService.sortingChanged($scope.sortBy,$scope.sortOrder);
+        };
+
+        $scope.$on( 'riverList.updated', function( event ) {
+            console.log('updated')
+            $scope.displayed = riverListService.displayed;
+            $scope.total = riverListService.total;
+            $scope.numFiltered = riverListService.numFiltered;
+            $scope.noData = false;
+        })
+        
+    })
 
 
 })();

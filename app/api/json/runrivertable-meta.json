@@ -1,0 +1,17 @@
+{
+   "query": {
+      "term": {
+         "_id": {
+            "value": "_meta"
+         }
+      }
+   },"sort": [
+      {
+         "role": {
+            "order": "desc",
+            "missing": "main",
+            "unmapped_type": "string"
+         }
+      }
+   ]
+}
