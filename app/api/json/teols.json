@@ -1,0 +1,48 @@
+{  "size": 0,
+   "fields": [],
+   "sort": {
+      "_timestamp": "desc"
+   },
+   "query": {
+      "filtered": {
+         "query": {
+            "range": {
+               "ls": {
+                  "from": 1,
+                  "to": 5
+               }
+            }
+         },
+         "filter": {
+                   "prefix": {
+                      "_id": "290011"
+                  }
+         }
+      }
+   },
+   "aggregations": {
+      "ls": {
+         "histogram": {
+            "field": "ls",
+            "interval" : 1,
+            "min_doc_count" : 0,
+            "extended_bounds" : {
+                    "min" : 0,
+                    "max" : 550
+            }
+         },
+         "aggs": {
+            "events": {
+               "sum": {
+                  "field": "NEvents"
+               }
+            },
+            "files": {
+               "sum": {
+                  "field": "NFiles"
+               }
+            }
+         }
+      }
+   }
+}

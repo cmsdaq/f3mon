@@ -1,0 +1,22 @@
+{
+   "size": 0,
+   "aggs": {
+      "type": {
+         "terms": {
+            "field": "_type"
+         },
+         "aggs": {
+            "server": {
+               "terms": {
+                  "field": "transport_address"
+               }
+            },
+            "role": {
+               "terms": {
+                  "field": "role"
+               }
+            }
+         }
+      }
+   }
+}

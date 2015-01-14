@@ -1,0 +1,18 @@
+{
+  "size": 1,
+  "from": 0,
+  "sort": [
+    {
+      "startTime": {
+        "order": "desc"
+      }
+    }
+  ],
+   "aggs":{
+       "total":{
+           "value_count":{
+               "field":"runNumber"
+           }
+       }
+   }
+}

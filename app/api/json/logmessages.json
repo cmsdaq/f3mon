@@ -1,0 +1,46 @@
+{
+  "sort": {
+    "_timestamp": {
+      "order": "asc"
+    }
+  },
+  "fields": [
+    "_timestamp",
+    "_source"
+  ],
+  "query": {
+    "filtered": {
+      "filter": {
+        "and": [
+          {
+            "range": {
+              "_timestamp": {
+                "to": "now",
+                "from": "0"
+              }
+            }
+          },
+          {
+            "range": {
+              "severityVal": {
+                "gte": "3"
+              }
+            }
+          }
+        ]
+      },
+      "query": {
+            "bool": {
+              "should": [
+                {
+                  "query_string": {
+                    "query": "*"
+                  }
+                }
+              ]
+            }
+      }
+    }
+  },
+  "size": 100
+}

@@ -1,0 +1,11 @@
+{
+  "size": 1,
+  "query": {
+    "term": {
+      "_parent": ""
+    }
+  },
+  "sort": {
+    "ls": "desc"
+  }
+}

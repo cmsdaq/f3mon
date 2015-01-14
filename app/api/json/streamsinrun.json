@@ -1,0 +1,20 @@
+{
+  "size": 0,
+  "query": {
+    "term": {
+      "_parent": ""
+    }
+  },
+  "sort": {
+    "_timestamp": "desc"
+  },
+  "facets": {
+    "streams": {
+      "terms": {
+        "size":100,
+        "field": "stream",
+        "order": "term"
+      }
+    }
+  }
+}

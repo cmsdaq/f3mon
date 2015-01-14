@@ -1,0 +1,17 @@
+{
+   "size": 10000,
+   "query": {
+      "range": {
+         "ls": {
+            "from": 0
+         }
+      }
+    },
+    "sort": [
+       {
+          "ls": {
+             "order": "asc"
+          }
+       }
+    ]
+}

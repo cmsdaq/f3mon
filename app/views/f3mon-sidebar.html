@@ -1,0 +1,132 @@
+<div class="col-md-3">
+    <div class="panel-group">
+        <!-- RUNINFO PANEL -->
+        <div class="panel panel-primary" ng-controller="runInfoCtrl">
+            <!-- Default panel contents -->
+            <div class="panel-heading clearfix">Run Info: {{runNumber}}
+                <a class="btn btn-xs btn-primary pull-right"><i class="fa fa-question"></i></a>
+            </div>
+
+            <div class="panel-body">
+                <!-- Table -->
+                <div class="table-responsive">
+                    <table class="table" style="width:100%">
+                        <tbody>
+                            <tr>
+                                <th scope="row">StartTime: </th>
+                                <td>{{startTime | date:"medium"}}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">EndTime: </th>
+                                <td>{{endTime ? (endTime | date:"medium") : "ongoing"}}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Streams: </th>
+                                <td style="max-width:100%;word-wrap:break-word">{{streams}}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">LS: </th>
+                                <td>{{lastls}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disk informations -->
+        <div class="panel panel-primary" ng-controller="disksInfoCtrl">
+            <!-- Default panel contents -->
+            <div class="panel-heading">Disks Informations:
+                <a class="btn btn-xs btn-primary pull-right"><i class="fa fa-question"></i></a>
+            </div>
+            <div class="panel-body">
+                <!-- Table -->
+                <div class="table-responsive">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th scope="row">BU Ramdisks: </th>
+                                <td style="text-align:right">{{buRamDisk ? (buRamDisk | percentage:2 )+" used" : "N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">BU Outdisks: </th>
+                                <td style="text-align:right">{{buOutDisk ? (buOutDisk | percentage:2 )+" used" : "N/A" }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">FU Outdisks: </th>
+                                <td style="text-align:right">{{fuOutDisk ? (fuOutDisk | percentage:2 )+" used" : "N/A" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Run List -->
+        <div class="panel panel-primary">
+            <!-- Default panel contents -->
+            <div class="panel-heading">Run List:
+                <a class="btn btn-xs btn-primary pull-right"><i class="fa fa-question"></i></a>
+            </div>
+            <div class="panel-body">
+                <!-- Table -->
+                <div class="table-responsive" ng-controller="runListCtrl">
+                    <table class="table table-striped table-hover" >
+                        <thead>
+                            <tr>
+                                <th>Number</th>
+                                <th>Start</th>
+                                <th>End</th>
+                            </tr>
+                        </thead>
+                        <tbody ng-show="!noData">
+                            <tr dir-paginate="row in displayed | itemsPerPage: 5" total-items="numRuns" pagination-id="runlistpag">
+                                <td>{{row.runNumber}}</td>
+                                <td>{{row.endTime ? (row.endTime | date:"dd/MM/yy HH:mm") : "ongoing"}}</td>
+                                <td>{{row.startTime | date:"dd/MM/yy HH:mm"}}</td>
+                            </tr>
+                        </tbody>
+                        <tbody ng-show="noData">
+                            <tr>
+                                <td colspan="4" class="text-center">No data available </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2"><input class="form-control" ng-model='searchText' ng-change='search()' type="text" placeholder='search...'/></td>
+                                <td colspan="2" class="text-right" style='vertical-align: middle' >
+                                    <dir-pagination-controls max-size='5' on-page-change="pageChanged(newPageNumber)" pagination-id="runlistpag"></dir-pagination-controls>                                
+                                </td>
+                                
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- River List -->
+        <div class="panel panel-primary">
+            <!-- Default panel contents -->
+            <div class="panel-heading">River List:
+                <a class="btn btn-xs btn-primary pull-right"><i class="fa fa-question"></i></a>
+            </div>
+            <div class="panel-body">
+                <!-- Table -->
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Host</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div>No data available.</div>
+            </div>
+        </div>
+    </div>
+</div>

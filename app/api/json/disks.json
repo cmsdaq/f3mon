@@ -1,0 +1,42 @@
+{
+    "size": 1,
+    "query": {
+        "wildcard": {
+            "activeRuns": {
+                "value": ""
+            }
+        }
+    },
+    "aggregations": {
+        "data": {
+            "avg": {
+                "field": "totalDataDir"
+            }
+        },
+        "dataused": {
+            "avg": {
+                "field": "usedDataDir"
+            }
+        },
+        "output": {
+            "avg": {
+                "field": "totalOutput"
+            }
+        },
+        "outputused": {
+            "avg": {
+                "field": "usedOutput"
+            }
+        },
+        "ramdisk": {
+            "avg": {
+                "field": "totalRamdisk"
+            }
+        },
+        "ramdiskused": {
+            "avg": {
+                "field": "usedRamdisk"
+            }
+        }
+    }
+}
