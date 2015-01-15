@@ -20,7 +20,8 @@
     'emguo.poller',
     'percentage',
     'ui.bootstrap',
-    'angularUtils.directives.dirPagination'
+    'angularUtils.directives.dirPagination',
+    'highcharts-ng'
   ]);
 
 

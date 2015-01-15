@@ -51,7 +51,7 @@
         
     })
 
-    .controller('runListCtrl', function($scope, runListService) {        
+    .controller('runListCtrl', function($scope, runListService, runRangerService, runInfoService) {        
         $scope.noData = true;
         $scope.displayed = [];
         $scope.numRuns = 0;
@@ -88,6 +88,11 @@
         $scope.search = function(){
             runListService.search($scope.searchText);
         }
+
+        $scope.selectRun = function(runNumber){
+            runRangerService.shutdown();
+            runInfoService.select(runNumber);
+        };
 
         $scope.$on( 'runList.updated', function( event ) {
             $scope.displayed = runListService.displayed;
@@ -133,7 +138,6 @@
         };
 
         $scope.$on( 'riverList.updated', function( event ) {
-            console.log('updated')
             $scope.displayed = riverListService.displayed;
             $scope.total = riverListService.total;
             $scope.numFiltered = riverListService.numFiltered;

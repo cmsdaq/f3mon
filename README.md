@@ -8,3 +8,7 @@ in the f3mon folder: bower install [component name] -S
 
 ##Development notes
 Requirements: node.js, bower, grunt
+
+#highchart installation
+bower install highcharts-release --save
+

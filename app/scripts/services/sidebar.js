@@ -277,7 +277,6 @@ angular.module('f3monApp')
         mypoller.stop();
         runList.sortBy = sortBy;
         runList.sortOrder = sortOrder;
-        console.log(runList.sortOrder);
         this.start();
     };
 
@@ -332,7 +331,7 @@ angular.module('f3monApp')
     });
     mypoller.promise.then(null, null, function(data) {
         //console.log(data);
-        console.log(JSON.stringify(data.list));
+        //console.log(JSON.stringify(data.list));
         var update = false;
         if (JSON.stringify(data.list) != cache) {
             cache = JSON.stringify(data.list);
@@ -352,7 +351,7 @@ angular.module('f3monApp')
 
     riverList.restart = function() {
         //Restart poller
-        console.log(riverList.currentPage);
+        //console.log(riverList.currentPage);
         mypoller = poller.get(resource, {
             argumentsArray: [{
                 size: riverList.itemPerPage,

@@ -1,4 +1,40 @@
-<div class="col-md-9 ">
-N/A
+<div class="col-md-9 full-height">
 
+    <div class="panel-group full-height">
+        <!-- RUNINFO PANEL -->
+        <div class="panel panel-primary" style='height:50%' ng-controller="streamRatesCtrl">
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Stream Rates:</h3>
+            </div>
+            <div class="panel-body" style='height:90%;'>
+                <highchart id="chart1" config="chartConfig" style='height:100%'></highchart>
+                
+            </div>
+        </div>
+
+        <!-- Disk informations -->
+        <div class="panel panel-primary" style='height:50%'>
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Microstates Time chart</h3>
+            </div>
+            <div class="panel-body" style='height:100%'>
+            </div>
+        </div>
+
+        <!-- River List -->
+        <div class="panel panel-primary" ng-controller="riverListCtrl" ng-show='false'>
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <h3 class="panel-title"><i class="fa fa-file-text-o"></i> Log Messages</h3>
+            </div>
+            <div class="panel-body">
+            </div>
+        </div>
+
+    </div>
 </div>

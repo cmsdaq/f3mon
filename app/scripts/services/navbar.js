@@ -107,6 +107,12 @@ angular.module('f3monApp')
         this.broadcast('status');
     };
 
+    runRanger.shutdown = function(){
+        mypoller.stop();
+        this.isActive = false;
+        this.broadcast('status');
+    };
+
     runRanger.broadcast = function(msg) {
         $rootScope.$broadcast('runRanger.'+msg);
     };
@@ -180,6 +186,9 @@ angular.module('f3monApp')
     };
 
     $rootScope.$on( 'runInfo.updated', function( event ) {
+        river.restart();
+    });
+    $rootScope.$on( 'runInfo.selected', function( event ) {
         river.restart();
     });
 

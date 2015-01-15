@@ -19,6 +19,11 @@
         };
     })
 
+    .controller('streamRatesCtrl', function($scope, streamRatesChartConfig) {    
+        $scope.chartConfig = streamRatesChartConfig;
+        $scope.chartConfig.loading = true;
+
+    })
 
 
 
