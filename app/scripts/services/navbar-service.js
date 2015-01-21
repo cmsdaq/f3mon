@@ -7,10 +7,9 @@
  * # core
  * Factory in the f3monApp.
  */
+
+(function() {
 angular.module('f3monApp')
-
-
-
 
 //Service for the system selector
 .factory('indexListService', function($resource,$rootScope,poller,config) {    
@@ -198,3 +197,4 @@ angular.module('f3monApp')
 
     return river;
 })
+})();

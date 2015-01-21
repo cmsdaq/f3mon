@@ -4,7 +4,7 @@ html,body {
   height: 100%;
 }
 body {
-  padding-top: 70px;
+  padding-top: 55px;
   padding-bottom: 20px;
   min-height: 800px;
 
@@ -71,4 +71,64 @@ body {
 
 .highcharts-container {
   height: 100%;
+}
+
+    
+.panel-heading {
+  overflow: hidden;
+}
+
+.input-group-xs>.form-control,
+.input-group-xs>.input-group-addon,
+.input-group-xs>.input-group-btn>.btn {
+    height: 22px;
+    padding: 1px 5px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+.pagination-xs > li > a,
+.pagination-xs > li > span {
+  padding: 1px 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+
+
+
+.input-group-addon.primary {
+    color: rgb(255, 255, 255);
+    background-color: rgb(50, 118, 177);
+    border-color: rgb(40, 94, 142);
+}
+.input-group-addon.success {
+    color: rgb(255, 255, 255);
+    background-color: rgb(92, 184, 92);
+    border-color: rgb(76, 174, 76);
+}
+.input-group-addon.info {
+    color: rgb(255, 255, 255);
+    background-color: rgb(57, 179, 215);
+    border-color: rgb(38, 154, 188);
+}
+.input-group-addon.warning {
+    color: rgb(255, 255, 255);
+    background-color: rgb(240, 173, 78);
+    border-color: rgb(238, 162, 54);
+}
+.input-group-addon.danger {
+    color: rgb(255, 255, 255);
+    background-color: rgb(217, 83, 79);
+    border-color: rgb(212, 63, 58);
+}
+
+.nav-tabs {
+  border-bottom: 0px solid #ddd;
+}
+
+.marginless {
+  margin-top:0px !important;
+  
 }

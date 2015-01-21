@@ -21,7 +21,7 @@
     'percentage',
     'ui.bootstrap',
     'angularUtils.directives.dirPagination',
-    'highcharts-ng'
+    'highcharts-ng',
   ]);
 
 

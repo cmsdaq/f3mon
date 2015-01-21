@@ -77,7 +77,7 @@ function getStringQuery($query){
 function percColor($percent){
     $color = "";
     if($percent == 100){$color = "green";}
-        else if ($percent >50) {$color = "orange";}
+        else if ($percent >=50) {$color = "orange";}
             else if ($percent < 50) {$color = "red";}
     return $color;
 }

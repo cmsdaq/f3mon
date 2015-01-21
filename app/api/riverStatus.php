@@ -15,10 +15,9 @@ if(!isset($_GET["size"])) $size = 100;
     else $size = $_GET["size"];  
  $index = '_river';
 
-$stringQuery = file_get_contents("../json/".$query.".json");
+$stringQuery = file_get_contents("./json/".$query.".json");
 $jsonQuery = json_decode($stringQuery,true);
 $jsonQuery["size"] = $size;
-
 
 
 $statusList = array();

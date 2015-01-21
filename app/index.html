@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title></title>
+    <title>F3 Mon</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width">
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
@@ -59,20 +59,25 @@
     <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
     <script src="bower_components/angular-utils-pagination/dirPagination.js"></script>
     <script src="bower_components/highcharts-ng/dist/highcharts-ng.js"></script>
-    <script src="bower_components/highcharts-release/highcharts.js"></script>
-    <script src="bower_components/highcharts-release/highcharts-more.js"></script>
-    <script src="bower_components/highcharts-release/modules/exporting.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/highstock-release/highstock.js"></script>
+    <script src="bower_components/highstock-release/highcharts-more.js"></script>
+    <script src="bower_components/highstock-release/modules/exporting.js"></script>
+    <script src="bower_components/highstock-release/modules/drilldown.js"></script>
+    <script src="bower_components/numeral/numeral.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
     <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="styles/grid-custom.js"></script>
     <script src="scripts/app.js"></script>
-    <script src="scripts/controllers/f3mon-header.js"></script>
-    <script src="scripts/controllers/f3mon-sidebar.js"></script>
-    <script src="scripts/controllers/f3mon-central.js"></script>
+    <script src="scripts/controllers/header-controller.js"></script>
+    <script src="scripts/controllers/sidebar-controller.js"></script>
+    <script src="scripts/controllers/central-controller.js"></script>
     <script src="scripts/services/config.js"></script>
-    <script src="scripts/services/navbar.js"></script>
-    <script src="scripts/services/sidebar.js"></script>
+    <script src="scripts/services/navbar-service.js"></script>
+    <script src="scripts/services/sidebar-service.js"></script>
+    <script src="scripts/services/central-service.js"></script>
     
     <!-- endbuild -->
     

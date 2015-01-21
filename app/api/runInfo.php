@@ -37,11 +37,13 @@ $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
 $terms = $res["facets"]["streams"]["terms"];
-foreach ($terms as &$term) {
-    unset($term["count"]);
+$streams = array();
+foreach ($terms as $term) {
+    $streams[] = $term['term'];
+    
 }
 
-$out["streams"] = $terms;
+$out["streams"] = $streams;
 
 //Last LS number
 $query = "lastls";
@@ -53,7 +55,7 @@ $jsonQuery["query"]["term"]["_parent"] = $runNumber;
 $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
-$out["lastls"] = $res["hits"]["hits"][0]["sort"];
+$out["lastLs"] = $res["hits"]["hits"][0]["sort"];
 
 
 if ($format=="json"){  

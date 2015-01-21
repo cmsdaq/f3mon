@@ -1,32 +1,67 @@
 <div class="col-md-9 full-height">
 
-    <div class="panel-group full-height">
-        <!-- RUNINFO PANEL -->
-        <div class="panel panel-primary" style='height:50%' ng-controller="streamRatesCtrl">
+    <div class="panel-group full-height" ng-controller="mainViewCtrl">
+        <!-- Stream rates chart panel -->
+        <div class="panel panel-primary" style='height:48%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
             <!-- Default panel contents -->
             <div class="panel-heading">
                 <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <div class="btn-group btn-group-xs pull-right">
+                    <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
+                    <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
+                </div>
+                <div class="pull-right" style='text-align:center;width:150px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
+                </div>
+                <div style="margin-left:10px;margin-right:10px" class="btn-group btn-group-xs pull-right">
+                    <label class="btn btn-primary" ng-model="unit" btn-radio="'e'" ng-change='unitChanged()'>Events</label>
+                    <label class="btn btn-primary" ng-model="unit" btn-radio="'b'" ng-change='unitChanged()'>Bytes</label>
+                </div>
+
+                <div class="pull-right" style="width:170px;">
+                    <div class="input-group input-group-xs ">
+                        <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="queryParams.useDivisor" type="checkbox" aria-label="..." style='vertical-align: middle'> SecondsPerLs </span>
+                        <input type="number" class="form-control" ng-model="queryParams.timePerLs" ng-change='service.paramsChanged()'>
+                    </div>
+                </div>
+                <!-- /.col-lg-6 -->
                 <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Stream Rates:</h3>
+
             </div>
-            <div class="panel-body" style='height:90%;'>
+            <div class="panel-body" style='height:85%;'>
                 <highchart id="chart1" config="chartConfig" style='height:100%'></highchart>
-                
             </div>
         </div>
 
-        <!-- Disk informations -->
-        <div class="panel panel-primary" style='height:50%'>
+        <!-- Drill down table panel -->
+        <div class="panel panel-primary marginless" ng-controller='drillDownCtrl' style='height:48%' ng-show='panelSelected(2)'>
             <!-- Default panel contents -->
             <div class="panel-heading">
                 <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
-                <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Microstates Time chart</h3>
+                <div class="btn-group btn-group-xs pull-right">
+                    <button type="button" ng-click='exitDD(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
+                    <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
+                </div>
+
+                <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> {{queryParams.type }} Ls range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
+            </div>
+            <div class="panel-body" style='height:85%;'>
+                <highchart id="chart2" config="chartConfig" style='height:100%' ></highchart>
+            </div>
+        </div>
+
+        <!-- Microstate chart panel -->
+        <div class="panel panel-primary" style='height:48%'>
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
             </div>
             <div class="panel-body" style='height:100%'>
             </div>
         </div>
 
-        <!-- River List -->
-        <div class="panel panel-primary" ng-controller="riverListCtrl" ng-show='false'>
+        <!-- Log table panel -->
+        <div class="panel panel-primary" ng-show='false'>
             <!-- Default panel contents -->
             <div class="panel-heading">
                 <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>

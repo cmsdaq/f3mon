@@ -3,66 +3,69 @@
         <div class="container-fluid">
             <!-- Brand and toggle get grouped for better mobile display -->
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse">
                     <span class="sr-only">Toggle navigation</span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="">F3Mon</a>
-            </div>
+                <a class="navbar-brand"></a>
+                <ul class="nav navbar-nav navbar-left nav-tabs" rol="tablist">
+                    <li class="active">
+                        <a href="">F3Mon</a>
+                    </li>
 
-            <ul class="nav navbar-nav navbar-left">
-                <li>
-                    <!-- Alert Link-->
-                    <a id="lob-button" href=""><i class="fa fa-bell"></i> Alerts
+                    <li>
+                        <!-- Alert Link-->
+                        <a id="lob-button" href=""><i class="fa fa-bell"></i> Alerts
                     <span class="label label-default" id="logNum">0</span>  
                     </a>
-                </li>
+                    </li>
+                </ul>
+            </div>
 
-                <li>
-                    <!-- SubSystem Selector-->
-                    <div class="btn-group" ng-controller="systemSelectorCtrl" >
-                        <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown">
-                            <i class="fa fa-database"></i> 
-                            System:
-                            <span id="selected-index"></span>
-                            {{selected}}
-                            <span class="caret" style="margin-left: 10px"></span>
-                        </button>
-                        <ul class="dropdown-menu" role="menu" id="subsystem-list">
-                            <li ng-repeat="item in list"  class="list-group-item" ng-click="change(item.subSystem)"><a href="">{{item.subSystem}}</a></li>
-                        </ul>
-                    </div>
+            <div class="collapse navbar-collapse" id="navbar-collapse">
 
-                    <!-- RiverStatus and RunRiver Buttons-->
-                    <div class="btn-group" ng-controller="riverStatusCtrl" >
-                        <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-class="{'btn-success':isWorking,'btn-danger':!isWorking}" ng-controller="riverStatusCtrl">
-                            <i class="fa fa-exchange"></i> 
-                            RiverStatus
-                        </button>
-                        <ul class="dropdown-menu list-group" class role="menu" id="subsystem-list">
-                            <li  class ="list-group-item" ng-repeat="item in messages" ng-class="{'list-group-item-success':item.isWorking,'list-group-item-danger':!item.isWorking}" ng-click="preventClose($event)">{{item.msg}}</li>
-                        </ul>
-                    </div>
 
-                    <button type="button" class="btn navbar-btn" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="runRangerCtrl" ng-click="toggle()">
-                    <i  class="fa fa-search"></i>
-                        RunRanger
+                <!-- SubSystem Selector-->
+                <div class="btn-group" ng-controller="systemSelectorCtrl">
+                    <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa fa-database"></i> System:
+                        <span id="selected-index"></span> {{selected}}
+                        <span class="caret" style="margin-left: 10px"></span>
                     </button>
+                    <ul class="dropdown-menu" role="menu" id="subsystem-list">
+                        <li ng-repeat="item in list" class="list-group-item" ng-click="change(item.subSystem)"><a href="">{{item.subSystem}}</a>
+                        </li>
+                    </ul>
+                </div>
 
-                </li>
-            </ul>
+                <!-- RiverStatus and RunRiver Buttons-->
+                <div class="btn-group" ng-controller="riverStatusCtrl">
+                    <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-class="{'btn-success':isWorking,'btn-danger':!isWorking}" ng-controller="riverStatusCtrl">
+                        <i class="fa fa-exchange"></i> RiverStatus
+                    </button>
+                    <ul class="dropdown-menu list-group" class role="menu" id="subsystem-list">
+                        <li class="list-group-item" ng-repeat="item in messages" ng-class="{'list-group-item-success':item.isWorking,'list-group-item-danger':!item.isWorking}" ng-click="preventClose($event)">{{item.msg}}</li>
+                    </ul>
+                </div>
 
-            <!-- RIGHT-BAR LINKS -->
-            <ul class="nav navbar-nav navbar-right">
-                <li><a href="../sctest/bigpic.html" id="tribeButton"><i class="fa fa-sitemap"></i> Tribe</a>
-                </li>
-                <li><a href="../kibana-tribe/#/dashboard/file/rateTribe"><i class="fa fa-sitemap"></i> Kibana-rateTribe</a>
-                </li>
-                <!--<li><a id="hltButton"><i class="fa fa-line-chart"></i> HLT Rates</a></li>-->
-            </ul>
+                <button type="button" class="btn navbar-btn" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="runRangerCtrl" ng-click="toggle()">
+                    <i class="fa fa-search"></i> RunRanger
+                </button>
 
+
+
+
+                <!-- RIGHT-BAR LINKS -->
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="../sctest/bigpic.html" id="tribeButton"><i class="fa fa-sitemap"></i> Tribe</a>
+                    </li>
+                    <li><a href="../kibana-tribe/#/dashboard/file/rateTribe"><i class="fa fa-sitemap"></i> Kibana-rateTribe</a>
+                    </li>
+                    <!--<li><a id="hltButton"><i class="fa fa-line-chart"></i> HLT Rates</a></li>-->
+                </ul>
+            </div>
 
         </div>
         <!-- /.container-fluid -->
