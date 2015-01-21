@@ -19,7 +19,7 @@
         };
     })
 
-    .controller('mainViewCtrl', function($scope, drillDownService) {
+    .controller('mainViewCtrl', function($scope, drillDownService, runInfoService) {
         $scope.service = drillDownService;
         $scope.queryParams = drillDownService.queryParams;
         $scope.status = {
@@ -50,10 +50,14 @@
             $scope.status.currentPanel = num;
         }
 
+        $scope.$on('runInfo.selected', function(event) {
+            console.log(event);
+        })
+
     })
 
     //this controller is really fragile, be careful if u need to change
-    .controller('drillDownCtrl', function($scope, config, drillDownChartConfig, drillDownService, secondDrillDownService) {
+    .controller('drillDownCtrl', function($scope, drillDownChartConfig, drillDownService, secondDrillDownService) {
         drillDownChartConfig.options.chart.events.drilldown = function(event) {
             secondDrillDown(event)
         }
@@ -123,7 +127,7 @@
 
     })
 
-    .controller('streamRatesCtrl', function($scope, config, streamRatesChartConfig, streamRatesService, colors) {
+    .controller('streamRatesCtrl', function($scope, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
         $scope.service = streamRatesService;
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
@@ -232,9 +236,6 @@
             var out = $scope.unit == 'e' ? streamRatesService.navSerie.events : streamRatesService.navSerie.files;
             chart.series[3].setData(out);
 
-
-
-
             streamRatesService.streams.forEach(function(item) {
                 var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
                 //add new series if doesnt exists
@@ -272,6 +273,21 @@
                 $scope.chartConfig.loading = false
             }
         });
+        
+        $scope.$on('runInfo.selected', function(event) {
+            console.log('sr reset start');
+            $scope.chartConfig.loading = true;
+            streamRatesService.stop();
+            $scope.chartConfig.series.splice(3,$scope.chartConfig.series.length);
+            $scope.streams = {};
+            $scope.miniSerie.data = [];
+            $scope.macroSerie.data = [];
+            var chart = $scope.chartConfig.getHighcharts();           
+            chart.series[3].setData([]);
+            colors.reset();
+            console.log('sr reset end');
+        })
+
     })
 
 

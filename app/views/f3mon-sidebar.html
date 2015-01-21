@@ -101,7 +101,7 @@
                                 <td>{{row.runNumber}}</td>
                                 <td>{{row.startTime | date:"dd/MM/yy HH:mm"}}</td>
                                 <td>{{row.endTime ? (row.endTime | date:"dd/MM/yy HH:mm") : "ongoing"}}</td>
-                                <td ng-click='selectRun(row.runNumber)' style='text-align: right'><a role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Display this run."><span class="fa fa-play-circle "></span></a>
+                                <td style='text-align: right'><a ng-click='selectRun(row.runNumber)' role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Display this run."><span class="fa fa-play-circle "></span></a>
                                 </td>
                             </tr>
                         </tbody>

@@ -37,6 +37,13 @@
                 noData: true,
             }
         };
+        srChart.stop = function(){
+
+            if(!angular.isUndefined(mypoller)){
+                mypoller.stop();    
+            }
+            
+        };
 
         srChart.start = function() {
             if (!runInfo.lastLs || !runInfo.streams) {
@@ -51,7 +58,8 @@
                     argumentsArray: [srChart.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    console.log(data)
+                    console.log('update sr data start');
+                    console.log(data);
                     srChart.lsList = data.lsList;
                     srChart.streams = data.streams;
                     srChart.minimerge = data.minimerge;
@@ -65,6 +73,7 @@
                     if (!runInfoService.data.isRunning()) {
                         mypoller.stop()
                     }
+                    console.log('update sr data stop');
                 })
             } else {
                 mypoller = poller.get(resource, {

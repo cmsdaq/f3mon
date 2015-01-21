@@ -21,22 +21,23 @@
         paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
     })
 
-    .factory('colors', function() {
-        var colors = {};
-        colors.list = Highcharts.getOptions(colors).colors;
-        colors.index = 0;
+    .service('colors', function() {
+        var list = Highcharts.getOptions('colors').colors;
+        var index = 0;
 
-        colors.get = function() {
-            var i = this.index;
-            if (this.index == (this.list.length - 1)) {
-                this.index = 0
+        this.get = function() {
+            var i = index;
+            if (index == (list.length - 1)) {
+                index = 0
             } else {
-                this.index += 1
+                index += 1
             }
-            return this.list[i];
+            return list[i];
         }
 
-        return colors;
+        this.reset = function(){
+            index = 0;
+        }
     })
 
 
@@ -150,31 +151,8 @@
                 }
             },
             rangeSelector: {
-                enabled: false,
-                allButtonsEnabled: true,
+                enabled: true,
 
-                buttons: [{
-                    type: 'all',
-                    text: 'All'
-                }],
-                buttonTheme: {
-                    width: 50
-                },
-                inputDateFormat: '%H:%M:%S.%L',
-                inputEditDateFormat: '%H:%M:%S.%L',
-                // Custom parser to parse the %H:%M:%S.%L format
-                inputDateParser: function(value) {
-                    value = value.split(/[:\.]/);
-                    return Date.UTC(
-                        1970,
-                        0,
-                        1,
-                        parseInt(value[0], 10),
-                        parseInt(value[1], 10),
-                        parseInt(value[2], 10),
-                        parseInt(value[3], 10)
-                    );
-                }
 
             },
 

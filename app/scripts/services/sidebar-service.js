@@ -40,9 +40,10 @@
 
 
         service.select = function(runNumber) {
-            if (runNumber == this.runNumber) {
+            if (runNumber == this.data.runNumber) {
                 return;
             }
+            console.log('runinfo selected '+runNumber);
             this.data.runNumber = runNumber;
             this.start();
             this.broadcast('selected');
