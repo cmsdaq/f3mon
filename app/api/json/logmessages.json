@@ -42,5 +42,11 @@
       }
     }
   },
-  "size": 100
+   "aggs":{
+    "lastTime":{
+        "max":{"field":"_timestamp"}
+    }
+   },
+  "size": 100,
+  "from":0
 }

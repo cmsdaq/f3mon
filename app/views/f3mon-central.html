@@ -1,24 +1,27 @@
-<div class="col-md-9 full-height">
+<div class="col-md-9 full-height" ng-controller="mainViewCtrl" id='central'> 
 
-    <div class="panel-group full-height" ng-controller="mainViewCtrl">
+
+
+    <div class="panel-group full-height" ng-show='globalStatus.isTabSelected(0)'>
         <!-- Stream rates chart panel -->
-        <div class="panel panel-primary" style='height:48%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
+<div id='srPanel'>
+            <div class="panel panel-primary" style='height:48%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)' >
             <!-- Default panel contents -->
             <div class="panel-heading">
-                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
-                <div class="btn-group btn-group-xs pull-right">
+                <span ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                     <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
                     <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
                 </div>
-                <div class="pull-right" style='text-align:center;width:150px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
+                <div id='sr-qtdisplay'class="pull-right" style='text-align:center;width:150px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
                 </div>
-                <div style="margin-left:10px;margin-right:10px" class="btn-group btn-group-xs pull-right">
+                <div style="margin-left:10px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
                     <label class="btn btn-primary" ng-model="unit" btn-radio="'e'" ng-change='unitChanged()'>Events</label>
                     <label class="btn btn-primary" ng-model="unit" btn-radio="'b'" ng-change='unitChanged()'>Bytes</label>
                 </div>
 
-                <div class="pull-right" style="width:170px;">
-                    <div class="input-group input-group-xs ">
+                <div class="pull-right" style="width:170px;" id ='sr-divisor'>
+                    <div class="input-group input-group-xs " >
                         <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="queryParams.useDivisor" type="checkbox" aria-label="..." style='vertical-align: middle'> SecondsPerLs </span>
                         <input type="number" class="form-control" ng-model="queryParams.timePerLs" ng-change='service.paramsChanged()'>
                     </div>
@@ -31,12 +34,13 @@
                 <highchart id="chart1" config="chartConfig" style='height:100%'></highchart>
             </div>
         </div>
+</div>
 
         <!-- Drill down table panel -->
         <div class="panel panel-primary marginless" ng-controller='drillDownCtrl' style='height:48%' ng-show='panelSelected(2)'>
             <!-- Default panel contents -->
             <div class="panel-heading">
-                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <span style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                 <div class="btn-group btn-group-xs pull-right">
                     <button type="button" ng-click='exitDD(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
                     <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
@@ -45,31 +49,77 @@
                 <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> {{queryParams.type }} Ls range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
             </div>
             <div class="panel-body" style='height:85%;'>
-                <highchart id="chart2" config="chartConfig" style='height:100%' ></highchart>
+                <highchart id="chart2" config="chartConfig" style='height:100%'></highchart>
             </div>
         </div>
 
-        <!-- Microstate chart panel -->
-        <div class="panel panel-primary" style='height:48%'>
+<div id='msPanel'>
+            <!-- Microstate chart panel -->
+        <div class="panel panel-primary" ng-controller='microStatesCtrl' style='height:48%' id='msPanel'>
             <!-- Default panel contents -->
             <div class="panel-heading">
-                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
+                <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                 <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
             </div>
-            <div class="panel-body" style='height:100%'>
-            </div>
-        </div>
-
-        <!-- Log table panel -->
-        <div class="panel panel-primary" ng-show='false'>
-            <!-- Default panel contents -->
-            <div class="panel-heading">
-                <span style="margin-left:10px" class="clickable pull-right"><i class="fa fa-question"></i></span>
-                <h3 class="panel-title"><i class="fa fa-file-text-o"></i> Log Messages</h3>
-            </div>
-            <div class="panel-body">
+            <div class="panel-body" style='height:90%'>
+                <highchart id="chart3" config="chartConfig" style='height:100%'></highchart>
             </div>
         </div>
 
     </div>
+</div>
+
+
+
+    <div class="panel-group full-height" ng-show='globalStatus.isTabSelected(1)'>
+        <div class="panel panel-primary" style='height:100%' ng-controller="logsCtrl" id='logPanel'>
+            <div class="panel-heading">
+                <h3 class="panel-title"><i class="fa fa-file-text-o"></i> Log Messages: </h3>
+            </div>
+            <div class="panel-body" style='height:85%;'>
+                <div class="table-responsive" >
+                    <table class="table table-striped table-hover table-condensed">
+                        <thead ng-show="!data.noData()">
+                            <tr style="width:100%">
+                                <th colspan="2">
+                                    <input class="form-control" type="text" placeholder='search...' />
+                                </th>
+                                
+                                <th colspan="2" class="text-right" style='vertical-align: middle'>
+                                    <dir-pagination-controls max-size='5' on-page-change="service.pageChanged(newPageNumber)" pagination-id="logPagination"></dir-pagination-controls>
+                                </th>
+                            </tr style="width:100%">
+                            <tr>
+                                <th class='clickable' style="width:15%;word-wrap:break-word;text-align: center">Host<i class="fa"></i>
+                                </th>
+
+                                <th class='clickable' style="width:10%;text-align: center">Severity<i class="fa"></i>
+                                </th>
+
+                                <th class='clickable' style="width:60%;word-wrap:break-word;text-align: center">Message<i class="fa"></i>
+                                </th>
+
+                                <th class='clickable' style="width:15%;text-align: center">MsgTime<i class="fa"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="table-responsive" style="height:90%;overflow-y: auto;">
+                    <table class="table table-striped table-hover table-condensed table-bordered">
+
+                        <tbody ng-show="!data.noData()">
+                            <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="logPagination">
+                                <td style="width:15%;word-wrap:break-word;">{{row.host}}</td>
+                                <td style="width:10%;text-align: center">{{row.severity}}</td>
+                                <td style="width:60%;word-wrap:break-word">{{row.message}}</td>
+                                <td style="width:15%;">{{row.msgtime}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>

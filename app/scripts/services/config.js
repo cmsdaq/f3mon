@@ -13,10 +13,11 @@
             'defaultSubSystem': "cdaq",
             'fastPollingDelay': 3000,
             'slowPollingDelay': 5000,
-            'chartWaitingMsg': 'No monitoring information.'
+            'chartWaitingMsg': 'No monitoring information.',
+            'msChartMaxPoints': 60,
         })
 
-    //Required by the dirpagination plugin
+    //Template required by the dirpagination plugin
     .config(function(paginationTemplateProvider) {
         paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
     })
@@ -35,7 +36,7 @@
             return list[i];
         }
 
-        this.reset = function(){
+        this.reset = function() {
             index = 0;
         }
     })
@@ -52,8 +53,8 @@
                     duration: 500,
                     easing: 'linear'
                 },
-                marginTop: 10,
-                spacingTop: 10,
+                //marginTop: 10,
+                //spacingTop: 10,
                 zoomType: 'x',
                 events: {},
             },
@@ -64,6 +65,12 @@
                 //maxHeight: 50,
             },
             plotOptions: {
+                series: {
+                    animation: {
+                        duration: 500,
+                        easing: 'linear'
+                    },
+                },
                 column: {
                     groupPadding: 0.01,
                     pointPadding: 0,
@@ -79,20 +86,23 @@
             tooltip: {
                 enabled: true,
                 followPointer: false,
-                positioner: function(labelWidth, labelHeight, point) {
-
-                    var tooltipX, tooltipY;
-                    if (point.plotX + labelWidth > this.chart.plotWidth) {
-                        tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
-                    } else {
-                        tooltipX = point.plotX + this.chart.plotLeft + 20;
-                    }
-                    tooltipY = point.plotY + this.chart.plotTop - 20;
-                    return {
-                        x: tooltipX,
-                        y: tooltipY
-                    };
-                }
+                //crosshairs: [true, true], //not visible with the grid
+                shared: true,
+                //position on the left or right side of the point only with shared:false
+                //                positioner: function(labelWidth, labelHeight, point) {
+                //
+                //                    var tooltipX, tooltipY;
+                //                    if (point.plotX + labelWidth > this.chart.plotWidth) {
+                //                        tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
+                //                    } else {
+                //                        tooltipX = point.plotX + this.chart.plotLeft + 20;
+                //                    }
+                //                    tooltipY = point.plotY + this.chart.plotTop - 20;
+                //                    return {
+                //                        x: tooltipX,
+                //                        y: tooltipY
+                //                    };
+                //                }
             },
 
             navigator: {
@@ -106,12 +116,11 @@
                         duration: 500,
                     },
                     fillOpacity: 0.3,
-
-
                 },
                 height: 25,
                 margin: 15,
                 yAxis: {
+                    tickPixelInterval: 5,
                     title: {
                         text: 'Totals'
                     },
@@ -123,7 +132,7 @@
                     },
                 },
                 xAxis: {
-                    tickPixelInterval: 100,
+                    tickPixelInterval: 50,
                     title: {
                         text: 'Ls'
                     },
@@ -137,27 +146,15 @@
                             //fontWeight: "bold"
                         },
                     },
-                    events: {
-                        setExtremes: function(event) {
-                            //console.log('nav set')
-
-
-                        },
-                        afterSetExtremes: function(event) {
-                            //console.log('nav after')
-
-                        }
-                    }
+                    events: {}
                 }
             },
             rangeSelector: {
-                enabled: true,
-
-
+                enabled: false,
             },
 
             navigation: {
-                enabled: false
+                enabled: true
             },
             scrollbar: {
                 enabled: true,
@@ -166,7 +163,6 @@
 
 
         },
-
         //handled by angular controller
         chart: {
             zoomType: 'x',
@@ -175,35 +171,26 @@
             text: ''
         },
         xAxis: [{
-            labels: {
-                formatter: function() {
-                    //console.log(this.value)
-                    return this.value;
-                },
-            },
+            //            labels: {
+            //                formatter: function() {
+            //                    return this.value;
+            //                },
+            //            },
+            minPadding: 0,
+            maxPadding: 0,
+            //             startOnTick: true,
             gridLineWidth: 1,
             id: "ls",
             allowDecimals: false,
             title: {
                 text: ''
             },
-            //categories: true,
-            //type: "category",
-            tickmarkPlacement: 'on',
-            minRange: 19,
-            tickInterval: 1,
-            events: {
-                //                setExtremes: function(event) {
-                //                    console.log('main set')
-                //                    console.log(event.min)
-                //                    console.log(event.max)
-                //                    
-                //                },
-                //                afterSetExtremes: function(event) {
-                //                    console.log('main after')
-                //                    
-                //                }
-            }
+            //            categories: [],
+            //            type: "category",
+            //            tickmarkPlacement: 'on',
+            minRange: 20,
+            //tickInterval: 1,
+            events: {}
         }],
         yAxis: [{
             title: {
@@ -264,7 +251,7 @@
         }],
         series: [{
             showInLegend: false,
-            visible: false,
+            visible: true,
             name: 'navigator',
             //type:area,
             //id:'navigator',
@@ -356,6 +343,97 @@
             series: []
         }
     })
+
+
+    .constant('microStatesChartConfig',
+
+        {
+            options: {
+                useHighStocks: true,
+                chart: {
+                    animation: true, //animation for stacked area is not supported
+                    ignoreHiddenSeries: true,
+                    //height: 400,
+                    zoomType: 'xy',
+                },
+                plotOptions: {
+                    area: {
+                        gapsize: 1,
+                        stacking: 'percent',
+                        connectNulls: false,
+                        lineWidth: 0,
+                        marker: {
+                            enabled: false,
+                            states: {
+                                hover: {
+                                    enabled: false,
+                                }
+                            }
+                        }
+                    },
+                    areaspline: {
+                        stacking: 'percent',
+                        //pointPadding: 0,
+                        //groupPadding: 0,
+                        //fillOpacity: 0.5,
+                        //connectNulls: true,
+                        //lineColor: '#ffffff',
+                        lineWidth: 0,
+                        //gapSize: 2,
+                        //marker: {
+                        //    enabled: false
+                        //}
+                    },
+                    column: {
+                        stacking: 'percent',
+                        pointPadding: 0,
+                        groupPadding: 0,
+                        borderWidth: 0,
+                        //fillOpacity: 0.5,
+                        //connectNulls: false,
+                        //lineColor: '#ffffff',
+                        //lineWidth: 0,
+                        //marker: {
+                        //    enabled : false
+                        //}
+                    }
+                },
+                //colors: Colors.colorList(),
+                legend: {
+                    layout: "vertical",
+                    align: "right",
+                    verticalAlign: 'top',
+                    //floating: true,
+                    borderRadius: 5,
+                    borderWidth: 1,
+                    itemDistance: 5,
+                    symbolRadius: 5
+                },
+                xAxis: {
+                    minPadding: 0,
+                    maxPadding: 0,
+                    category: true,
+                    type: 'datetime',
+                    tickmarkPlacement: 'on',
+                    //title: {
+                    //    enabled: false
+                    //}
+                },
+            },
+            //handled by angular
+            title: {
+                text: ''
+            },
+            subtitle: {
+                text: ''
+            },
+            yAxis: {
+                title: {
+                    text: 'Percent'
+                }
+            },
+            series: [],
+        })
 
 
 })();

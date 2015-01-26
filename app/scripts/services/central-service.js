@@ -10,6 +10,25 @@
 (function() {
     angular.module('f3monApp')
 
+    .factory('globalService', function($rootScope) {
+        var service = {
+            status: {
+                currentTab: 0,
+                changeTab: function(num) {
+                    this.currentTab = num;
+                },
+                isTabSelected: function(num) {
+                    return this.currentTab == num;
+                }
+            },
+
+        }
+
+        return service;
+
+    })
+
+
     .factory('streamRatesService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
         var mypoller;
         var runInfo = runInfoService.data;
@@ -21,7 +40,17 @@
             }
         });
 
-        var srChart = {
+        var service = {
+            data: {
+                minimerge: {},
+                macromerge: {},
+                streams: {},
+                navbar: {},
+                lastTime: false,
+                lsList: false,
+                interval: false,
+                noData: true,
+            },
             queryParams: {
                 runNumber: false,
                 from: false,
@@ -34,18 +63,18 @@
             },
             queryInfo: {
                 took: 0,
-                noData: true,
+                isFromSelected: false,
+                isToSelected: false,
             }
         };
-        srChart.stop = function(){
-
-            if(!angular.isUndefined(mypoller)){
-                mypoller.stop();    
+        service.stop = function() {
+            if (!angular.isUndefined(mypoller)) {
+                //console.log('service stop')
+                mypoller.stop();
             }
-            
         };
 
-        srChart.start = function() {
+        service.start = function() {
             if (!runInfo.lastLs || !runInfo.streams) {
                 return;
             };
@@ -55,58 +84,72 @@
                     action: 'jsonp_get',
                     delay: config.slowPollingDelay,
                     smart: true,
-                    argumentsArray: [srChart.queryParams]
+                    argumentsArray: [service.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    console.log('update sr data start');
-                    console.log(data);
-                    srChart.lsList = data.lsList;
-                    srChart.streams = data.streams;
-                    srChart.minimerge = data.minimerge;
-                    srChart.macromerge = data.macromerge;
-                    srChart.navSerie = data.navbar;
-                    srChart.queryInfo.took = data.took;
-                    srChart.queryInfo.noData = false;
-                    srChart.interval = data.interval;
+                    //console.log('update sr data start');
+                    console.log('sr interval',data.interval);
+                    if (service.data.lastTime != data.lastTime) {
 
-                    srChart.broadcast('updated');
+                        if (service.queryInfo.noData) {
+                            service.queryInfo.noData = false
+                        };
+
+                        service.queryInfo.took = data.took;
+                        service.data.lsList = data.lsList;
+                        service.data.interval = data.interval;
+                        service.data.streams = data.streams;
+                        service.data.minimerge = data.minimerge;
+                        service.data.macromerge = data.macromerge;
+                        service.data.navbar = data.navbar;
+                        broadcast('updated');
+                    }
+
                     if (!runInfoService.data.isRunning()) {
                         mypoller.stop()
                     }
-                    console.log('update sr data stop');
+                    //console.log('update sr data stop');
                 })
             } else {
+                    
+                console.log(service.queryParams)
                 mypoller = poller.get(resource, {
-                    argumentsArray: [srChart.queryParams]
+                    argumentsArray: [service.queryParams]
                 });
             }
         }
 
-        srChart.paramsChanged = function(msg) {
+        service.paramsChanged = function(msg) {
             this.start();
         }
 
-        srChart.broadcast = function(msg) {
+        var broadcast = function(msg) {
             $rootScope.$broadcast('srChart.' + msg);
         };
 
         $rootScope.$on('runInfo.updated', function(event) {
-            var runInfo = runInfoService.data;
-            var q = srChart.queryParams;
+            var q = service.queryParams;
+            var info = service.queryInfo;
 
             if (!angular.isUndefined(mypoller)) {
                 mypoller.stop()
             }
             q.runNumber = runInfo.runNumber;
-            q.from = runInfo.lastLs > 20 ? runInfo.lastLs - 20 : 1;
-            q.to = runInfo.lastLs > 20 ? runInfo.lastLs : 20;
+
+            if (!info.isFromSelected) {
+                q.from = runInfo.lastLs > 19 ? runInfo.lastLs - 19 : 1;
+            }
+            if (!info.isToSelected) {
+                q.to = runInfo.lastLs > 19 ? runInfo.lastLs : 19;
+            }
+
             q.sysName = indexListService.selected.subSystem;
             q.streamList = runInfo.streams.join();
             q.lastLs = runInfo.lastLs;
-            srChart.start();
+            service.start();
         });
 
-        return srChart;
+        return service;
     })
 
     //First Drill Down plot service
@@ -159,7 +202,9 @@
         };
 
         service.stop = function() {
-            if(!angular.isUndefined(mypoller)){mypoller.stop();}
+            if (!angular.isUndefined(mypoller)) {
+                mypoller.stop();
+            }
         }
 
         service.broadcast = function(msg) {
@@ -185,7 +230,7 @@
 
     //Second Drill Down plot service
     .factory('secondDrillDownService', function($resource, $rootScope, poller, config, drillDownService, runInfoService, indexListService) {
-        var mypoller,cache;
+        var mypoller, cache;
         var resource = $resource('api/minimacroperbu.php?', {
             callback: 'JSON_CALLBACK',
         }, {
@@ -226,7 +271,9 @@
         };
 
         service.stop = function() {
-            if(!angular.isUndefined(mypoller)){mypoller.stop();}
+            if (!angular.isUndefined(mypoller)) {
+                mypoller.stop();
+            }
         }
         service.broadcast = function(msg) {
             $rootScope.$broadcast('dd2Chart.' + msg);
@@ -248,6 +295,188 @@
 
         return service;
     })
+
+
+    .factory('microStatesService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
+        var mypoller;
+        var runInfo = runInfoService.data;
+        var indexInfo = indexListService.selected;
+
+        var resource = $resource('api/nstates.php', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP',
+            }
+        });
+
+        var service = {
+            data: {},
+            queryParams: {
+                runNumber: false,
+                sysName: false,
+            },
+            queryInfo: {
+                legend: false,
+                timestamp: false,
+                //                took: 0,
+                //                noData: true,
+                //                isFromSelected: false,
+                //                isToSelected: false,
+            }
+        };
+        service.stop = function() {
+            if (!angular.isUndefined(mypoller)) {
+                mypoller.stop();
+            }
+        };
+
+        service.start = function() {
+            //console.log('Microstates STARTED');
+            //if (!runInfo.isRunning) { return; };
+
+            if (angular.isUndefined(mypoller)) {
+                // Initialize poller and its callback
+                mypoller = poller.get(resource, {
+                    action: 'jsonp_get',
+                    delay: config.slowPollingDelay,
+                    smart: true,
+                    argumentsArray: [service.queryParams]
+                });
+                mypoller.promise.then(null, null, function(data) {
+                    //console.log(data.timestamp,service.queryInfo.timestamp);
+                    if (data.legend && data.timestamp != service.queryInfo.timestamp) {
+                        //console.log('ms update');
+                        service.queryInfo.legend = data.legend;
+                        service.queryInfo.timestamp = data.timestamp;
+                        service.data = data.data;
+                        broadcast('updated');
+                    }
+                })
+            } else {
+                mypoller = poller.get(resource, {
+                    argumentsArray: [service.queryParams]
+                });
+            }
+        }
+
+        var broadcast = function(msg) {
+            $rootScope.$broadcast('msChart.' + msg);
+        };
+
+        $rootScope.$on('runInfo.selected', function(event) {
+            var q = service.queryParams;
+            service.stop();
+
+            q.runNumber = runInfo.runNumber;
+            q.sysName = indexInfo.subSystem;
+
+            service.start();
+        });
+
+        return service;
+    })
+
+    .factory('logsService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
+        var mypoller, cache;
+        var runInfo = runInfoService.data;
+        var indexInfo = indexListService.selected;
+        var service = {
+            data: {
+                numLogs: 0,
+                currentPage: 1,
+                itemsPerPage: 20,
+                displayTotal: 0,
+                displayed: [],
+                lastTime: 0,
+                noData: function() {  return this.numLogs == 0  }
+            },
+            queryParams: {
+                startTime: false,
+                endTime: false,
+                sysName: false,
+                sortBy: 'msgtime',
+                sortOrder: 'desc',
+                search: '',
+                size: 20,
+                from: 0,
+            },
+        };
+        var resource = $resource('api/logtable.php', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP',
+            }
+        });
+
+
+        service.pageChanged = function(newPageNumber) {
+            this.stop();
+            service.data.currentPage = newPageNumber;
+            this.start();
+        }
+
+
+        service.stop = function() {
+            if (!angular.isUndefined(mypoller)) {
+                mypoller.stop();
+            }
+        };
+
+
+        service.start = function() {
+            //console.log('Microstates STARTED');
+            //if (!runInfo.isRunning) { return; };
+
+            if (angular.isUndefined(mypoller)) {
+                // Initialize poller and its callback
+                mypoller = poller.get(resource, {
+                    action: 'jsonp_get',
+                    delay: config.slowPollingDelay,
+                    smart: true,
+                    argumentsArray: [service.queryParams]
+                });
+                mypoller.promise.then(null, null, function(data) {
+                    //console.log(data);
+                    if (data.lastTime != service.data.lastTime && data.iTotalRecords) {
+                        service.data.lastTime = data.lastTime;
+                        service.data.displayed = data.aaData;
+                        service.data.displayTotal = data.iTotalDisplayRecords; //at the moment there no differences between totals. need to be improved in the query
+                        service.data.numLogs = data.iTotalRecords;
+                        //console.log(service.data);
+                    }
+                    //if (data.legend && data.timestamp != service.queryInfo.timestamp) {
+                    //    //console.log('ms update');
+                    //    //service.queryInfo.legend = data.legend;
+                    //    //service.queryInfo.timestamp = data.timestamp;
+                    //    //service.data = data.data;
+                    //    //broadcast('updated');
+                    //}
+                })
+            } else {
+                mypoller = poller.get(resource, {
+                    argumentsArray: [service.queryParams]
+                });
+            }
+        }
+
+        $rootScope.$on('runInfo.updated', function(event) {
+            var q = service.queryParams;
+            service.stop();
+
+            q.startTime = runInfo.startTime;
+            q.endTime = runInfo.endTime;
+            q.sysName = indexInfo.subSystem;
+
+            service.start();
+        });
+
+
+        return service;
+
+    })
+
 
 
 })();

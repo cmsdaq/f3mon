@@ -1,10 +1,14 @@
 {
-  "size": 0,
+  "size": 1,
   "fields": [
     "in",
     "out",
-    "filesize"
+    "filesize",
+    "fm_date"
   ],
+   "sort": {
+      "fm_date": "desc"
+   },
   "query": {
     "filtered": {
       "query": {

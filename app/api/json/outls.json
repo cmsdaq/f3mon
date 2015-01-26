@@ -1,77 +1,80 @@
 {
-  "size": 0,
-  "fields": [
-    "in",
-    "out",
-    "filesize"
-  ],
-  "query": {
-    "filtered": {
-      "query": {
-        "match_all": {}
-      },
-      "filter": {
-        "and": {
-          "filters": [
-            {
-              "prefix": {
-                "_id": "290011"
-              }
+    "size": 1,
+    "fields": [
+        "in",
+        "out",
+        "filesize",
+        "_timestamp"
+    ],
+    "sort": {
+        "_timestamp": "desc"
+    },
+    "query": {
+        "filtered": {
+            "query": {
+                "match_all": {}
+            },
+            "filter": {
+                "and": {
+                    "filters": [{
+                        "prefix": {
+                            "_id": "290011"
+                        }
+                    }]
+                }
             }
-          ]
         }
-      }
-    }
-  },
-  "aggs": {
-    "stream": {
-      "terms": {
-        "size":100,
-        "field": "stream",
-        "min_doc_count": 0
-      },
-      "aggs": {
-        "inrange": {
-          "filter": {
-            "range": {
-              "ls": {
-                "from": 0,
-                "to": 550
-              }
-            }
-          },
-          "aggs": {
-            "ls": {
-              "histogram": {
-                "field": "ls",
-                "interval": 1,
+    },
+    "aggs": {
+        "stream": {
+            "terms": {
+                "size": 100,
+                "field": "stream",
                 "min_doc_count": 0,
-                "extended_bounds": {
-                  "min": 0,
-                  "max": 550
+                "order" : { "_term" : "asc" }
+            },
+            "aggs": {
+                "inrange": {
+                    "filter": {
+                        "range": {
+                            "ls": {
+                                "from": 0,
+                                "to": 550
+                            }
+                        }
+                    },
+                    "aggs": {
+                        "ls": {
+                            "histogram": {
+                                "field": "ls",
+                                "interval": 1,
+                                "min_doc_count": 0,
+                                "extended_bounds": {
+                                    "min": 0,
+                                    "max": 550
+                                }
+                            },
+                            "aggs": {
+                                "in": {
+                                    "sum": {
+                                        "field": "in"
+                                    }
+                                },
+                                "out": {
+                                    "avg": {
+                                        "field": "out"
+                                    }
+                                },
+                                "filesize": {
+                                    "avg": {
+                                        "field": "filesize"
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-              },
-              "aggs": {
-                "in": {
-                  "sum": {
-                    "field": "in"
-                  }
-                },
-                "out": {
-                  "avg": {
-                    "field": "out"
-                  }
-                },
-                "filesize": {
-                  "avg": {
-                    "field": "filesize"
-                  }
-                }
-              }
             }
-          }
         }
-      }
     }
-  }
 }

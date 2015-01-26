@@ -7,7 +7,6 @@ body {
   padding-top: 55px;
   padding-bottom: 20px;
   min-height: 800px;
-
 }
 
 @media screen and (max-width: 768px) {
@@ -131,4 +130,16 @@ body {
 .marginless {
   margin-top:0px !important;
   
+}
+
+.tour-step-background {
+    position: fixed !important;
+}
+
+.popover.tour-tour {
+  max-width: 100%;
+}
+
+.tour-tour .popover-content {
+  text-align: center;
 }

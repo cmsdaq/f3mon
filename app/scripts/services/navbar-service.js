@@ -91,6 +91,7 @@ angular.module('f3monApp')
             mypoller.promise.then(null, null, function(data) {
                 if (data.runlist.length != 0 && !data.runlist[0].endTime){
                     runInfoService.select(data.runlist[0].runNumber);
+                    //runInfoService.select(123234);
                 };
             })
         } else{
@@ -136,13 +137,19 @@ angular.module('f3monApp')
         }
     });
     
-    var river = {};
-    river.messages = [{msg:'Loading...',color:'orange'}];
-    river.isWorking = false;
-    river.main = false; //it need to be running at the beginning
-    river.collector = true; //it doesn't need to be running at the beginning
+
+    var service = {data:{
+    messages : [{msg:'Loading...',color:'orange'}],
+    isWorking : false, //general status
+    main : false, //it need to be running at the beginnin
+    collector : true, //it doesn't need to be running at the beginning
+
+    }};
     
-    river.restart = function(){
+    
+    
+    
+    service.restart = function(){
         if (angular.isUndefined(mypoller)) {
             // Initialize poller and its callback
             mypoller = poller.get(resource, {
@@ -153,13 +160,13 @@ angular.module('f3monApp')
         
             mypoller.promise.then(null, null, function(data) {
                 var item = $.grep(data.systems, function(e){ return e.subSystem == indexListService.selected.subSystem; })[0];
-                if(item){river.main = item;} else {river.main = false;}
+                if(item){service.data.main = item;} else {service.data.main = false;}
                 if(runInfoService.runNumber && runInfoService.isRunning){
                     item = $.grep(data.runs, function(e){ return e.runNumber == runInfoService.runNumber; })[0];
-                    if(item){river.collector = item;}
-                    else {river.collector = false};
-                } else {river.collector = true}       
-                river.updateMessages();
+                    if(item){service.data.collector = item;}
+                    else {service.data.collector = false};
+                } else {service.data.collector = true}       
+                updateMessages();
             })
         }else {
             //Restart poller
@@ -167,34 +174,31 @@ angular.module('f3monApp')
         }
     }
 
-    river.updateMessages = function(){
-        this.isWorking = (this.main && this.collector);
-        if(this.main){this.messages[0] = {msg:"Main role running on server: "+this.main.host,isWorking:true}}
-            else {this.messages[0] = {msg:"Main role running on server: "+this.main.host,isWorking:true}}
+    var updateMessages = function(){
+        var d = service.data;
+        d.isWorking = (d.main && d.collector);
+        if(d.main){d.messages[0] = {msg:"Main role running on server: "+d.main.host,isWorking:true}}
+            else {d.messages[0] = {msg:"Main role running on server: "+d.main.host,isWorking:true}}
 
-        if(this.collector){
-            if(this.collector.status)
-                {this.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is running on server: "+this.collector.host,isWorking:true}}
-            else {if(this.messages.length >1){this.messages.splice(1,1);}}
-        } else {this.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is not running" ,isWorking:false}}
-        this.broadcast('updated');
-    };
-
-    river.broadcast = function(msg) {
-        $rootScope.$broadcast('riverStatus.'+msg);
+        if(d.collector){
+            if(d.collector.status)
+                {d.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is running on server: "+d.collector.host,isWorking:true}}
+            else {if(d.messages.length >1){d.messages.splice(1,1);}}
+        } else {d.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is not running" ,isWorking:false}}
+        
     };
 
     $rootScope.$on( 'runInfo.updated', function( event ) {
-        river.restart();
+        service.restart();
     });
     $rootScope.$on( 'runInfo.selected', function( event ) {
-        river.restart();
+        service.restart();
     });
 
     $rootScope.$on( 'indices.selected', function( event ) {
-        river.restart();
+        service.restart();
     });
 
-    return river;
+    return service;
 })
 })();

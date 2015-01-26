@@ -1,0 +1,12 @@
+{
+  "size": 1,
+  "query": {
+    "filtered": {
+      "query": {
+        "term": {
+          "_parent": ""
+        }
+      }
+    }
+  }
+}

@@ -68,12 +68,6 @@ function esQuery ($stringQuery,$index) {
 };
 
 
-
-function getStringQuery($query){
-    $stringQuery = file_get_contents("../json/".$query.".json");
-    return $stringQuery;
-};
-
 function percColor($percent){
     $color = "";
     if($percent == 100){$color = "green";}

@@ -1,5 +1,7 @@
 'use strict';
 
+
+
 /**
  * @ngdoc overview
  * @name f3monApp
@@ -10,6 +12,8 @@
  */
 
 (function() {
+
+$.ajaxSetup({cache:false});
   angular.module('f3monApp', [
     'ngAnimate',
     'ngMessages',
