@@ -36,7 +36,7 @@ $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 //var_dump($stringQuery);
 
-$typeList = [];
+$typeList = array();
 $out = array("list"=>array(),"total"=>$res["hits"]["total"]);
 foreach ($res["hits"]["hits"] as $item) {
     $typeList[] = $item["_type"]; //for status check
@@ -64,7 +64,8 @@ foreach ($out["list"] as &$item) { //pass by reference
     
     if(!empty($status)){
         //var_dump(reset($status));
-        $ipstring = reset($status)["_source"]["node"]["transport_address"];
+        $ipstring = reset($status);
+        $ipstring = $ipstring["_source"]["node"]["transport_address"];
         $ip = substr($ipstring,strpos($ipstring,'/')+1,strpos($ipstring,':')-strlen($ipstring));
         $host = gethostbyaddr ($ip);
         $item["status"] = true;

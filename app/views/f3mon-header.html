@@ -42,14 +42,14 @@
 
                 <!-- RiverStatus and RunRiver Buttons-->
                 <div id='riverStatusButton' class="btn-group" ng-controller="riverStatusCtrl" style="margin-left: 2px">
-                    <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-class="{'btn-success':data.isWorking,'btn-danger':!data.isWorking}" ng-controller="riverStatusCtrl">
+                    <button type="button" class="btn navbar-btn dropdown-toggle" data-toggle="dropdown" ng-class="data.isWorking " ng-controller="riverStatusCtrl">
                         <i class="fa fa-exchange"></i> RiverStatus
                     </button>
                     <ul class="dropdown-menu list-group" class role="menu" id="subsystem-list">
                         <li class="list-group-item" ng-repeat="item in data.messages" ng-class="{'list-group-item-success':item.isWorking,'list-group-item-danger':!item.isWorking}" ng-click="preventClose($event)">{{item.msg}}</li>
                     </ul>
                 </div>
-                
+
                 <div class='btn-group' id='runRangerButton'>
                     <button type="button" class="btn navbar-btn" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="runRangerCtrl" ng-click="toggle()">
                         <i class="fa fa-search"></i> RunRanger

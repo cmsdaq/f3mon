@@ -80,7 +80,8 @@ $took = $res["took"];
 $buckets = $res["aggregations"]["ls"]["buckets"];
 
 
-$postOffset = $lastLs-end($buckets)['key'];    
+$postOffset = end($buckets);    
+$postOffset = $lastLs -$postOffset['key'];
 
 if($buckets[0]['key'] >0){
     $ret["events"][] = array(0,0);
@@ -134,7 +135,8 @@ $lastTime[] = $res['hits']['hits'][0]['fields']['_timestamp'];
 
 
 $buckets = $res["aggregations"]["ls"]["buckets"];
-$postOffset = $to-end($buckets)['key'];   
+$postOffset = end($buckets);   
+$postOffset = $to-$postOffset['key'];   
 $ret = array(
     "lsList" => array(),
     "events" => array(),

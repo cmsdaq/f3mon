@@ -28,15 +28,15 @@
 
     <!-- Add your site or application content here -->
     <f3mon-navbar></f3mon-navbar>
-    
+
     <div class="container-fluid full-height">
-    <div class="row full-height">
-        <f3mon-sidebar></f3mon-sidebar>    
-        <f3mon-central></f3mon-central>    
+        <div class="row full-height">
+            <f3mon-sidebar></f3mon-sidebar>
+            <f3mon-central></f3mon-central>
+        </div>
     </div>
-    </div>
-    
-    
+
+
 
     <!-- build:js(.) scripts/oldieshim.js -->
     <!--[if lt IE 9]>
@@ -61,16 +61,17 @@
     <script src="bower_components/angular-percentage-filter/percentage.js"></script>
     <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
     <script src="bower_components/angular-utils-pagination/dirPagination.js"></script>
-    <script src="https://rawgithub.com/pablojim/highcharts-ng/master/src/highcharts-ng.js"></script>
     <script src="bower_components/underscore/underscore.js"></script>
     <script src="bower_components/highstock-release/highstock.js"></script>
     <script src="bower_components/highstock-release/highcharts-more.js"></script>
     <script src="bower_components/highstock-release/modules/exporting.js"></script>
+    <script src="bower_components/highstock-release/modules/drilldown.js"></script>
     <script src="bower_components/numeral/numeral.js"></script>
     <script src="bower_components/bootstrap-tour/build/js/bootstrap-tour.js"></script>
     <script src="bower_components/bootstrap-tour/build/js/bootstrap-tour-standalone.js"></script>
     <script src="bower_components/angular-strap/dist/angular-strap.js"></script>
     <script src="bower_components/angular-strap/dist/angular-strap.tpl.js"></script>
+    <script src="bower_components/highchart-ng/dist/highcharts-ng.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -84,13 +85,13 @@
     <script src="scripts/services/navbar-service.js"></script>
     <script src="scripts/services/sidebar-service.js"></script>
     <script src="scripts/services/central-service.js"></script>
-           <script src="scripts/other/tour.js"></script>
+    <script src="scripts/other/tour.js"></script>
 
-    
-    
-    
+
+
+
     <!-- endbuild -->
-    
+
 
 </body>
 

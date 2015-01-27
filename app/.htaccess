@@ -146,8 +146,14 @@ ErrorDocument 404 /404.html
     AddType video/x-flv                                 flv
 
   # Web fonts
-    AddType application/font-woff                       woff
-    AddType application/vnd.ms-fontobject               eot
+    #AddType application/font-woff                       woff
+    #AddType application/vnd.ms-fontobject               eot
+
+    AddType application/vnd.ms-fontobject .eot
+    AddType font/ttf .ttf
+    AddType font/otf .otf
+    AddType application/font-woff .woff  
+    AddType application/x-font-woff .woff
 
     # Browsers usually ignore the font MIME types and sniff the content,
     # however, Chrome shows a warning if other MIME types are used for the

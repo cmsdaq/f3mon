@@ -87,22 +87,22 @@
                 enabled: true,
                 followPointer: false,
                 //crosshairs: [true, true], //not visible with the grid
-                shared: true,
+                //shared: true,
                 //position on the left or right side of the point only with shared:false
-                //                positioner: function(labelWidth, labelHeight, point) {
-                //
-                //                    var tooltipX, tooltipY;
-                //                    if (point.plotX + labelWidth > this.chart.plotWidth) {
-                //                        tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
-                //                    } else {
-                //                        tooltipX = point.plotX + this.chart.plotLeft + 20;
-                //                    }
-                //                    tooltipY = point.plotY + this.chart.plotTop - 20;
-                //                    return {
-                //                        x: tooltipX,
-                //                        y: tooltipY
-                //                    };
-                //                }
+                                positioner: function(labelWidth, labelHeight, point) {
+                
+                                    var tooltipX, tooltipY;
+                                    if (point.plotX + labelWidth > this.chart.plotWidth) {
+                                        tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
+                                    } else {
+                                        tooltipX = point.plotX + this.chart.plotLeft + 20;
+                                    }
+                                    tooltipY = point.plotY + this.chart.plotTop - 20;
+                                    return {
+                                        x: tooltipX,
+                                        y: tooltipY
+                                    };
+                                }
             },
 
             navigator: {
@@ -193,6 +193,8 @@
             events: {}
         }],
         yAxis: [{
+            minPadding: 0,
+            maxPadding: 0,
             title: {
                 text: 'Events'
             },
@@ -202,6 +204,8 @@
             offset: 0,
             //opposite: false,
         }, {
+            minPadding: 0,
+            maxPadding: 0,
             title: {
                 text: 'Completeness %',
                 align: 'middle',
@@ -249,31 +253,7 @@
                 //align: 'right'
             }
         }],
-        series: [{
-            showInLegend: false,
-            visible: true,
-            name: 'navigator',
-            //type:area,
-            //id:'navigator',
-        }, {
-            borderWidth: 0.5,
-            type: 'column',
-            id: "minimerge",
-            name: "minimerge",
-            yAxis: "minipercent",
-            showInLegend: false,
-            cursor: "pointer",
-            minPointLength: 5,
-        }, {
-            borderWidth: 0.5,
-            type: 'column',
-            id: "macromerge",
-            name: "macromerge",
-            yAxis: "macropercent",
-            showInLegend: false,
-            cursor: "pointer",
-            minPointLength: 5,
-        }, ],
+        series: [],
     })
 
     .constant('drillDownChartConfig', {

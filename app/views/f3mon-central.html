@@ -46,7 +46,7 @@
 
                 <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> {{queryParams.type }} Ls range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
             </div>
-            <div class="panel-body" style='height:85%;'>
+            <div class="panel-body" style='height:88%;'>
                 <highchart id="chart2" config="chartConfig" style='height:100%' ></highchart>
             </div>
         </div>
@@ -58,11 +58,11 @@
             <!-- Microstate chart panel -->
         <div class="panel panel-primary" ng-controller='microStatesCtrl' style='height:100%' id='msPanel'>
             <!-- Default panel contents -->
-            <div class="panel-heading">
+            <div class="panel-heading" >
                 <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                 <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
             </div>
-            <div class="panel-body" style='height:90%'>
+            <div class="panel-body" style='height:88%;padding:0px; border:0px; margin:0px;'>
                 <highchart id="chart3" config="chartConfig" style='height:100%'></highchart>
             </div>
         </div>
@@ -100,7 +100,7 @@
                                 <th style="width:60%;word-wrap:break-word;text-align: center">Message<i class="fa"></i>
                                 </th>
 
-                                <th class='clickable' ng-click='service.changeSorting("msgtime")' style="width:15%;text-align: center">MsgTime <i class="fa" ng-class='service.sortedClass("msgtime")'></i>
+                                <th class='clickable' ng-click='service.changeSorting("msgtime")' style="width:15%;text-align: center" data-toggle="tooltip" title='Local time of the host machine'>HostTime <i class="fa" ng-class='service.sortedClass("msgtime")'></i>
                                 </th>
                             </tr>
                         </thead>

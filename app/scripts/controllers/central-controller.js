@@ -70,8 +70,7 @@ Object.size = function(obj) {
             $scope.status.currentPanel = num;
         }
 
-        $scope.$on('runInfo.selected', function(event) {
-        })
+        $scope.$on('runInfo.selected', function(event) {})
 
     })
 
@@ -204,8 +203,8 @@ Object.size = function(obj) {
 
         //minimacro background clicks
         $scope.chartConfig.options.chart.events.click = function(event) {
-                //var xRawValue = Math.round(Math.abs(event.xAxis[0].value)); 
-                //var xRealValue = data.lsList[xRawValue - 1]; 
+            //var xRawValue = Math.round(Math.abs(event.xAxis[0].value)); 
+            //var xRealValue = data.lsList[xRawValue - 1]; 
             var xRealValue = Math.round(Math.abs(event.xAxis[0].value));
 
             var y2RawValue = Math.ceil(event.yAxis[2].value);
@@ -218,28 +217,16 @@ Object.size = function(obj) {
             }
         }
 
-        $scope.miniSerie = $scope.chartConfig.series[1];
-        $scope.macroSerie = $scope.chartConfig.series[2];
+        //$scope.miniSerie = $scope.chartConfig.series[1];
+        //$scope.macroSerie = $scope.chartConfig.series[2];
+
+        $scope.miniSerie = false;
+        $scope.macroSerie = false;
 
         $scope.streams = {};
         $scope.unit = 'e';
 
-        //link first drilldown on points click
-        $scope.miniSerie.point = {
-            events: {
-                click: function(event) {
-                    $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
-                }
-            }
-        };
-        //link first drilldown on points click
-        $scope.macroSerie.point = {
-            events: {
-                click: function() {
-                    $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
-                }
-            }
-        };
+
 
 
         $scope.unitChanged = function() {
@@ -256,25 +243,83 @@ Object.size = function(obj) {
             }, false);
         }
 
-        $scope.$on('srChart.updated', function(event) {
+        //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
+        var initChart = function() {
+            $scope.chartConfig.series.push({
+                showInLegend: false,
+                visible: true,
+                name: 'navigator',
+                //type:area,
+                //id:'navigator',
+            }, {
+                borderWidth: 0.5,
+                type: 'column',
+                id: "minimerge",
+                name: "minimerge",
+                yAxis: "minipercent",
+                showInLegend: false,
+                cursor: "pointer",
+                minPointLength: 5,
+            }, {
+                borderWidth: 0.5,
+                type: 'column',
+                id: "macromerge",
+                name: "macromerge",
+                yAxis: "macropercent",
+                showInLegend: false,
+                cursor: "pointer",
+                minPointLength: 5,
+            })
 
+            //console.log($scope.chartConfig.series);
+
+            $scope.miniSerie = $scope.chartConfig.series[1];
+            $scope.macroSerie = $scope.chartConfig.series[2];
+
+            //link first drilldown on points click
+            $scope.miniSerie.point = {
+                events: {
+                    click: function(event) {
+                        $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
+                    }
+                }
+            };
+            //link first drilldown on points click
+            $scope.macroSerie.point = {
+                events: {
+                    click: function() {
+                        $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
+                    }
+                }
+            };
+
+            $scope.$apply(); //this cause an error ant the beginning .. is not important but i dont know how to fix for now
+
+        }
+
+        $scope.$on('srChart.updated', function(event) {
+            if (!$scope.miniSerie) {
+                initChart();
+            }
+            
+            
 
             if (!chart) {
-                chart = chart = $scope.chartConfig.getHighcharts();
+                chart = $scope.chartConfig.getHighcharts();
             }
+            
             //axis label update
             chart.xAxis[0].update({
                 tickPositions: data.lsList
             }, true);
 
             var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
-                //navigator update
+
+            //navigator update
             chart.series[3].setData(out);
 
             $scope.miniSerie.data = data.minimerge.percents;
             $scope.macroSerie.data = data.macromerge.percents;
-
-
 
             data.streams.data.forEach(function(item) {
                 var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
@@ -312,28 +357,32 @@ Object.size = function(obj) {
             if ($scope.chartConfig.loading) {
                 $scope.chartConfig.loading = false
             }
+
         });
 
         $scope.$on('runInfo.selected', function(event) {
             //GENERAL RESET!!
-            streamRatesService.stop();
-            $scope.chartConfig.loading = config.chartWaitingMsg;
-            $scope.chartConfig.series.splice(3, $scope.chartConfig.series.length);
-            $scope.streams = {};
-            $scope.miniSerie.data = [];
-            $scope.macroSerie.data = [];
-            var chart = $scope.chartConfig.getHighcharts();
-            chart.series[3].setData([]);
-            colors.reset();
+            if($scope.miniSerie){
+                streamRatesService.stop();
+                $scope.chartConfig.loading = config.chartWaitingMsg;
+                $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
+                $scope.streams = {};
+                $scope.miniSerie = false;
+                $scope.macroSerie = false;
+                var chart = $scope.chartConfig.getHighcharts();
+                chart.series[3].setData([]);
+                colors.reset();    
+            }
+            
         })
 
     })
 
     .controller('microStatesCtrl', function($scope, config, microStatesService, microStatesChartConfig) {
-        var states = {};        
+        var states = {};
 
         $scope.chartConfig = microStatesChartConfig;
-        $scope.chartConfig.loading =  config.chartWaitingMsg;
+        $scope.chartConfig.loading = config.chartWaitingMsg;
 
         $scope.$on('msChart.updated', function(event) {
             var maxPoint = config.msChartMaxPoints;

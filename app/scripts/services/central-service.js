@@ -107,7 +107,7 @@
                     }
 
                     if (!runInfoService.data.isRunning()) {
-                        mypoller.stop()
+                        service.stop()
                     }
                     //console.log('update sr data stop');
                 })
@@ -413,6 +413,7 @@
 
 
         service.pageChanged = function(newPageNumber) {
+            console.log(newPageNumber)
             service.stop();
             service.data.currentPage = newPageNumber;
             service.queryParams.from = (service.data.currentPage - 1) * service.data.itemsPerPage;
@@ -444,8 +445,6 @@
         };
 
 
-
-
         service.stop = function() {
             if (!angular.isUndefined(mypoller)) {
                 mypoller.stop();
@@ -468,7 +467,7 @@
                 mypoller.promise.then(null, null, function(data) {
                     //console.log(data);
                     //console.log('logupdate',data.lasttime,service.data.lastTime)
-                    if (data.lastTime != service.data.lastTime && data.iTotalRecords != service.data.displayTotal) {
+                    if (data.lastTime != service.data.lastTime || data.iTotalRecords != service.data.displayTotal) {
                         service.data.lastTime = data.lastTime;
                         service.data.displayed = data.aaData;
                         service.data.displayTotal = data.iTotalDisplayRecords; //at the moment there no differences between totals. need to be improved in the query
