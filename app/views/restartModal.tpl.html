@@ -1,0 +1,22 @@
+<div class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" ng-click="$hide()">&times;</button>
+                <h4 class="modal-title">Warning: recollect ES tribe data for run {{selected}}</h4>
+            </div>
+            <div class="modal-body">
+                <div>This command will start the ES data collector from the tribe servers to the central daq server. It is possible to remove the old data and restart from scratch or continue on the basis of the preexistent data.
+                </div>
+                <div>
+                    <BR>What's your answer?
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" ng-click="$hide()">Abort.</button>
+                <button type="button" class="btn btn-primary btn-rec-wipe" ng-click="$hide()">Wipe out old data(not working yet).</button>
+                <button type="button" class="btn btn-primary btn-rec-keep" ng-click="restartCollector(selected) || $hide()">Keep old data.</button>
+            </div>
+        </div>
+    </div>
+</div>
