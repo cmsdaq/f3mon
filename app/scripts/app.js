@@ -26,6 +26,7 @@ $.ajaxSetup({cache:false});
     'ui.bootstrap',
     'angularUtils.directives.dirPagination',
     'highcharts-ng',
+    'mgcrea.ngStrap',
   ]);
 
 

@@ -12,7 +12,7 @@
 
     //Service for the status of run selected; Check StartTime, EndTime, streams and lastLs
     .factory('runInfoService', function($resource, $rootScope, poller, config, indexListService) {
-        var mypoller,cache;
+        var mypoller,restartPoller,cache;
 
         var resource = $resource('api/runInfo.php', {
             callback: 'JSON_CALLBACK',
@@ -22,7 +22,19 @@
             }
         });
 
+        var restartCollectorRes = $resource('api/startCollector.php', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP'
+            }
+        });
+
+
+
+
         var service = {
+
             data: {
                 runNumber: false,
                 startTime: false,
@@ -38,6 +50,21 @@
             }
         };
 
+
+        service.restartCollector = function(runNumber){
+            restartPoller = poller.get(restartCollectorRes,{
+                action: 'jsonp_get',
+                delay: 5000,
+                smart: true,
+                argumentsArray:[{runNumber:runNumber,sysName:indexListService.selected.subSystem}]
+
+            })
+            restartPoller.promise.then(null,null,function(data){
+                console.log(data);
+                restartPoller.stop();
+            })
+            
+        }
 
         service.select = function(runNumber) {
             if (runNumber == this.data.runNumber) {
@@ -269,8 +296,8 @@
     })
 
     //Service for the disks information panel
-    .factory('riverListService', function($resource, $rootScope, poller, config) {
-        var mypoller, cache;
+    .factory('riverListService', function($resource, $rootScope, poller, config,indexListService) {
+        var mypoller, closePoller, cache;
         var resource = $resource('api/runRiverListTable.php', {
             callback: 'JSON_CALLBACK',
         }, {
@@ -278,6 +305,15 @@
                 method: 'JSONP'
             }
         });
+
+        var closeCollectorRes = $resource('api/closeRun.php', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP'
+            }
+        });
+
 
         var service = {data:{
             total : 0,
@@ -307,6 +343,21 @@
                 service.data.total = data.total;
             }
         })
+
+        service.closeCollector = function(runNumber){
+            closePoller = poller.get(closeCollectorRes,{
+                action: 'jsonp_get',
+                delay: 5000,
+                smart: true,
+                argumentsArray:[{runNumber:runNumber,sysName:indexListService.selected.subSystem}]
+
+            })
+            closePoller.promise.then(null,null,function(data){
+                console.log(data);
+                closePoller.stop();
+            })
+            
+        }
 
         service.restart = function() {
             //Restart poller

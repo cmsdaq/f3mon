@@ -159,10 +159,13 @@ angular.module('f3monApp')
             });
         
             mypoller.promise.then(null, null, function(data) {
+                console.log('riverstatus')
+                console.log(data);
                 var item = $.grep(data.systems, function(e){ return e.subSystem == indexListService.selected.subSystem; })[0];
                 if(item){service.data.main = item;} else {service.data.main = false;}
-                if(runInfoService.runNumber && runInfoService.isRunning){
-                    item = $.grep(data.runs, function(e){ return e.runNumber == runInfoService.runNumber; })[0];
+                console.log(runInfoService)
+                if(runInfoService.data.runNumber && runInfoService.data.isRunning){
+                    item = $.grep(data.runs, function(e){ return e.runNumber == runInfoService.data.runNumber; })[0];
                     if(item){service.data.collector = item;}
                     else {service.data.collector = false};
                 } else {service.data.collector = true}       
@@ -175,6 +178,8 @@ angular.module('f3monApp')
     }
 
     var updateMessages = function(){
+        
+        console.log(service.data)
         var d = service.data;
         d.isWorking = (d.main && d.collector);
         if(d.main){d.messages[0] = {msg:"Main role running on server: "+d.main.host,isWorking:true}}
@@ -182,10 +187,10 @@ angular.module('f3monApp')
 
         if(d.collector){
             if(d.collector.status)
-                {d.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is running on server: "+d.collector.host,isWorking:true}}
+                {d.messages[1]={msg:"Collector for run "+runInfoService.data.runNumber+" is running on server: "+d.collector.host,isWorking:true}}
             else {if(d.messages.length >1){d.messages.splice(1,1);}}
-        } else {d.messages[1]={msg:"Collector for run "+runInfoService.runNumber+" is not running" ,isWorking:false}}
-        
+        } else {d.messages[1]={msg:"Collector for run "+runInfoService.data.runNumber+" is not running" ,isWorking:false}}
+        console.log(d.messages)
     };
 
     $rootScope.$on( 'runInfo.updated', function( event ) {

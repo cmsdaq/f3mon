@@ -46,6 +46,7 @@ if($sortBy != '' && $sortOrder != ''){
     $jsonQuery["sort"] = array($sortBy=>array('order' => $sortOrder,"missing" => $missing));
 }
 
+//echo json_encode($jsonQuery);
 
 $stringQuery = json_encode($jsonQuery);
 //echo $stringQuery;

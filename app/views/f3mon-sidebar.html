@@ -1,12 +1,12 @@
 <div class="col-md-3 full-height " id='siderbar' ng-controller='sidebarCtrl'>
     <div class="panel-group full-height">
         <!-- RUNINFO PANEL -->
-        <div id="runInfoPanel">
+        <div id="runInfoPanel" class='panel'>
             <div class="panel panel-primary" ng-controller="runInfoCtrl">
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("runInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
-                    <button type="button" class="btn btn-xs btn-primary pull-right" data-toggle="tooltip" title="Restart data collector."><i class="fa fa-retweet"></i>
+                    <button ng-click='restartCollectorDialog(data.runNumber)' type="button" class="btn btn-xs btn-primary pull-right" data-toggle="tooltip" title="Restart data collector."><i class="fa fa-retweet"></i>
                     </button>
                     <h3 class="panel-title">Run Info: {{data.runNumber ? data.runNumber : "no run ongoing"}}</h3>
                 </div>
@@ -39,12 +39,12 @@
             </div>
         </div>
 
-        <div id='disksInfoPanel'>
+        <div id='disksInfoPanel' class='panel'>
             <!-- Disk informations -->
             <div class="panel panel-primary" ng-controller="disksInfoCtrl">
                 <!-- Default panel contents -->
                 <div class="panel-heading">
-                    <span ng-click='selectTour("disksInfoPanel")'  style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <span ng-click='selectTour("disksInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <h3 class="panel-title">Disks Informations:</h3>
                 </div>
                 <div class="panel-body">
@@ -71,7 +71,7 @@
             </div>
         </div>
 
-        <div id='runListPanel'>
+        <div id='runListPanel' class='panel'>
             <!-- Run List -->
             <div class="panel panel-primary" ng-controller="runListCtrl" id='runListPanel'>
                 <!-- Default panel contents -->
@@ -132,12 +132,12 @@
             </div>
         </div>
 
-        <div id='riverListPanel'>
+        <div id='riverListPanel' class='panel'>
             <!-- River List -->
             <div class="panel panel-primary" ng-controller="riverListCtrl">
                 <!-- Default panel contents -->
                 <div class="panel-heading">
-                    <span ng-click='selectTour("riverListPanel")'  style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <span ng-click='selectTour("riverListPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <h3 class="panel-title">River List:</h3>
                 </div>
                 <div class="panel-body">
@@ -163,13 +163,15 @@
                                     <td>{{row.name}}</td>
                                     <td>{{row.role}}</td>
                                     <td>{{row.host}}</td>
-                                    <td ng-show="row.role=='collector'" style='text-align: right'><a role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Stop data collector."><span class="fa fa-power-off "></span></a>
+                                    <td ng-show="row.role=='collector'" style='text-align: right'>
+                                        <a ng-click="closeCollectorDialog(row.name)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
                                     </td>
                                     <td ng-show="row.role!='collector'"></td>
                                 </tr>
                             </tbody>
                             <tfoot ng-show="!noData">
                                 <tr>
+                                    <td colspan="2" class="text-center"></td>
                                     <td colspan="2" class="text-right" style='vertical-align: middle'>
                                         <dir-pagination-controls max-size='5' on-page-change="service.pageChanged(newPageNumber)" pagination-id="riverListPag"></dir-pagination-controls>
                                     </td>

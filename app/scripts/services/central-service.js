@@ -49,13 +49,15 @@
                 lastTime: false,
                 lsList: false,
                 interval: false,
-                noData: true,
+                noData: function(){
+                    return _.isEmpty(this.streams) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge)
+                },
             },
             queryParams: {
                 runNumber: false,
                 from: false,
                 to: false,
-                intervalNum: 20,
+                intervalNum: 21,
                 sysName: false,
                 streamList: false,
                 timePerLs: 23.4,
@@ -88,7 +90,6 @@
                 });
                 mypoller.promise.then(null, null, function(data) {
                     //console.log('update sr data start');
-                    console.log('sr interval',data.interval);
                     if (service.data.lastTime != data.lastTime) {
 
                         if (service.queryInfo.noData) {
@@ -112,7 +113,6 @@
                 })
             } else {
                     
-                console.log(service.queryParams)
                 mypoller = poller.get(resource, {
                     argumentsArray: [service.queryParams]
                 });
@@ -137,10 +137,10 @@
             q.runNumber = runInfo.runNumber;
 
             if (!info.isFromSelected) {
-                q.from = runInfo.lastLs > 19 ? runInfo.lastLs - 19 : 1;
+                q.from = runInfo.lastLs > 20 ? runInfo.lastLs - 20 : 1;
             }
             if (!info.isToSelected) {
-                q.to = runInfo.lastLs > 19 ? runInfo.lastLs : 19;
+                q.to = runInfo.lastLs > 20 ? runInfo.lastLs : 20;
             }
 
             q.sysName = indexListService.selected.subSystem;
@@ -364,7 +364,8 @@
             $rootScope.$broadcast('msChart.' + msg);
         };
 
-        $rootScope.$on('runInfo.selected', function(event) {
+        $rootScope.$on('runInfo.updated', function(event) {
+            if(runInfo.endTime){return};
             var q = service.queryParams;
             service.stop();
 
@@ -412,10 +413,37 @@
 
 
         service.pageChanged = function(newPageNumber) {
-            this.stop();
+            service.stop();
             service.data.currentPage = newPageNumber;
-            this.start();
+            service.queryParams.from = (service.data.currentPage - 1) * service.data.itemsPerPage;
+            service.data.lastTime = 0;
+            service.start();
         }
+
+        service.sortedClass = function(field){
+            if(field != this.queryParams.sortBy){return 'fa-unsorted'}
+                else { return this.queryParams.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc' }
+        };
+
+        service.changeSorting = function(field) {
+            service.stop();
+            if(field != this.queryParams.sortBy ) {
+                this.queryParams.sortBy = field;
+                this.queryParams.sortOrder = 'desc';
+            } else {
+                this.queryParams.sortOrder = (this.queryParams.sortOrder == 'desc') ? 'asc' : 'desc';
+            }
+            service.data.lastTime = 0;
+            service.start();
+        };
+
+        service.search = function() {
+            service.stop();
+            service.data.lastTime = 0;
+            service.start();
+        };
+
+
 
 
         service.stop = function() {
@@ -439,11 +467,12 @@
                 });
                 mypoller.promise.then(null, null, function(data) {
                     //console.log(data);
-                    if (data.lastTime != service.data.lastTime && data.iTotalRecords) {
+                    //console.log('logupdate',data.lasttime,service.data.lastTime)
+                    if (data.lastTime != service.data.lastTime && data.iTotalRecords != service.data.displayTotal) {
                         service.data.lastTime = data.lastTime;
                         service.data.displayed = data.aaData;
                         service.data.displayTotal = data.iTotalDisplayRecords; //at the moment there no differences between totals. need to be improved in the query
-                        service.data.numLogs = data.iTotalRecords;
+                        service.data.numLogs = data.iTotalRecords || 0;
                         //console.log(service.data);
                     }
                     //if (data.legend && data.timestamp != service.queryInfo.timestamp) {

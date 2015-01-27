@@ -12,14 +12,14 @@
                 <a class="navbar-brand"></a>
                 <ul class="nav navbar-nav navbar-left nav-tabs" rol="tablist" ng-controller="tabsCtrl">
 
-                    <li id='f3monButton' ng-class="{'active': globalStatus.isTabSelected(0)}" >
-                        <a  href="" ng-click='globalStatus.changeTab(0)'>F3Mon</a>
+                    <li id='f3monButton' ng-class="{'active': globalStatus.isTabSelected(0)}">
+                        <a href="" ng-click='globalStatus.changeTab(0)'>F3Mon</a>
                     </li>
 
                     <li id="logButton" ng-class="{'active': globalStatus.isTabSelected(1)}">
                         <!-- Alert Link-->
-                        <a  href="" ng-click='globalStatus.changeTab(1)'><i class="fa fa-bell"></i> Alerts
-                    <span class="label label-success" id="logNum"  ng-class="{'label-danger':logdata.numLogs > 0}">{{logdata.numLogs}}</span>  
+                        <a href="" ng-click='globalStatus.changeTab(1)'><i class="fa fa-bell"></i> Alerts
+                    <span class="label label-success" id="logNum"  ng-class="{'label-danger':logdata.numLogs > 0}">{{logdata.numLogs || 0}}</span>  
                     </a>
                     </li>
                 </ul>
@@ -41,18 +41,20 @@
                 </div>
 
                 <!-- RiverStatus and RunRiver Buttons-->
-                <div id='riverStatusButton'class="btn-group" ng-controller="riverStatusCtrl" style="margin-left: 2px">
-                    <button  type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-class="{'btn-success':data.isWorking,'btn-danger':!data.isWorking}" ng-controller="riverStatusCtrl">
+                <div id='riverStatusButton' class="btn-group" ng-controller="riverStatusCtrl" style="margin-left: 2px">
+                    <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-class="{'btn-success':data.isWorking,'btn-danger':!data.isWorking}" ng-controller="riverStatusCtrl">
                         <i class="fa fa-exchange"></i> RiverStatus
                     </button>
                     <ul class="dropdown-menu list-group" class role="menu" id="subsystem-list">
                         <li class="list-group-item" ng-repeat="item in data.messages" ng-class="{'list-group-item-success':item.isWorking,'list-group-item-danger':!item.isWorking}" ng-click="preventClose($event)">{{item.msg}}</li>
                     </ul>
                 </div>
-
-                <button id='runRangerButton' type="button" class="btn navbar-btn" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="runRangerCtrl" ng-click="toggle()">
-                    <i class="fa fa-search"></i> RunRanger
-                </button>
+                
+                <div class='btn-group' id='runRangerButton'>
+                    <button type="button" class="btn navbar-btn" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="runRangerCtrl" ng-click="toggle()">
+                        <i class="fa fa-search"></i> RunRanger
+                    </button>
+                </div>
 
 
 
@@ -73,6 +75,6 @@
         </div>
         <!-- /.container-fluid -->
     </nav>
- 
+
 </header>
 <!-- /header -->

@@ -82,9 +82,9 @@ $buckets = $res["aggregations"]["ls"]["buckets"];
 
 $postOffset = $lastLs-end($buckets)['key'];    
 
-if($navInterval >1){
-    $ret["events"][] = array(1,0);
-    $ret["files"][] = array(1,0);    
+if($buckets[0]['key'] >0){
+    $ret["events"][] = array(0,0);
+    $ret["files"][] = array(0,0);    
 }
 
 

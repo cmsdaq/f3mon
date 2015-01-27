@@ -127,7 +127,7 @@
                     labels: {
                         enabled: true,
                         formatter: function() {
-                            return numeral(this.value).format('0a')
+                            //return numeral(this.value).format('0a')
                         }
                     },
                 },

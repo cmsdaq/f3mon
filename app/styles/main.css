@@ -143,3 +143,9 @@ body {
 .tour-tour .popover-content {
   text-align: center;
 }
+
+.noDataMsg {
+  text-align: center;
+  position: relative;
+  
+}

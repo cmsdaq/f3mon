@@ -22,8 +22,10 @@
     .controller('sidebarCtrl', function($scope) {
         $scope.selectTour = function(id) {
             console.log(tourConfig.tour)
-            if(!tourConfig.tour.__inited){tourConfig.tour.init()}
-            
+            if (!tourConfig.tour.__inited) {
+                tourConfig.tour.init()
+            }
+
             var id = "#" + id;
             var steps = tourConfig.tour._options.steps;
             var i = steps.map(function(e) {
@@ -35,8 +37,17 @@
 
     })
 
-    .controller('runInfoCtrl', function($scope, runInfoService) {
+    .controller('runInfoCtrl', function($scope, $modal, runInfoService) {
+        var modal = $modal({scope: $scope, template: 'views/restartModal.tpl.html',placement:'center', show: false, backdrop:true});
         $scope.data = runInfoService.data;
+        $scope.selected = false;
+        $scope.restartCollector = runInfoService.restartCollector;
+
+        $scope.restartCollectorDialog = function (runNumber) {
+            console.log(runNumber)
+            $scope.selected = runNumber;
+            modal.$promise.then(modal.show);
+        };
     })
 
     .controller('disksInfoCtrl', function($scope, disksInfoService) {
@@ -51,11 +62,22 @@
             runRangerService.shutdown();
             runInfoService.select(runNumber);
         };
+
     })
 
-    .controller('riverListCtrl', function($scope, riverListService) {
-        $scope.service = riverListService;
-        $scope.data = riverListService.data;
+    .controller('riverListCtrl', function($scope,$modal, riverListService) {
+        var modal = $modal({scope: $scope, template: 'views/closeModal.tpl.html', show: false});
+        var service = riverListService;
+        $scope.selected = false;
+        $scope.data = service.data;
+
+        $scope.closeCollectorDialog = function (name) {
+            $scope.selected = name.split("_")[1];
+            modal.$promise.then(modal.show);
+        };
+
+        $scope.closeCollector = service.closeCollector;
+
     })
 
 

@@ -1,7 +1,8 @@
 'use strict';
 
 Object.size = function(obj) {
-    var size = 0, key;
+    var size = 0,
+        key;
     for (key in obj) {
         if (obj.hasOwnProperty(key)) size++;
     }
@@ -33,13 +34,14 @@ Object.size = function(obj) {
         $scope.globalStatus = globalService.status;
         $scope.status = {
             showDrillDown: false,
-            currentPanel: 1            
+            currentPanel: 1
         }
 
         $scope.selectTour = function(id) {
-            console.log(tourConfig.tour)
-            if(!tourConfig.tour.__inited){tourConfig.tour.init()}
-            
+            if (!tourConfig.tour.__inited) {
+                tourConfig.tour.init()
+            }
+
             var id = "#" + id;
             var steps = tourConfig.tour._options.steps;
             var i = steps.map(function(e) {
@@ -50,10 +52,6 @@ Object.size = function(obj) {
         }
 
         $scope.enableDrillDown = function(type, x, interval) {
-            //console.log('enabledrilldown ')
-            //console.log(type)
-            console.log(x)
-            console.log(x + interval - 1);
             $scope.status.showDrillDown = true;
             $scope.queryParams.type = type;
             $scope.queryParams.from = x;
@@ -73,7 +71,6 @@ Object.size = function(obj) {
         }
 
         $scope.$on('runInfo.selected', function(event) {
-            //console.log(event);
         })
 
     })
@@ -149,22 +146,18 @@ Object.size = function(obj) {
 
     })
 
-    .controller('streamRatesCtrl', function($scope, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
+    .controller('streamRatesCtrl', function($scope, config, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
         $scope.service = streamRatesService;
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
         $scope.chartConfig = streamRatesChartConfig;
+        $scope.chartConfig.loading = config.chartWaitingMsg;
         var data = streamRatesService.data;
         var chart = false;
 
-
         var selectionRules = function(min, max) {
-            console.log(min,max)
             streamRatesService.stop();
             var lastLs = runInfoService.data.lastLs;
-            //console.log(lastLs);
-            //console.log(max);
-            //console.log(min);
             if (min == 0) {
                 min = 1
             }
@@ -179,19 +172,15 @@ Object.size = function(obj) {
                 $scope.queryInfo.isFromSelected = true;
                 $scope.queryInfo.isToSelected = true;
             }
-            //console.log($scope.queryInfo);
-            //console.log('logselection end')
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
             $scope.service.paramsChanged();
-            console.log(min,max)
         }
+
 
         //setExtremes
         $scope.chartConfig.xAxis[0].events.setExtremes = function(event) {
-            //console.log('setextremes')
             event.preventDefault();
-            $scope.chartConfig.loading = true;
             var min = Math.round(event.min);
             var max = Math.round(event.max);
             selectionRules(min, max)
@@ -199,7 +188,6 @@ Object.size = function(obj) {
 
         //zoom selection
         $scope.chartConfig.options.chart.events.selection = function(event) {
-            //console.log('zoom selection')
             event.preventDefault();
 
             var min = Math.round(event.xAxis[0].min);
@@ -211,15 +199,13 @@ Object.size = function(obj) {
                 max = max + Math.round((20 - range) / 2)
             }
 
-            $scope.chartConfig.loading = true;
             selectionRules(min, max)
         }
 
         //minimacro background clicks
         $scope.chartConfig.options.chart.events.click = function(event) {
-            //console.log('background click');
-            //var xRawValue = Math.round(Math.abs(event.xAxis[0].value)); 
-            //var xRealValue = data.lsList[xRawValue - 1]; 
+                //var xRawValue = Math.round(Math.abs(event.xAxis[0].value)); 
+                //var xRealValue = data.lsList[xRawValue - 1]; 
             var xRealValue = Math.round(Math.abs(event.xAxis[0].value));
 
             var y2RawValue = Math.ceil(event.yAxis[2].value);
@@ -242,7 +228,6 @@ Object.size = function(obj) {
         $scope.miniSerie.point = {
             events: {
                 click: function(event) {
-                    //console.log(event)
                     $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
                 }
             }
@@ -273,6 +258,7 @@ Object.size = function(obj) {
 
         $scope.$on('srChart.updated', function(event) {
 
+
             if (!chart) {
                 chart = chart = $scope.chartConfig.getHighcharts();
             }
@@ -282,17 +268,11 @@ Object.size = function(obj) {
             }, true);
 
             var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
-            //navigator update
+                //navigator update
             chart.series[3].setData(out);
-
-
 
             $scope.miniSerie.data = data.minimerge.percents;
             $scope.macroSerie.data = data.macromerge.percents;
-
-            console.log(data.lsList, data.lsList.length);
-            //console.log(data);
-
 
 
 
@@ -329,8 +309,6 @@ Object.size = function(obj) {
                 }
             })
 
-
-
             if ($scope.chartConfig.loading) {
                 $scope.chartConfig.loading = false
             }
@@ -338,10 +316,8 @@ Object.size = function(obj) {
 
         $scope.$on('runInfo.selected', function(event) {
             //GENERAL RESET!!
-            //console.log('sr reset start');
-            $scope.chartConfig.loading = true;
             streamRatesService.stop();
-
+            $scope.chartConfig.loading = config.chartWaitingMsg;
             $scope.chartConfig.series.splice(3, $scope.chartConfig.series.length);
             $scope.streams = {};
             $scope.miniSerie.data = [];
@@ -349,16 +325,16 @@ Object.size = function(obj) {
             var chart = $scope.chartConfig.getHighcharts();
             chart.series[3].setData([]);
             colors.reset();
-            //console.log('sr reset end');
         })
 
     })
 
     .controller('microStatesCtrl', function($scope, config, microStatesService, microStatesChartConfig) {
-        var states = {};
-
+        var states = {};        
 
         $scope.chartConfig = microStatesChartConfig;
+        $scope.chartConfig.loading =  config.chartWaitingMsg;
+
         $scope.$on('msChart.updated', function(event) {
             var maxPoint = config.msChartMaxPoints;
             var service = microStatesService;
@@ -366,7 +342,6 @@ Object.size = function(obj) {
             Object.keys(service.data).forEach(function(state) {
                 var stateValue = service.data[state];
                 if ($.inArray(state, Object.keys(states)) == -1) {
-                    //console.log('add state ', state, timestamp)
                     $scope.chartConfig.series.push({
                         type: 'area',
                         id: state,
@@ -377,7 +352,6 @@ Object.size = function(obj) {
                     });
                     states[state] = $scope.chartConfig.series[$scope.chartConfig.series.length - 1];
                 } else {
-                    //console.log('update state ',state,timestamp)
                     if (states[state].data.length > maxPoint) {
                         states[state].data.shift()
                     }
@@ -386,9 +360,18 @@ Object.size = function(obj) {
 
             })
 
+
+            if ($scope.chartConfig.loading) {
+                $scope.chartConfig.loading = false
+            }
             //var serie = $scope.chartConfig.getHighcharts().series[0].data.length;
-            //console.log('ms value',serie);
-            //console.log('ms size',Object.size($scope.chartConfig.getHighcharts()))
+
+        })
+        $scope.$on('runInfo.selected', function(event) {
+            microStatesService.stop();
+            $scope.chartConfig.loading = config.chartWaitingMsg;
+            $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
+            states = {};
 
         })
 
