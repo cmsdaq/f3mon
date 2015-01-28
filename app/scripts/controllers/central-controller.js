@@ -318,7 +318,8 @@ Object.size = function(obj) {
             var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
 
             //navigator update
-            chart.series[3].setData(out);
+            var navSerie = _.findWhere(chart.series,{name:'Navigator'});
+            navSerie.setData(out);
 
             $scope.miniSerie.data = data.minimerge.percents;
             $scope.macroSerie.data = data.macromerge.percents;
@@ -391,6 +392,7 @@ Object.size = function(obj) {
             var maxPoint = config.msChartMaxPoints;
             var service = microStatesService;
             var timestamp = Math.round(service.queryInfo.timestamp);
+
             Object.keys(service.data).forEach(function(state) {
                 var stateValue = service.data[state];
                 if ($.inArray(state, Object.keys(states)) == -1) {

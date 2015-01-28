@@ -14,7 +14,7 @@
             'fastPollingDelay': 3000,
             'slowPollingDelay': 5000,
             'chartWaitingMsg': 'No monitoring information.',
-            'msChartMaxPoints': 30,
+            'msChartMaxPoints': 10,
             'defaultTimezone': 'UTC',
         })
 
