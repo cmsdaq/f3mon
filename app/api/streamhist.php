@@ -14,7 +14,7 @@ if(!isset($_GET["runNumber"])) $runNumber = 124029;
     else $runNumber = $_GET["runNumber"];
 if(!isset($_GET["from"])) $from = 1;
     else $from = $_GET["from"];
-if(!isset($_GET["to"])) $to = 20;
+if(!isset($_GET["to"])) $to = 21;
     else $to = $_GET["to"];     
 if(!isset($_GET["lastLs"])) $lastLs = 50;
     else $lastLs = $_GET["lastLs"];     
@@ -31,7 +31,7 @@ if(!isset($_GET["useDivisor"])) $useDivisor = false;
 
 //if($to == 'last'){$to = $lastLs;}
 
-if($lastLs<20){$lastLs = 20;}
+if($lastLs<21){$lastLs = 21;}
 
 $streamList = split(",",$streamList);
 

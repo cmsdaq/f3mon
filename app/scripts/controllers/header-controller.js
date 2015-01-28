@@ -30,6 +30,29 @@
 
     })
 
+.controller('timezoneSelectorCtrl', function($scope, $timezone, config, angularMomentConfig) {        
+    
+    $scope.list= ['UTC','Locale'];
+    $scope.selected = 'UTC';
+    angularMomentConfig.timezone = 'utc' ;
+
+
+    //angularMomentConfig.preprocess = 'utc';
+    //angularMomentConfig.format = 'MMM D YYYY, HH:mm'; //not working
+    //console.log($timezone.getName())
+    //setInterval(function(){$scope.selected = 'locale'},3000)
+
+    $scope.select = function(name){
+        if(name =='Locale'){
+            angularMomentConfig.timezone = $timezone.getName();
+        } else { angularMomentConfig.timezone = 'utc'; }
+
+    }
+
+    $scope.select(config.defaultTimezone);
+
+})
+
     .controller('runRangerCtrl', function($scope, runRangerService) {        
         $scope.$on( 'runRanger.status', function( event ) {
             $scope.isActive = runRangerService.isActive;

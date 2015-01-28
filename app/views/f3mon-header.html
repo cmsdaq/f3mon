@@ -40,6 +40,19 @@
                     </ul>
                 </div>
 
+               <!-- Timezone Selector-->
+                <div id='indexButton' class="btn-group" ng-controller="timezoneSelectorCtrl">
+                    <button type="button" class="btn navbar-btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                        <i class="fa fa-clock-o"></i> Timezone:
+                        <span id="selected-index"></span> {{selected}}
+                        <span class="caret" style="margin-left: 10px"></span>
+                    </button>
+                    <ul class="dropdown-menu" role="menu" id="subsystem-list">
+                        <li ng-repeat="item in list" class="list-group-item" ng-click="select(item)"><a href="">{{item}}</a>
+                        </li>
+                    </ul>
+                </div>
+
                 <!-- RiverStatus and RunRiver Buttons-->
                 <div id='riverStatusButton' class="btn-group" ng-controller="riverStatusCtrl" style="margin-left: 2px">
                     <button type="button" class="btn navbar-btn dropdown-toggle" data-toggle="dropdown" ng-class="data.isWorking " ng-controller="riverStatusCtrl">

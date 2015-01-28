@@ -13,7 +13,9 @@
 
 (function() {
 
-$.ajaxSetup({cache:false});
+//$.ajaxSetup({cache:false});
+
+
   angular.module('f3monApp', [
     'ngAnimate',
     'ngMessages',
@@ -27,6 +29,8 @@ $.ajaxSetup({cache:false});
     'angularUtils.directives.dirPagination',
     'highcharts-ng',
     'mgcrea.ngStrap',
+    'angularMoment',
+    'ngTimezone',
   ]);
 
 

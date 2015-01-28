@@ -14,13 +14,21 @@
             'fastPollingDelay': 3000,
             'slowPollingDelay': 5000,
             'chartWaitingMsg': 'No monitoring information.',
-            'msChartMaxPoints': 60,
+            'msChartMaxPoints': 30,
+            'defaultTimezone': 'UTC',
         })
 
     //Template required by the dirpagination plugin
     .config(function(paginationTemplateProvider) {
         paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
     })
+
+//TimeZone settings
+.constant('angularMomentConfig', {
+    format: 'MMM D YYYY, HH:mm',
+    //preprocess: 'UNIX',
+    //timezone: 'Europe/London' // e.g. 'Europe/London'
+})
 
     .service('colors', function() {
         var list = Highcharts.getOptions('colors').colors;
@@ -134,7 +142,7 @@
                 xAxis: {
                     tickPixelInterval: 50,
                     title: {
-                        text: 'Ls'
+                        text: ''
                     },
                     labels: {
                         formatter: function() {
@@ -183,7 +191,7 @@
             id: "ls",
             allowDecimals: false,
             title: {
-                text: ''
+                text: 'Ls'
             },
             //            categories: [],
             //            type: "category",

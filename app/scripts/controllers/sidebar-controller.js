@@ -38,6 +38,7 @@
     })
 
     .controller('runInfoCtrl', function($scope, $modal, runInfoService) {
+
         var modal = $modal({scope: $scope, template: 'views/restartModal.tpl.html',placement:'center', show: false, backdrop:true});
         $scope.data = runInfoService.data;
         $scope.selected = false;

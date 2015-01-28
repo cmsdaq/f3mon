@@ -49,7 +49,7 @@
                 lastTime: false,
                 lsList: false,
                 interval: false,
-                noData: function(){
+                noData: function() {
                     return _.isEmpty(this.streams) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge)
                 },
             },
@@ -104,15 +104,17 @@
                         service.data.macromerge = data.macromerge;
                         service.data.navbar = data.navbar;
                         broadcast('updated');
+                    } else {
+                        if (!runInfoService.data.isRunning()) {
+                            service.stop()
+                        }
                     }
 
-                    if (!runInfoService.data.isRunning()) {
-                        service.stop()
-                    }
+
                     //console.log('update sr data stop');
                 })
             } else {
-                    
+
                 mypoller = poller.get(resource, {
                     argumentsArray: [service.queryParams]
                 });
@@ -137,10 +139,10 @@
             q.runNumber = runInfo.runNumber;
 
             if (!info.isFromSelected) {
-                q.from = runInfo.lastLs > 20 ? runInfo.lastLs - 20 : 1;
+                q.from = runInfo.lastLs > 21 ? runInfo.lastLs - 21 : 1;
             }
             if (!info.isToSelected) {
-                q.to = runInfo.lastLs > 20 ? runInfo.lastLs : 20;
+                q.to = runInfo.lastLs > 21 ? runInfo.lastLs : 21;
             }
 
             q.sysName = indexListService.selected.subSystem;
@@ -365,7 +367,9 @@
         };
 
         $rootScope.$on('runInfo.updated', function(event) {
-            if(runInfo.endTime){return};
+            if (runInfo.endTime) {
+                return
+            };
             var q = service.queryParams;
             service.stop();
 
@@ -390,7 +394,9 @@
                 displayTotal: 0,
                 displayed: [],
                 lastTime: 0,
-                noData: function() {  return this.numLogs == 0  }
+                noData: function() {
+                    return this.numLogs == 0
+                }
             },
             queryParams: {
                 startTime: false,
@@ -421,14 +427,17 @@
             service.start();
         }
 
-        service.sortedClass = function(field){
-            if(field != this.queryParams.sortBy){return 'fa-unsorted'}
-                else { return this.queryParams.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc' }
+        service.sortedClass = function(field) {
+            if (field != this.queryParams.sortBy) {
+                return 'fa-unsorted'
+            } else {
+                return this.queryParams.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc'
+            }
         };
 
         service.changeSorting = function(field) {
             service.stop();
-            if(field != this.queryParams.sortBy ) {
+            if (field != this.queryParams.sortBy) {
                 this.queryParams.sortBy = field;
                 this.queryParams.sortOrder = 'desc';
             } else {

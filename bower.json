@@ -24,7 +24,10 @@
     "bootstrap-tour": "~0.10.1",
     "angular-strap": "~2.1.6",
     "angular-motion": "~0.3.4",
-    "highchart-ng": "~0.0.7"
+    "highchart-ng": "~0.0.7",
+    "angular-moment": "~0.9.0",
+    "moment-timezone": "~0.3.0",
+    "ngTimezone": "*"
   },
   "devDependencies": {
     "angular-mocks": "~1.3.0",
