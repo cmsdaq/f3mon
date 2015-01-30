@@ -8,6 +8,7 @@ body {
   padding-top: 55px;
   padding-bottom: 20px;
   min-height: 800px;
+  font-size:small;
 }
 
 @media screen and (max-width: 768px) {
@@ -150,3 +151,4 @@ body {
   position: relative;
   
 }
+

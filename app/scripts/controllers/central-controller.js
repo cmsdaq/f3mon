@@ -151,7 +151,7 @@ Object.size = function(obj) {
         $scope.queryInfo = streamRatesService.queryInfo;
         $scope.chartConfig = streamRatesChartConfig;
         $scope.chartConfig.loading = config.chartWaitingMsg;
-        
+        var data = streamRatesService.data;
         var chart = false;
 
         var selectionRules = function(min, max) {
@@ -298,7 +298,7 @@ Object.size = function(obj) {
         }
 
         $scope.$on('srChart.updated', function(event) {
-            var data = streamRatesService.data;
+
             console.log(data.lsList,data.lsList.length)
             if (!$scope.miniSerie) {
                 initChart();
@@ -388,13 +388,14 @@ Object.size = function(obj) {
         $scope.chartConfig.loading = config.chartWaitingMsg;
 
         $scope.$on('msChart.updated', function(event) {
-            return
             var maxPoint = config.msChartMaxPoints;
             var service = microStatesService;
             var timestamp = Math.round(service.queryInfo.timestamp);
 
             Object.keys(service.data).forEach(function(state) {
+
                 var stateValue = service.data[state];
+                if (stateValue == 0){return}
                 if ($.inArray(state, Object.keys(states)) == -1) {
                     $scope.chartConfig.series.push({
                         type: 'area',

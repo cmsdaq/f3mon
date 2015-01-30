@@ -14,7 +14,7 @@
             'fastPollingDelay': 3000,
             'slowPollingDelay': 5000,
             'chartWaitingMsg': 'No monitoring information.',
-            'msChartMaxPoints': 10,
+            'msChartMaxPoints': 60,
             'defaultTimezone': 'UTC',
         })
 
@@ -26,7 +26,7 @@
 //TimeZone settings
 .constant('angularMomentConfig', {
     format: 'MMM D YYYY, HH:mm',
-    //preprocess: 'UNIX',
+    preprocess: 'utc',
     //timezone: 'Europe/London' // e.g. 'Europe/London'
 })
 
@@ -337,7 +337,7 @@
 
         {
             options: {
-                useHighStocks: true,
+                //useHighStocks: true,
                 chart: {
                     animation: true, //animation for stacked area is not supported
                     ignoreHiddenSeries: true,
@@ -347,7 +347,7 @@
                 plotOptions: {
                     area: {
                         gapsize: 1,
-                        stacking: 'percent',
+                        stacking: 'normal',
                         connectNulls: false,
                         lineWidth: 0,
                         marker: {
@@ -359,32 +359,6 @@
                             }
                         }
                     },
-                    areaspline: {
-                        stacking: 'percent',
-                        //pointPadding: 0,
-                        //groupPadding: 0,
-                        //fillOpacity: 0.5,
-                        //connectNulls: true,
-                        //lineColor: '#ffffff',
-                        lineWidth: 0,
-                        //gapSize: 2,
-                        //marker: {
-                        //    enabled: false
-                        //}
-                    },
-                    column: {
-                        stacking: 'percent',
-                        pointPadding: 0,
-                        groupPadding: 0,
-                        borderWidth: 0,
-                        //fillOpacity: 0.5,
-                        //connectNulls: false,
-                        //lineColor: '#ffffff',
-                        //lineWidth: 0,
-                        //marker: {
-                        //    enabled : false
-                        //}
-                    }
                 },
                 //colors: Colors.colorList(),
                 legend: {
