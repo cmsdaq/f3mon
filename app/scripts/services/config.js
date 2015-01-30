@@ -337,7 +337,7 @@
 
         {
             options: {
-                //useHighStocks: true,
+                useHighStocks: true,
                 chart: {
                     animation: true, //animation for stacked area is not supported
                     ignoreHiddenSeries: true,
@@ -345,9 +345,26 @@
                     zoomType: 'xy',
                 },
                 plotOptions: {
+                    column: {
+                        gapsize: 0,
+                        stacking: 'percent',
+                        groupPadding:0,
+                        pointPadding:0,
+                        borderWidth:0,
+                        connectNulls: false,
+                        lineWidth: 0,
+                        marker: {
+                            enabled: false,
+                            states: {
+                                hover: {
+                                    enabled: false,
+                                }
+                            }
+                        }
+                    },
                     area: {
                         gapsize: 1,
-                        stacking: 'normal',
+                        stacking: 'percent',
                         connectNulls: false,
                         lineWidth: 0,
                         marker: {
@@ -372,9 +389,10 @@
                     symbolRadius: 5
                 },
                 xAxis: {
+                    //categories:[],
                     minPadding: 0,
                     maxPadding: 0,
-                    category: true,
+                    //category: true,
                     type: 'datetime',
                     tickmarkPlacement: 'on',
                     //title: {

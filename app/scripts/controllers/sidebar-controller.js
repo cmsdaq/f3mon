@@ -77,6 +77,8 @@
             modal.$promise.then(modal.show);
         };
 
+        $scope.pageChanged = service.pageChanged;
+
         $scope.closeCollector = service.closeCollector;
 
     })

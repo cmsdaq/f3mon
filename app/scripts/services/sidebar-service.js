@@ -361,6 +361,7 @@
 
         service.restart = function() {
             //Restart poller
+            //console.log((service.data.currentPage - 1) * service.data.itemsPerPage);
             mypoller = poller.get(resource, {
                 argumentsArray: [{
                     size: service.data.itemsPerPage,
@@ -372,9 +373,10 @@
         };
 
         service.pageChanged = function(newPageNumber) {
+            //console.log('pageChange');
             mypoller.stop();
             service.data.currentPage = newPageNumber;
-            this.restart();
+            service.restart();
         }
 
         service.changeSorting = function(field) {

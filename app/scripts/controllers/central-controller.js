@@ -299,17 +299,17 @@ Object.size = function(obj) {
 
         $scope.$on('srChart.updated', function(event) {
 
-            console.log(data.lsList,data.lsList.length)
+            console.log(data.lsList, data.lsList.length)
             if (!$scope.miniSerie) {
                 initChart();
             }
-            
-            
+
+
 
             if (!chart) {
                 chart = $scope.chartConfig.getHighcharts();
             }
-            
+
             //axis label update
             chart.xAxis[0].update({
                 tickPositions: data.lsList
@@ -318,7 +318,9 @@ Object.size = function(obj) {
             var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
 
             //navigator update
-            var navSerie = _.findWhere(chart.series,{name:'Navigator'});
+            var navSerie = _.findWhere(chart.series, {
+                name: 'Navigator'
+            });
             navSerie.setData(out);
 
             $scope.miniSerie.data = data.minimerge.percents;
@@ -365,7 +367,7 @@ Object.size = function(obj) {
 
         $scope.$on('runInfo.selected', function(event) {
             //GENERAL RESET!!
-            if($scope.miniSerie){
+            if ($scope.miniSerie) {
                 streamRatesService.stop();
                 $scope.chartConfig.loading = config.chartWaitingMsg;
                 $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
@@ -374,60 +376,54 @@ Object.size = function(obj) {
                 $scope.macroSerie = false;
                 var chart = $scope.chartConfig.getHighcharts();
                 chart.series[3].setData([]);
-                colors.reset();    
+                colors.reset();
             }
-            
+
         })
 
     })
 
     .controller('microStatesCtrl', function($scope, config, moment, amMoment, microStatesService, microStatesChartConfig) {
-        var states = {};
 
         $scope.chartConfig = microStatesChartConfig;
         $scope.chartConfig.loading = config.chartWaitingMsg;
 
         $scope.$on('msChart.updated', function(event) {
-            var maxPoint = config.msChartMaxPoints;
-            var service = microStatesService;
-            var timestamp = Math.round(service.queryInfo.timestamp);
+            var series = $scope.chartConfig.series;
+            var data = microStatesService.data;
 
-            Object.keys(service.data).forEach(function(state) {
+            Object.keys(data).forEach(function(state) {
 
-                var stateValue = service.data[state];
-                if (stateValue == 0){return}
-                if ($.inArray(state, Object.keys(states)) == -1) {
+                var stateData = data[state];
+
+                //if(stateData[0] && state!='Idle'){
+                //    console.log(state,Date(stateData[0][0]),Date(stateData[stateData.length-1][0]));
+                //    console.log(state,stateData[0][0],stateData[stateData.length-1][0]);
+                //    console.log(stateData)
+                //}
+                
+                //if(_.isEmpty(stateData) ){return}
+                var serie = _.findWhere(series, { name: state });
+                if (_.isEmpty(serie)) {
                     $scope.chartConfig.series.push({
                         type: 'area',
                         id: state,
                         name: state,
-                        data: [
-                            [timestamp, stateValue]
-                        ],
+                        data: stateData,
                     });
-                    states[state] = $scope.chartConfig.series[$scope.chartConfig.series.length - 1];
                 } else {
-                    if (states[state].data.length > maxPoint) {
-                        states[state].data.shift()
-                    }
-                    states[state].data.push([timestamp, stateValue]);
-                }
-
+                    serie.data = stateData;
+                };
             })
-
-
             if ($scope.chartConfig.loading) {
                 $scope.chartConfig.loading = false
             }
-            //var serie = $scope.chartConfig.getHighcharts().series[0].data.length;
-
         })
+
         $scope.$on('runInfo.selected', function(event) {
             microStatesService.stop();
             $scope.chartConfig.loading = config.chartWaitingMsg;
             $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
-            states = {};
-
         })
 
     })

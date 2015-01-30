@@ -13,6 +13,8 @@ if(!isset($_GET["format"])) $format = "json";
     else $format = $_GET["format"];
 if(!isset($_GET["runNumber"])) $runNumber = 10;
     else $runNumber = $_GET["runNumber"];
+if(!isset($_GET["timeRange"])) $timeRange = 60; //seconds
+    else $timeRange = $_GET["timeRange"];
 if(!isset($_GET["sysName"])) $sysName = "cdaq";
     else $sysName = $_GET["sysName"];
 
@@ -37,7 +39,7 @@ else{
         if($kv[1]==''){ continue; $name = $kv[0];} //accept empty legend???
             else{$name=$kv[1];}
         $legend[$kv[0]]  = $name;
-        $data[$name] = 0;
+        $data[$name] = array();
     }
 }
 
@@ -52,28 +54,51 @@ if($legend){
     
     
     $stringQuery = file_get_contents("./json/".$query.".json");
+    $jsonQuery = json_decode($stringQuery,true);
+    $jsonQuery["query"]["bool"]["must"][1]["range"]["_timestamp"]["from"] = 'now-'.$timeRange.'s';
+    $jsonQuery["query"]["bool"]["must"][0]["term"]["_parent"] = $runNumber;
+    $stringQuery = json_encode($jsonQuery);
     $res=json_decode(esQuery($stringQuery,$index), true);
     
-    
-    
-    
-    $time=$res["hits"]["hits"][0]["sort"][0];
-    $ret["entries"] = array();
-    $entries = $res["hits"]["hits"][0]["_source"]["hmicro"]["entries"];
-    //echo json_encode($entries);
-    //echo json_encode($legend);
-    //echo json_encode($data);
-    
-    foreach ($entries as $entry){
-        $key = $entry['key'];
-        $value = $entry['count'];
-        $name = $legend[$key];
-        $data[$name] = $value;
+    //echo json_encode($res);
+    $hits = $res["hits"]["hits"];
+    foreach ($hits as $hit){
+        
+        $timestamp = $hit['sort'][0];
+        $entries = $hit['_source']['hmicro']['entries'];
+
+        $entriesList = array();
+        foreach ($entries as $entry){
+            $key = $entry['key'];
+            $value = $entry['count'];
+            $name = $legend[$key];
+            $entriesList[] = $name;
+            $data[$name][] = array($timestamp,$value);
+        }
+
+        $diff = array_diff(array_keys($data),$entriesList);
+        //echo json_encode($diff);
+        //echo json_encode($entriesList);
+        //echo json_encode(array_keys($data));
+        //echo 'BLABLA';
+        foreach ($diff as $name){
+            $data[$name][] = array($timestamp,null);   
+
+        }
+        
     }
-    //echo json_encode($data);
+
+//    echo json_encode($data);
 }
 
-$out = array("timestamp"=>$time,"legend"=>$legend,"data"=>$data);
+$lastTime = end($hits);
+$lastTime = $lastTime['sort'][0];
+
+$out = array(   "lastTime"=>$lastTime
+                //,"legend"=>$legend
+                ,"data"=>$data
+            );
+
 if ($format=="json"){  
     $json = json_encode($out);
     header("Content-type: text/javascript");

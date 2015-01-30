@@ -28,8 +28,7 @@ $.ajaxSetup({cache:false});
     'highcharts-ng',
     'mgcrea.ngStrap',
     'angularMoment',
-    'ngTimezone',
-    'ngFitText',
+    'ngTimezone'
   ]);
 
 

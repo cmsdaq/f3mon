@@ -1,6 +1,31 @@
 {
-  "size": 1,
-  "sort": {
-    "_timestamp": "desc"
-  }
+    "size": 100, 
+   "query": {
+      "bool": {
+         "must": [
+            {
+               "term": {
+                  "_parent": {
+                     "value": "233132"
+                  }
+               }
+            },
+            {
+               "range": {
+                  "_timestamp": {
+                     "from": "now-60s",
+                     "to": "now"
+                  }
+               }
+            }
+         ]
+      }
+   },
+   "sort": [
+      {
+         "_timestamp": {
+            "order": "asc"
+         }
+      }
+   ]
 }

@@ -45,12 +45,10 @@
     $scope.select = function(name){
         if(name =='Locale'){
             angularMomentConfig.timezone = $timezone.getName();
-        } else { angularMomentConfig.timezone = 'utc'; }
-
+            $scope.selected = 'Locale';
+        } else { angularMomentConfig.timezone = 'utc'; $scope.selected = 'UTC';}
     }
-
     $scope.select(config.defaultTimezone);
-
 })
 
     .controller('runRangerCtrl', function($scope, runRangerService) {        

@@ -319,8 +319,8 @@
                 sysName: false,
             },
             queryInfo: {
-                legend: false,
-                timestamp: false,
+                //legend: false,
+                lastTime: false,
                 //                took: 0,
                 //                noData: true,
                 //                isFromSelected: false,
@@ -347,10 +347,11 @@
                 });
                 mypoller.promise.then(null, null, function(data) {
                     //console.log(data.timestamp,service.queryInfo.timestamp);
-                    if (data.legend && data.timestamp != service.queryInfo.timestamp) {
+                    //console.log(data.lastTime)
+                    if (data.lastTime && service.queryInfo.lastTime != data.lastTime) {
                         //console.log('ms update');
-                        service.queryInfo.legend = data.legend;
-                        service.queryInfo.timestamp = data.timestamp;
+                        //service.queryInfo.legend = data.legend;
+                        service.queryInfo.lastTime = data.lastTime;
                         service.data = data.data;
                         broadcast('updated');
                     }
