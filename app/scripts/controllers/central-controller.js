@@ -389,7 +389,7 @@ Object.size = function(obj) {
         $scope.chartConfig.loading = config.chartWaitingMsg;
 
         $scope.$on('msChart.updated', function(event) {
-            return
+            //return
             var series = $scope.chartConfig.series;
             var data = microStatesService.data;
             var timeList = microStatesService.queryInfo.timeList;
