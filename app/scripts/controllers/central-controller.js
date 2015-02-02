@@ -389,20 +389,19 @@ Object.size = function(obj) {
         $scope.chartConfig.loading = config.chartWaitingMsg;
 
         $scope.$on('msChart.updated', function(event) {
+            return
             var series = $scope.chartConfig.series;
             var data = microStatesService.data;
+            var timeList = microStatesService.queryInfo.timeList;
+
+            //console.log(timeList)
+            //$scope.chartConfig.options.xAxis.categories = timeList;
+            //$scope.chartConfig.getHighcharts().xAxis[0].setCategories(timeList,false)
 
             Object.keys(data).forEach(function(state) {
 
                 var stateData = data[state];
 
-                //if(stateData[0] && state!='Idle'){
-                //    console.log(state,Date(stateData[0][0]),Date(stateData[stateData.length-1][0]));
-                //    console.log(state,stateData[0][0],stateData[stateData.length-1][0]);
-                //    console.log(stateData)
-                //}
-                
-                //if(_.isEmpty(stateData) ){return}
                 var serie = _.findWhere(series, { name: state });
                 if (_.isEmpty(serie)) {
                     $scope.chartConfig.series.push({
@@ -422,8 +421,9 @@ Object.size = function(obj) {
 
         $scope.$on('runInfo.selected', function(event) {
             microStatesService.stop();
-            $scope.chartConfig.loading = config.chartWaitingMsg;
             $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
+            $scope.chartConfig.loading = config.chartWaitingMsg;
+            
         })
 
     })

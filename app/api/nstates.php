@@ -62,9 +62,11 @@ if($legend){
     
     //echo json_encode($res);
     $hits = $res["hits"]["hits"];
+    $timeList=array();
     foreach ($hits as $hit){
         
         $timestamp = $hit['sort'][0];
+        $timeList[] = $timestamp;
         $entries = $hit['_source']['hmicro']['entries'];
 
         $entriesList = array();
@@ -75,12 +77,7 @@ if($legend){
             $entriesList[] = $name;
             $data[$name][] = array($timestamp,$value);
         }
-
         $diff = array_diff(array_keys($data),$entriesList);
-        //echo json_encode($diff);
-        //echo json_encode($entriesList);
-        //echo json_encode(array_keys($data));
-        //echo 'BLABLA';
         foreach ($diff as $name){
             $data[$name][] = array($timestamp,null);   
 
@@ -94,9 +91,10 @@ if($legend){
 $lastTime = end($hits);
 $lastTime = $lastTime['sort'][0];
 
-$out = array(   "lastTime"=>$lastTime
-                //,"legend"=>$legend
-                ,"data"=>$data
+$out = array(   "lastTime"=>$lastTime,
+                "timeList"=>$timeList,
+                //"legend"=>$legend,
+                "data"=>$data,
             );
 
 if ($format=="json"){  

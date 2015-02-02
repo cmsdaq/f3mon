@@ -317,9 +317,11 @@
             queryParams: {
                 runNumber: false,
                 sysName: false,
+                timeRange: 60,
             },
             queryInfo: {
                 //legend: false,
+                timeList:false,
                 lastTime: false,
                 //                took: 0,
                 //                noData: true,
@@ -352,6 +354,7 @@
                         //console.log('ms update');
                         //service.queryInfo.legend = data.legend;
                         service.queryInfo.lastTime = data.lastTime;
+                        service.queryInfo.timeList = data.timeList;
                         service.data = data.data;
                         broadcast('updated');
                     }

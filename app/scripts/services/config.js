@@ -346,6 +346,7 @@
                 },
                 plotOptions: {
                     column: {
+                        pointRange:5500,
                         gapsize: 0,
                         stacking: 'percent',
                         groupPadding:0,
@@ -389,6 +390,7 @@
                     symbolRadius: 5
                 },
                 xAxis: {
+                    ordinal: false,
                     //categories:[],
                     minPadding: 0,
                     maxPadding: 0,
