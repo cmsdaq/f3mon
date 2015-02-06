@@ -50,7 +50,7 @@ $stringQuery = json_encode($jsonQuery);
 //var_dump($stringQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
-//die(var_dump($res));
+//echo json_encode($res);
 
 $totals = array();
 
@@ -82,7 +82,7 @@ $stringQuery = json_encode($jsonQuery);
 //var_dump($stringQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
-
+//echo json_encode($res);
 
 
 $totalProc = array();
