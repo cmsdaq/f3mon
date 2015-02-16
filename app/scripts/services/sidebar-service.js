@@ -391,6 +391,7 @@
         };
 
         service.sortedClass = function(field){
+            console.log(field)
             if(field != service.data.sortBy){return 'fa-unsorted'}
                 else { return service.data.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc' }
         };

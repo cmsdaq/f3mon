@@ -68,18 +68,19 @@
 
     .controller('riverListCtrl', function($scope,$modal, riverListService) {
         var modal = $modal({scope: $scope, template: 'views/closeModal.tpl.html', show: false});
-        var service = riverListService;
+        $scope.service = riverListService;
         $scope.selected = false;
-        $scope.data = service.data;
+        $scope.data = $scope.service.data;
 
         $scope.closeCollectorDialog = function (name) {
             $scope.selected = name.split("_")[1];
             modal.$promise.then(modal.show);
         };
 
-        $scope.pageChanged = service.pageChanged;
+        $scope.pageChanged = $scope.service.pageChanged;
 
-        $scope.closeCollector = service.closeCollector;
+        $scope.closeCollector = $scope.service.closeCollector;
+
 
     })
 
