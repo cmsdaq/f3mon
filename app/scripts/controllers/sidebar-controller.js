@@ -83,8 +83,8 @@
         $scope.selected = false;
         $scope.data = service.data;
 
-        $scope.closeCollectorDialog = function (name) {
-            $scope.selected = name.split("_")[1];
+        $scope.closeCollectorDialog = function (name,subSystem) {
+            $scope.selected = {"runNumber": name.split("_")[1], "subSystem" : subSystem};
             modal.$promise.then(modal.show);
         };
 

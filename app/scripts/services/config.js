@@ -15,7 +15,7 @@
             'slowPollingDelay': 5000,
             'chartWaitingMsg': 'No monitoring information.',
             'msChartMaxPoints': 60,
-            'defaultTimezone': 'UTC',
+            'defaultTimezone': 'Locale',
         })
 
     //Template required by the dirpagination plugin

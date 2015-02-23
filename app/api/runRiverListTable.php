@@ -40,10 +40,14 @@ $typeList = array();
 $out = array("list"=>array(),"total"=>$res["hits"]["total"]);
 foreach ($res["hits"]["hits"] as $item) {
     $typeList[] = $item["_type"]; //for status check
+    $runindex = explode('_' , $item["_source"]["runIndex_read"])[1];    
+    //$runindex = $runindex[1];
     $out["list"][] = array(
-        "name"      =>$item["_type"],
+        "name"      => $item["_type"],
         "role"      => array_key_exists ('role',$item['_source']) ? $item['_source']['role'] : 'main' ,
-        "status"    =>false);
+        "status"    => false,
+        "subSystem" => $runindex
+        );
 }
 
 //check status

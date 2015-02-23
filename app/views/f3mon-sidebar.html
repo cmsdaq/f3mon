@@ -159,7 +159,8 @@
                                     </th>
                                     <th class='clickable' ng-click='service.changeSorting("role")'>Role <i class="fa" ng-class='service.sortedClass("role")'></i>
                                     </th>
-                                    <th>Host</th>
+                                    <th style='text-align: center'>Host</th>
+                                    <th style='text-align: center'>Sys</th>
                                 </tr>
                             </thead>
                             <tbody ng-show="noData">
@@ -172,15 +173,16 @@
                                     <td>{{row.name}}</td>
                                     <td>{{row.role}}</td>
                                     <td>{{row.host}}</span></td>
+                                    <td style='text-align: center'>{{row.subSystem}}</span></td>
                                     <td ng-show="row.role=='collector'" style='text-align: right'>
-                                        <a ng-click="closeCollectorDialog(row.name)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
+                                        <a ng-click="closeCollectorDialog(row.name,row.subSystem)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
                                     </td>
                                     <td ng-show="row.role!='collector'"></td>
                                 </tr>
                             </tbody>
                             <tfoot ng-show="!noData">
                                 <tr>
-                                    <td colspan="1" class="text-center"></td>
+                                    <td colspan="2" class="text-center"></td>
                                     <td colspan="3" class="text-right" style='vertical-align: middle'>
                                         <dir-pagination-controls max-size='5' on-page-change="pageChanged(newPageNumber)" pagination-id="riverListPag"></dir-pagination-controls>
                                     </td>

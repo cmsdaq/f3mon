@@ -344,12 +344,14 @@
             }
         })
 
-        service.closeCollector = function(runNumber){
+        service.closeCollector = function(selected){
+            var runNumber = selected.runNumber;
+            var subSystem = selected.subSystem;
             closePoller = poller.get(closeCollectorRes,{
                 action: 'jsonp_get',
                 delay: 5000,
                 smart: true,
-                argumentsArray:[{runNumber:runNumber,sysName:indexListService.selected.subSystem}]
+                argumentsArray:[{runNumber:runNumber,sysName:subSystem}]
 
             })
             closePoller.promise.then(null,null,function(data){

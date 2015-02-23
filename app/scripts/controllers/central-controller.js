@@ -265,7 +265,7 @@ Object.size = function(obj) {
             chartConfig = jQuery.extend({}, streamRatesChartConfig);
             setEvents();
             chart = new Highcharts.StockChart(chartConfig);
-            chart.showLoading('No Monitor Informations');
+            chart.showLoading(config.chartWaitingMsg);
 
             streams = {};
             isDirty = false;
