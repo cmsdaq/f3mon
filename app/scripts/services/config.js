@@ -77,7 +77,7 @@
                 },
             },
             spline: {
-                lineWidth: 5,
+                lineWidth: 3,
                 marker: {
                     enabled: true,
                 }
