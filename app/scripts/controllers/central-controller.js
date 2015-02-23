@@ -430,13 +430,14 @@ Object.size = function(obj) {
                         id: state,
                         name: state,
                         data: stateData,
-                    });
+                    },false,false);
                 } else {
-                    serie.setData(stateData);
+                    serie.setData(stateData,false,false);
                 };
             })
-            chart.hideLoading();
-            if(!isDirty){isDirty = true;}
+            chart.redraw();
+            //chart.hideLoading();
+            if(!isDirty){isDirty = true;chart.hideLoading();}
         })
 
         initChart();

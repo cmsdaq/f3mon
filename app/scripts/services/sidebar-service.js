@@ -260,7 +260,7 @@
         service.pageChanged = function(newPageNumber) {
             mypoller.stop();
             service.data.currentPage = newPageNumber;
-            this.start();
+            service.start();
         }
 
         service.sortedClass = function(field){
