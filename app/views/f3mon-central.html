@@ -47,7 +47,7 @@
                     <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> {{queryParams.type }} Ls range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
                 </div>
                 <div class="panel-body" style='height:88%;'>
-                    <div id="ddchart" config="chartConfig" style='height:100%'></div>
+                    <div id="ddchart" style='height:100%'></div>
                 </div>
             </div>
         </div>
@@ -60,9 +60,10 @@
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
-                    <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart (DISABLED)</h3>
+                    <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
                 </div>
                 <div class="panel-body" style='height:88%;padding:0px; border:0px; margin:0px;'>
+                    <div id="mschart" style='height:100%'></div>
                 </div>
             </div>
 

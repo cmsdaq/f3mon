@@ -76,10 +76,10 @@
                     easing: 'linear'
                 },
             },
-            spline:{
+            spline: {
                 lineWidth: 5,
-                marker:{
-                    enabled:true,
+                marker: {
+                    enabled: true,
                 }
             },
 
@@ -154,11 +154,15 @@
                         //fontWeight: "bold"
                     },
                 },
-                events: { 
-                    afterSetExtremes:function(event){console.log('navAfter')},
-                    setExtremes:function(event){console.log('navSet')},
+                events: {
+                    afterSetExtremes: function(event) {
+                        console.log('navAfter')
+                    },
+                    setExtremes: function(event) {
+                        console.log('navSet')
+                    },
 
-            }
+                }
             }
         },
         rangeSelector: {
@@ -200,7 +204,7 @@
             title: {
                 text: 'Events'
             },
-            showLastLabel:true,
+            showLastLabel: true,
             minPadding: 0,
             maxPadding: 0,
             id: "rates",
@@ -215,7 +219,7 @@
                 align: 'middle',
                 //margin: 30,
             },
-            showLastLabel:true,
+            showLastLabel: true,
             minPadding: 0,
             maxPadding: 0,
             max: 100,
@@ -232,7 +236,7 @@
             title: {
                 text: 'miniMerge %',
             },
-            showLastLabel:true,
+            showLastLabel: true,
             max: 100,
             min: 0,
             id: "minipercent",
@@ -247,7 +251,7 @@
                 align: 'middle',
                 margin: 30,
             },
-            showLastLabel:true,
+            showLastLabel: true,
             minPadding: 0,
             maxPadding: 0,
             max: 100,
@@ -260,41 +264,41 @@
             opposite: true,
             labels: {
                 align: 'center',
-                
+
             }
         }],
     })
 
     .constant('drillDownChartConfig', {
 
-            chart: {
-                renderTo:'ddchart',
-                animation: {
-                    duration: 500,
-                    easing: 'linear'
+        chart: {
+            renderTo: 'ddchart',
+            animation: {
+                duration: 500,
+                easing: 'linear'
+            },
+            marginRight: 50,
+            events: {
+                drilldown: function(event) {
+                    //console.log('old dd2')
                 },
-                marginRight: 50,
-                events: {
-                    drilldown: function(event) {
-                        //console.log('old dd2')
-                    },
-                    drillup: function(event) {
-                        //console.log('old du2')
-                    }
-                } //placeholder for drilldown function
-            },
-            plotOptions: {
-                series: {
-                    minPointLength: 3
+                drillup: function(event) {
+                    //console.log('old du2')
                 }
-            },
-            tooltip: {
-                //enabled: false,
-                followPointer: true
-            },
-            legend: {
-                enabled: false
-            },
+            } //placeholder for drilldown function
+        },
+        plotOptions: {
+            series: {
+                minPointLength: 3
+            }
+        },
+        tooltip: {
+            //enabled: false,
+            followPointer: true
+        },
+        legend: {
+            enabled: false
+        },
 
 
         title: {
@@ -333,76 +337,73 @@
         }
     })
 
-
     .constant('microStatesChartConfig',
-
         {
-            options: {
-                useHighStocks: true,
-                chart: {
-                    animation: true, //animation for stacked area is not supported
-                    ignoreHiddenSeries: true,
-                    //height: 400,
-                    zoomType: 'xy',
-                },
-                plotOptions: {
-                    column: {
-                        pointRange: 5500,
-                        gapsize: 0,
-                        stacking: 'percent',
-                        groupPadding: 0,
-                        pointPadding: 0,
-                        borderWidth: 0,
-                        connectNulls: false,
-                        lineWidth: 0,
-                        marker: {
-                            enabled: false,
-                            states: {
-                                hover: {
-                                    enabled: false,
-                                }
+            chart: {
+                renderTo: 'mschart',
+                animation: true, //animation for stacked area is not supported
+                ignoreHiddenSeries: true,
+                //height: 400,
+                zoomType: 'xy',
+            },
+            plotOptions: {
+                column: {
+                    pointRange: 5500,
+                    gapsize: 0,
+                    stacking: 'percent',
+                    groupPadding: 0,
+                    pointPadding: 0,
+                    borderWidth: 0,
+                    connectNulls: false,
+                    lineWidth: 0,
+                    marker: {
+                        enabled: false,
+                        states: {
+                            hover: {
+                                enabled: false,
                             }
                         }
-                    },
-                    area: {
-                        gapsize: 1,
-                        stacking: 'percent',
-                        connectNulls: false,
-                        lineWidth: 0,
-                        marker: {
-                            enabled: false,
-                            states: {
-                                hover: {
-                                    enabled: false,
-                                }
+                    }
+                },
+                area: {
+                    gapsize: 1,
+                    stacking: 'percent',
+                    connectNulls: false,
+                    lineWidth: 0,
+                    marker: {
+                        enabled: false,
+                        states: {
+                            hover: {
+                                enabled: false,
                             }
                         }
-                    },
-                },
-                //colors: Colors.colorList(),
-                legend: {
-                    layout: "vertical",
-                    align: "right",
-                    verticalAlign: 'top',
-                    //floating: true,
-                    borderRadius: 5,
-                    borderWidth: 1,
-                    itemDistance: 5,
-                    symbolRadius: 5
-                },
-                xAxis: {
-                    ordinal: false,
-                    //categories:[],
-                    minPadding: 0,
-                    maxPadding: 0,
-                    //category: true,
-                    type: 'datetime',
-                    tickmarkPlacement: 'on',
-                    //title: {
-                    //    enabled: false
-                    //}
+                    }
                 },
             },
+            //colors: Colors.colorList(),
+            legend: {
+                layout: "vertical",
+                align: "right",
+                verticalAlign: 'top',
+                //floating: true,
+                borderRadius: 5,
+                borderWidth: 1,
+                itemDistance: 5,
+                symbolRadius: 5
+            },
+            xAxis: {
+                ordinal: false,
+                //categories:[],
+                minPadding: 0,
+                maxPadding: 0,
+                //category: true,
+                type: 'datetime',
+                tickmarkPlacement: 'on',
+                //title: {
+                //    enabled: false
+                //}
+            },
+
             //handled by angular
             title: {
                 text: ''

@@ -388,13 +388,30 @@ Object.size = function(obj) {
     })
 
     .controller('microStatesCtrl', function($scope, config, moment, amMoment, microStatesService, microStatesChartConfig) {
-        return;
-        $scope.chartConfig = microStatesChartConfig;
-        $scope.chartConfig.loading = config.chartWaitingMsg;
+        var chart;
+        var isDirty = true;
+        var chartConfig;
+
+        var initChart = function(){
+          if (chart) {
+                chart.destroy();
+                chart = false;
+                $("#" + chartConfig.chart.renderTo).empty().unbind();
+            };
+
+            chartConfig = jQuery.extend({}, microStatesChartConfig);
+            chart = new Highcharts.Chart(chartConfig);
+            chart.showLoading(config.chartWaitingMsg);
+            isDirty = false;
+        }
+
+        $scope.$on('runInfo.selected', function(event) {
+            microStatesService.stop();
+            if(isDirty){initChart()};
+        })
 
         $scope.$on('msChart.updated', function(event) {
-            return
-            var series = $scope.chartConfig.series;
+            //var series = $scope.chartConfig.series;
             var data = microStatesService.data;
             var timeList = microStatesService.queryInfo.timeList;
 
@@ -406,31 +423,23 @@ Object.size = function(obj) {
 
                 var stateData = data[state];
 
-                var serie = _.findWhere(series, {
-                    name: state
-                });
-                if (_.isEmpty(serie)) {
-                    $scope.chartConfig.series.push({
+                var serie = chart.get(state);
+                if (!serie) {
+                    chart.addSeries({
                         type: 'area',
                         id: state,
                         name: state,
                         data: stateData,
                     });
                 } else {
-                    serie.data = stateData;
+                    serie.setData(stateData);
                 };
             })
-            if ($scope.chartConfig.loading) {
-                $scope.chartConfig.loading = false
-            }
+            chart.hideLoading();
+            if(!isDirty){isDirty = true;}
         })
 
-        $scope.$on('runInfo.selected', function(event) {
-            microStatesService.stop();
-            $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
-            $scope.chartConfig.loading = config.chartWaitingMsg;
-
-        })
+        initChart();
 
     })
 
