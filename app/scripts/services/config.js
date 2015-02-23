@@ -96,6 +96,27 @@
             }
         },
         tooltip: {
+            formatter: function(tooltip) {
+
+                var items = this.points || splat(this),
+                    series = items[0].series,
+                    s;
+
+                // build the header
+                s = ['<b> Ls: ' + items[0].key + '</b><br/>'];
+
+                // build the values
+                items.forEach(function(item) {
+                    series = item.series;
+                    s.push((series.tooltipFormatter && series.tooltipFormatter(item)) ||
+                        item.point.tooltipFormatter(series.tooltipOptions.pointFormat));
+                });
+
+                // footer
+                s.push(tooltip.options.footerFormat || '');
+
+                return s.join('');
+            },
             enabled: true,
             followPointer: false,
             //crosshairs: [true, true], //not visible with the grid
@@ -337,87 +358,86 @@
         }
     })
 
-    .constant('microStatesChartConfig',
-        {
-            chart: {
-                renderTo: 'mschart',
-                animation: true, //animation for stacked area is not supported
-                ignoreHiddenSeries: true,
-                //height: 400,
-                zoomType: 'xy',
-            },
-            plotOptions: {
-                column: {
-                    pointRange: 5500,
-                    gapsize: 0,
-                    stacking: 'percent',
-                    groupPadding: 0,
-                    pointPadding: 0,
-                    borderWidth: 0,
-                    connectNulls: false,
-                    lineWidth: 0,
-                    marker: {
-                        enabled: false,
-                        states: {
-                            hover: {
-                                enabled: false,
-                            }
+    .constant('microStatesChartConfig', {
+        chart: {
+            renderTo: 'mschart',
+            animation: true, //animation for stacked area is not supported
+            ignoreHiddenSeries: true,
+            //height: 400,
+            zoomType: 'xy',
+        },
+        plotOptions: {
+            column: {
+                pointRange: 5500,
+                gapsize: 0,
+                stacking: 'percent',
+                groupPadding: 0,
+                pointPadding: 0,
+                borderWidth: 0,
+                connectNulls: false,
+                lineWidth: 0,
+                marker: {
+                    enabled: false,
+                    states: {
+                        hover: {
+                            enabled: false,
                         }
                     }
-                },
-                area: {
-                    gapsize: 1,
-                    stacking: 'percent',
-                    connectNulls: false,
-                    lineWidth: 0,
-                    marker: {
-                        enabled: false,
-                        states: {
-                            hover: {
-                                enabled: false,
-                            }
-                        }
-                    }
-                },
-            },
-            //colors: Colors.colorList(),
-            legend: {
-                layout: "vertical",
-                align: "right",
-                verticalAlign: 'top',
-                //floating: true,
-                borderRadius: 5,
-                borderWidth: 1,
-                itemDistance: 5,
-                symbolRadius: 5
-            },
-            xAxis: {
-                ordinal: false,
-                //categories:[],
-                minPadding: 0,
-                maxPadding: 0,
-                //category: true,
-                type: 'datetime',
-                tickmarkPlacement: 'on',
-                //title: {
-                //    enabled: false
-                //}
-            },
-
-            //handled by angular
-            title: {
-                text: ''
-            },
-            subtitle: {
-                text: ''
-            },
-            yAxis: {
-                title: {
-                    text: 'Percent'
                 }
             },
-            series: [],
-        })
+            area: {
+                gapsize: 1,
+                stacking: 'percent',
+                connectNulls: false,
+                lineWidth: 0,
+                marker: {
+                    enabled: false,
+                    states: {
+                        hover: {
+                            enabled: false,
+                        }
+                    }
+                }
+            },
+        },
+        //colors: Colors.colorList(),
+        legend: {
+            layout: "vertical",
+            align: "right",
+            verticalAlign: 'top',
+            //floating: true,
+            borderRadius: 5,
+            borderWidth: 1,
+            itemDistance: 5,
+            symbolRadius: 5
+        },
+        xAxis: {
+            ordinal: false,
+            //categories:[],
+            minPadding: 0,
+            maxPadding: 0,
+            //category: true,
+            type: 'datetime',
+            tickmarkPlacement: 'on',
+            //title: {
+            //    enabled: false
+            //}
+        },
+
+        //handled by angular
+        title: {
+            text: ''
+        },
+        subtitle: {
+            text: ''
+        },
+        yAxis: {
+            title: {
+                text: 'Percent'
+            }
+        },
+        series: [],
+    })
 
 
 })();
