@@ -45,6 +45,9 @@ if ($search != "" ){
 $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
+//echo json_encode($res);
+//die();
+
 $ret = array();
 foreach ($res["hits"]["hits"] as $item) {
     array_push($ret, $item["_source"]);

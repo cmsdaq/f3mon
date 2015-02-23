@@ -29,7 +29,7 @@ Object.size = function(obj) {
     })
 
     .controller('mainViewCtrl', function($scope, drillDownService, globalService) {
-        $scope.service = drillDownService;
+        var service = drillDownService;
         $scope.queryParams = drillDownService.queryParams;
         $scope.globalStatus = globalService.status;
         $scope.status = {
@@ -56,7 +56,7 @@ Object.size = function(obj) {
             $scope.queryParams.type = type;
             $scope.queryParams.from = x;
             $scope.queryParams.to = x + interval - 1;
-            $scope.service.start();
+            service.start();
             $scope.selectPanel(2);
         }
         $scope.disableDrillDown = function() {
@@ -146,7 +146,8 @@ Object.size = function(obj) {
     })
 
     .controller('streamRatesCtrl', function($scope, config, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
-        $scope.service = streamRatesService;
+        //$scope.service = streamRatesService;
+        $scope.paramsChanged = streamRatesService.paramsChanged;
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
         $scope.chartConfig = streamRatesChartConfig;
@@ -173,7 +174,7 @@ Object.size = function(obj) {
             }
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
-            $scope.service.paramsChanged();
+            $scope.paramsChanged();
         }
 
 
@@ -234,7 +235,7 @@ Object.size = function(obj) {
             if ($scope.queryParams.useDivisor) {
                 axisTitle += '/s'
             }
-            $scope.service.paramsChanged();
+            $scope.paramsChanged();
             //streamRatesChartConfig.yAxis[0].title.text = axisTitle; //waiting for fix https://github.com/pablojim/highcharts-ng/issues/247
             streamRatesChartConfig.getHighcharts().yAxis[0].update({
                 title: {
@@ -299,7 +300,7 @@ Object.size = function(obj) {
 
         $scope.$on('srChart.updated', function(event) {
 
-            console.log(data.lsList, data.lsList.length)
+            //console.log(data.lsList, data.lsList.length)
             if (!$scope.miniSerie) {
                 initChart();
             }
@@ -384,12 +385,12 @@ Object.size = function(obj) {
     })
 
     .controller('microStatesCtrl', function($scope, config, moment, amMoment, microStatesService, microStatesChartConfig) {
-
+        return;
         $scope.chartConfig = microStatesChartConfig;
         $scope.chartConfig.loading = config.chartWaitingMsg;
 
         $scope.$on('msChart.updated', function(event) {
-            //return
+            return
             var series = $scope.chartConfig.series;
             var data = microStatesService.data;
             var timeList = microStatesService.queryInfo.timeList;
@@ -430,13 +431,14 @@ Object.size = function(obj) {
 
 
     .controller('logsCtrl', function($scope, logsService) {
+        var service = logsService;
 
         $scope.queryParams = logsService.queryParams;
-        $scope.service = logsService;
         $scope.data = logsService.data;
-
-
-
+        $scope.search = service.search;
+        $scope.pageChanged = service.pageChanged;
+        $scope.sortedClass = service.sortedClass;
+        $scope.changeSorting = service.changeSorting;
 
     })
 

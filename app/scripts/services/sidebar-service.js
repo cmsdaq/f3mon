@@ -60,7 +60,7 @@
 
             })
             restartPoller.promise.then(null,null,function(data){
-                console.log(data);
+                //console.log(data);
                 restartPoller.stop();
             })
             
@@ -353,7 +353,7 @@
 
             })
             closePoller.promise.then(null,null,function(data){
-                console.log(data);
+                //console.log(data);
                 closePoller.stop();
             })
             
@@ -391,7 +391,6 @@
         };
 
         service.sortedClass = function(field){
-            console.log(field)
             if(field != service.data.sortBy){return 'fa-unsorted'}
                 else { return service.data.sortOrder == 'desc' ? 'fa-sort-desc' : 'fa-sort-asc' }
         };

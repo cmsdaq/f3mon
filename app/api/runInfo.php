@@ -18,7 +18,7 @@ if(!isset($_GET["sysName"])) $sysName = "cdaq";
 $query = "runinfo";
 $index = "runindex_".$sysName."_read/run";     
 
-$stringQuery = file_get_contents("../json/".$query.".json");
+$stringQuery = file_get_contents("./json/".$query.".json");
 $jsonQuery = json_decode($stringQuery,true);
 $jsonQuery["filter"]["term"]["_id"] = $runNumber;
 $stringQuery = json_encode($jsonQuery);

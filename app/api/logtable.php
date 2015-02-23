@@ -62,7 +62,6 @@ foreach ($res["hits"]["hits"] as $item) {
 
 //Output
 $output = array(
-    "sEcho" => intval($_GET['sEcho']),
     "iTotalRecords" => $total,
     "iTotalDisplayRecords" => $total,
     "aaData" => array()

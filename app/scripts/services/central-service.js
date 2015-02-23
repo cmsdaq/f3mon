@@ -91,7 +91,7 @@
                 mypoller.promise.then(null, null, function(data) {
                     //console.log('update sr data start');
                     if (service.data.lastTime != data.lastTime) {
-
+                        service.data.lastTime = data.lastTime;
                         if (service.queryInfo.noData) {
                             service.queryInfo.noData = false
                         };
@@ -122,7 +122,8 @@
         }
 
         service.paramsChanged = function(msg) {
-            this.start();
+            service.data.lastTime = false;
+            service.start();
         }
 
         var broadcast = function(msg) {

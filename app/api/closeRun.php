@@ -34,6 +34,8 @@ $time = date(DATE_W3C,time());
 
 $ret = $res["hits"]["hits"][0]["_source"];
 
+if (empty($ret)){die();} 
+
 $ret["endTime"] = $time;
 $document = json_encode($ret); 
 

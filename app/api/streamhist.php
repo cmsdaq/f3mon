@@ -23,7 +23,7 @@ if(!isset($_GET["intervalNum"])) $intervalNum = 20;
 if(!isset($_GET["sysName"])) $sysName = "cdaq";
     else $sysName = $_GET["sysName"];
 if(!isset($_GET["streamList"])) $streamList = "A,B,DQM,DQMHistograms, HLTRates,L1Rates";
-    else $streamList = $_GET[streamList]; 
+    else $streamList = $_GET["streamList"]; 
 if(!isset($_GET["timePerLs"])) $timePerLs = 23.4;
     else $timePerLs = $_GET["timePerLs"]; 
 if(!isset($_GET["useDivisor"])) $useDivisor = false;
@@ -293,12 +293,16 @@ $minimerge["took"] = $res["took"];
 
 $lsList = $res["aggregations"]["inrange"]["ls"]["buckets"];
 
+
 foreach ($lsList as $item ) {
+
+    //echo json_encode($streamTotals);
+    //die();
     $ls = $item["key"]+$postOffset;
     $processed = $item["processed"]["value"];
     $total = $streamTotals["events"][$ls] * $streamNum ;
     $doc_count = $streamTotals["doc_counts"][$ls];
-    $mdoc_count = $item["doc_counts"];
+    $mdoc_count = $item["doc_count"];
 
 //CALC MINIMERGE PERCENTS        
     if ($total == 0){ 
@@ -347,7 +351,7 @@ foreach ($lsList as $item ) {
     $processed = $item["processed"]["value"];
     $total = $streamTotals["events"][$ls] * $streamNum ;
     $doc_count = $streamTotals["doc_counts"][$ls];
-    $mdoc_count = $item["doc_counts"];
+    $mdoc_count = $item["doc_count"];
 
 //CALC macromerge PERCENTS        
     if ($total == 0){ 

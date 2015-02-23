@@ -58,7 +58,12 @@
     .controller('runListCtrl', function($scope, runListService, runRangerService, runInfoService) {
         //$scope.noData = true;
         $scope.data = runListService.data;
-        $scope.service = runListService;
+        var service = runListService;
+        $scope.search = service.search;
+        $scope.pageChanged = service.pageChanged;
+        $scope.sortedClass = service.sortedClass;
+        $scope.changeSorting = service.changeSorting;
+
         $scope.selectRun = function(runNumber) {
             runRangerService.shutdown();
             runInfoService.select(runNumber);
@@ -68,18 +73,24 @@
 
     .controller('riverListCtrl', function($scope,$modal, riverListService) {
         var modal = $modal({scope: $scope, template: 'views/closeModal.tpl.html', show: false});
-        $scope.service = riverListService;
+        var service = riverListService;
+
+        //$scope.search = service.search;
+        $scope.pageChanged = service.pageChanged;
+        $scope.sortedClass = service.sortedClass;
+        $scope.changeSorting = service.changeSorting;
+        
         $scope.selected = false;
-        $scope.data = $scope.service.data;
+        $scope.data = service.data;
 
         $scope.closeCollectorDialog = function (name) {
             $scope.selected = name.split("_")[1];
             modal.$promise.then(modal.show);
         };
 
-        $scope.pageChanged = $scope.service.pageChanged;
+        $scope.pageChanged = service.pageChanged;
 
-        $scope.closeCollector = $scope.service.closeCollector;
+        $scope.closeCollector = service.closeCollector;
 
 
     })
