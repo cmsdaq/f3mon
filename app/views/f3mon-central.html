@@ -31,7 +31,7 @@
 
                 </div>
                 <div class="panel-body" style='height:85%;'>
-                    <div id="srchart" ></div>
+                    <div id="srchart" style='height:100%' ></div>
                 </div>
             </div>
             <!-- Drill down table panel -->
@@ -47,7 +47,7 @@
                     <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> {{queryParams.type }} Ls range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
                 </div>
                 <div class="panel-body" style='height:88%;'>
-                    <highchart id="chart2" config="chartConfig" style='height:100%'></highchart>
+                    <div id="ddchart" config="chartConfig" style='height:100%'></div>
                 </div>
             </div>
         </div>

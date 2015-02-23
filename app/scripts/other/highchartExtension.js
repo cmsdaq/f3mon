@@ -1,7 +1,6 @@
 $(function () {
     (function (H) {
         H.wrap(H.RangeSelector.prototype, 'setInputValue', function (boh, name, value) {
-
             //console.log(this);
             //console.log(boh);
             //console.log(name);

@@ -47,9 +47,10 @@ $stringQuery = json_encode($jsonQuery);
 //var_dump($stringQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
-
+//echo json_encode($res);
+//die();
 $total = $res["aggregations"]["events"]["value"];
-$doc_count = $res["aggregations"]["hits"]["total"];
+$doc_count = $res["hits"]["total"];
 
 //var_dump($total);
 //var_dump($doc_count);
@@ -97,7 +98,7 @@ foreach ($streams as $item ) {
 
     $color = percColor($percent);
 
-    $out["percents"][] = array("name"=>$stream,"y"=>$percent,"color"=>$color, "drilldown"=> true);
+    $out["percents"][] = array("name"=>$stream,"y"=>$percent,"color"=>$color, "drilldown"=> $type == 'minimerge');
 }
 
 

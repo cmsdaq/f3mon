@@ -30,7 +30,7 @@ Object.size = function(obj) {
 
     .controller('mainViewCtrl', function($scope, drillDownService, globalService) {
         var service = drillDownService;
-        $scope.queryParams = drillDownService.queryParams;
+        var queryParams = drillDownService.queryParams;
         $scope.globalStatus = globalService.status;
         $scope.status = {
             showDrillDown: false,
@@ -53,9 +53,9 @@ Object.size = function(obj) {
 
         $scope.enableDrillDown = function(type, x, interval) {
             $scope.status.showDrillDown = true;
-            $scope.queryParams.type = type;
-            $scope.queryParams.from = x;
-            $scope.queryParams.to = x + interval - 1;
+            queryParams.type = type;
+            queryParams.from = x;
+            queryParams.to = x + interval - 1;
             service.start();
             $scope.selectPanel(2);
         }
@@ -76,19 +76,37 @@ Object.size = function(obj) {
 
     //this controller is really fragile, be careful if u need to change
     .controller('drillDownCtrl', function($scope, drillDownChartConfig, drillDownService, secondDrillDownService) {
-        drillDownChartConfig.options.chart.events.drilldown = function(event) {
-            secondDrillDown(event)
-        }
-        drillDownChartConfig.options.chart.events.drillup = function(event) {
-            secondDrillUp(event)
-        }
-        $scope.chartConfig = drillDownChartConfig;
-        $scope.serie = $scope.chartConfig.series[0];
-        var ddserie, dd2serie = false,
-            dd2Event
-
+        var chart;
+        var chartConfig;
         $scope.queryParams = drillDownService.queryParams;
 
+        var dd2Event,ddserie,dd2serie;
+
+        var setEvents = function(){
+           
+            chartConfig.chart.events.drilldown = function(event) {
+                secondDrillDown(event)
+            }
+            chartConfig.chart.events.drillup = function(event) {
+                secondDrillUp(event)
+            }    
+        };
+
+        var initChart = function(){
+            chartConfig = jQuery.extend({}, drillDownChartConfig);
+            setEvents();
+            chart = new Highcharts.Chart(chartConfig);
+        };
+
+        initChart();
+
+        var secondDrillDown = function(event) {
+            dd2Event = event;
+            $scope.queryParams.stream = event.point.name;
+            drillDownService.stop();
+            secondDrillDownService.start();
+
+        }
 
         var secondDrillUp = function(event) {
             if (event) {
@@ -98,18 +116,9 @@ Object.size = function(obj) {
             $scope.queryParams.stream = false;
             secondDrillDownService.stop();
             drillDownService.start();
-            var chart = $scope.chartConfig.getHighcharts();
             if (chart.drilldownLevels && chart.drilldownLevels.length > 0) {
                 chart.drillUp();
             }
-        }
-
-        var secondDrillDown = function(event) {
-            dd2Event = event;
-            $scope.queryParams.stream = event.point.name;
-            drillDownService.stop();
-            secondDrillDownService.start();
-
         }
 
         $scope.exitDD = function() {
@@ -120,14 +129,13 @@ Object.size = function(obj) {
         }
 
         $scope.$on('ddChart.updated', function(event) {
-            ddserie = $scope.chartConfig.getHighcharts().series[0]
+            ddserie = chart.series[0];
             ddserie.update({
                 data: drillDownService.data
             });
         })
 
         $scope.$on('dd2Chart.updated', function(event) {
-            var chart = $scope.chartConfig.getHighcharts();
             if (!dd2serie) {
                 var newSerie = {
                     type: 'column',
@@ -136,13 +144,12 @@ Object.size = function(obj) {
                     yAxis: "percent",
                     data: secondDrillDownService.data,
                 }
-                $scope.chartConfig.getHighcharts().addSeriesAsDrilldown(dd2Event.point, newSerie)
+                chart.addSeriesAsDrilldown(dd2Event.point, newSerie)
                 dd2serie = chart.series[0];
             } else dd2serie.update({
                 data: secondDrillDownService.data,
             })
         })
-
     })
 
     .controller('streamRatesCtrl', function($scope, config, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
@@ -159,19 +166,33 @@ Object.size = function(obj) {
         var isDirty = true;
 
 
-        var chartCustomization = function() {
-            console.log('chartcustomization');
+        $scope.unitChanged = function() {
+            var axisTitle = $scope.unit == 'e' ? 'Events' : 'Bytes';
+            if ($scope.queryParams.useDivisor) {
+                axisTitle += '/s'
+            }
+            $scope.paramsChanged();
+            //streamRatesChartConfig.yAxis[0].title.text = axisTitle; //waiting for fix https://github.com/pablojim/highcharts-ng/issues/247
+            chart.yAxis[0].update({
+                title: {
+                    text: axisTitle
+                }
+            }, false);
+        }
+
+
+        var setEvents = function() {
             //setExtremes
             chartConfig.xAxis[0].events.afterSetExtremes = function(event) {
-                conole.log('afterSetExtremes');
+                return;
+                //event.preventDefault();
             };
             chartConfig.xAxis[0].events.setExtremes = function(event) {
-                console.log('setExtremes');
-                console.log(event);
                 event.preventDefault();
                 var min = Math.round(event.min);
                 var max = Math.round(event.max);
                 selectionRules(min, max)
+
             };
 
             //zoom selection
@@ -227,15 +248,12 @@ Object.size = function(obj) {
             }
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
-            console.log('selectionrules ', min, max);
             $scope.paramsChanged();
         }
 
 
 
         var initChart = function() {
-            console.log('initchart');
-
             if (chart) {
                 chart.destroy();
                 chart = false;
@@ -245,7 +263,7 @@ Object.size = function(obj) {
             macroSerie = false;
 
             chartConfig = jQuery.extend({}, streamRatesChartConfig);
-            chartCustomization();
+            setEvents();
             chart = new Highcharts.StockChart(chartConfig);
             chart.showLoading('No Monitor Informations');
 
@@ -255,7 +273,6 @@ Object.size = function(obj) {
 
         //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
         var startChart = function() {
-            console.log('startChart');
             chart.addSeries({
                 showInLegend: false,
                 visible: true,
@@ -272,6 +289,13 @@ Object.size = function(obj) {
                 showInLegend: false,
                 cursor: "pointer",
                 minPointLength: 5,
+                point: {
+                    events: {
+                        click: function(event) {
+                            $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
+                        }
+                    }
+                }
             })
             chart.addSeries({
                 borderWidth: 0.5,
@@ -282,27 +306,18 @@ Object.size = function(obj) {
                 showInLegend: false,
                 cursor: "pointer",
                 minPointLength: 5,
+                point: {
+                    events: {
+                        click: function() {
+                            $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
+                        }
+                    }
+                }
             })
 
             miniSerie = chart.get('minimerge');
             macroSerie = chart.get('macromerge');
 
-            //link first drilldown on points click
-            miniSerie.point = {
-                events: {
-                    click: function(event) {
-                        $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
-                    }
-                }
-            };
-            //link first drilldown on points click
-            macroSerie.point = {
-                events: {
-                    click: function() {
-                        $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
-                    }
-                }
-            };
             chart.hideLoading();
             isDirty = true;
         }
@@ -314,112 +329,62 @@ Object.size = function(obj) {
         })
 
         $scope.$on('srChart.updated', function(event) {
-            console.log('updateChart');
             if (!isDirty) {
                 startChart()
             }
+
+            data.streams.data.forEach(function(item) {
+                    var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
+                    //add new series if doesnt exists
+                    if ($.inArray(item.stream, Object.keys(streams)) == -1) {
+                        var newcolor = colors.get();
+                        var newSerie = {
+                            type: 'column',
+                            id: item.stream,
+                            name: item.stream,
+                            yAxis: "rates",
+                            color: newcolor,
+                            data: out,
+                        }
+                        chart.addSeries(newSerie, false, false);
+                        streams[item.stream] = chart.get(item.stream);
+
+
+                        var serieName = item.stream + '_complete';
+                        newSerie = {
+                            type: 'spline',
+                            id: serieName,
+                            name: serieName,
+                            yAxis: "percent",
+                            color: newcolor,
+                            data: item.percent,
+                            showInLegend: false,
+                        }
+                        chart.addSeries(newSerie, false, false);
+                        streams[serieName] = chart.get(serieName);
+
+                    } else { //update series if exists
+                        streams[item.stream].setData(out, false, false);
+                        streams[item.stream + '_complete'].setData(item.percent, false, false);
+                    }
+                })
+                //DO NOT CHANGE THE UPDATE ORDER
             chart.xAxis[0].update({
                 tickPositions: data.lsList
-            }, true);
+            }, false, false);
             var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
 
             var navSerie = chart.series[1];
-            navSerie.setData(out);
+            navSerie.setData(out, false, false);
 
-            miniSerie.setData(data.minimerge.percents);
-            macroSerie.setData(data.macromerge.percents);
+            miniSerie.setData(data.minimerge.percents, false, false);
+            macroSerie.setData(data.macromerge.percents, false, false);
 
-            data.streams.data.forEach(function(item) {
-                var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
-                //add new series if doesnt exists
-                if ($.inArray(item.stream, Object.keys(streams)) == -1) {
-                    var newcolor = colors.get();
-                    var newSerie = {
-                        type: 'column',
-                        id: item.stream,
-                        name: item.stream,
-                        yAxis: "rates",
-                        color: newcolor,
-                        data: out,
-                    }
-                    chart.addSeries(newSerie);
-                    streams[item.stream] = chart.get(item.stream);
+            chart.redraw();
 
-
-                    var serieName = item.stream + '_complete';
-                    newSerie = {
-                        type: 'spline',
-                        id: serieName,
-                        name: serieName,
-                        yAxis: "percent",
-                        color: newcolor,
-                        data: item.percent,
-                        showInLegend: false,
-                    }
-                    chart.addSeries(newSerie);
-                    streams[serieName] = chart.get(serieName);
-
-                } else { //update series if exists
-                    streams[item.stream].setData(out);
-                    streams[item.stream + '_complete'].setData(item.percent);
-                }
-                //console.log(streams);
-            })
         });
 
-
-
-
         initChart();
-
-        return
-        //$scope.service = streamRatesService;
-        $scope.paramsChanged = streamRatesService.paramsChanged;
-        $scope.queryParams = streamRatesService.queryParams;
-        $scope.queryInfo = streamRatesService.queryInfo;
-        $scope.chartConfig = chartConfig;
-        $scope.chartConfig.loading = config.chartWaitingMsg;
-        var data = streamRatesService.data;
-        var chart = false;
-
-
-
-
-
-
-
-
-
-        //$scope.miniSerie = $scope.chartConfig.series[1];
-        //$scope.macroSerie = $scope.chartConfig.series[2];
-
-        $scope.miniSerie = false;
-        $scope.macroSerie = false;
-
-
-
-
-
-
-        $scope.unitChanged = function() {
-            var axisTitle = $scope.unit == 'e' ? 'Events' : 'Bytes';
-            if ($scope.queryParams.useDivisor) {
-                axisTitle += '/s'
-            }
-            $scope.paramsChanged();
-            //streamRatesChartConfig.yAxis[0].title.text = axisTitle; //waiting for fix https://github.com/pablojim/highcharts-ng/issues/247
-            streamRatesChartConfig.getHighcharts().yAxis[0].update({
-                title: {
-                    text: axisTitle
-                }
-            }, false);
-        }
-
-
-
-
-
-
     })
 
     .controller('microStatesCtrl', function($scope, config, moment, amMoment, microStatesService, microStatesChartConfig) {

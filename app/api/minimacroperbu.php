@@ -51,17 +51,19 @@ $stringQuery = json_encode($jsonQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
 //echo json_encode($res);
+//die();
 
 $totals = array();
 
 $docs = $res["hits"]["hits"];
 foreach($docs as $doc) {
-    $id =$doc["_source"]["id"];
+    $id =$doc["_id"];
     $total = $doc["_source"]["NEvents"];
     $bu = substr($id, strpos($id, "bu"));
+    if(!isset($totals[$bu])){$totals[$bu] = 0;}
     $totals[$bu] += $total ; 
 }
-//die(var_dump($totals));
+//echo json_encode($totals);
 
 
 //GET MINI OR MACRO MERGE
@@ -83,18 +85,20 @@ $stringQuery = json_encode($jsonQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
 //echo json_encode($res);
+//die();
 
 
 $totalProc = array();
 
 $docs = $res["hits"]["hits"];
 foreach($docs as $doc) {
-    $id =$doc["_source"]["id"];
+    $id =$doc["_id"];
     $bu = substr($id, strpos($id, "bu"));
     $processed = $doc["_source"]["processed"];
 
-    
+    if(!isset($totalProc[$bu])){$totalProc[$bu] = 0;}
     $totalProc[$bu] += $processed;
+
 }
 
 //echo json_encode($totals);
@@ -103,10 +107,14 @@ foreach($docs as $doc) {
 $out = array("percents"=>array());
 
 foreach ($totals as $bu => $total){
-    $processed = $totalProc[$bu];
+    if(!isset($totalProc[$bu])){$processed = 0; $doc_count = 0;}
+    else {$processed = $totalProc[$bu];}
     //CALC PERCENTS        
     
-    if ($total == 0){ $percent = 100;} 
+    if ($total == 0){ 
+        if ($doc_count == 0) {$percent = 0;} 
+        else {$percent = 100; }
+    } 
         else{ $percent = round($processed/$total*100,2);  }
     $color = percColor($percent);
 

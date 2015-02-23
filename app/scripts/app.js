@@ -13,7 +13,7 @@
 
 (function() {
 
-    //$.ajaxSetup({cache:false});
+    $.ajaxSetup({cache:false});
 
   angular.module('f3monApp', [
     'ngAnimate',

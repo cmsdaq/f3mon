@@ -76,6 +76,13 @@
                     easing: 'linear'
                 },
             },
+            spline:{
+                lineWidth: 5,
+                marker:{
+                    enabled:true,
+                }
+            },
+
             column: {
                 groupPadding: 0.01,
                 pointPadding: 0,
@@ -147,14 +154,18 @@
                         //fontWeight: "bold"
                     },
                 },
-                events: {}
+                events: { 
+                    afterSetExtremes:function(event){console.log('navAfter')},
+                    setExtremes:function(event){console.log('navSet')},
+
+            }
             }
         },
         rangeSelector: {
             enabled: false,
         },
         navigation: {
-            enabled: true
+            enabled: false,
         },
         scrollbar: {
             enabled: true,
@@ -255,8 +266,9 @@
     })
 
     .constant('drillDownChartConfig', {
-        options: { //not handled by angular controller
+
             chart: {
+                renderTo:'ddchart',
                 animation: {
                     duration: 500,
                     easing: 'linear'
@@ -282,9 +294,9 @@
             },
             legend: {
                 enabled: false
-            }
-        },
-        //handled by angular controller
+            },
+
+
         title: {
             text: ''
         },
@@ -314,7 +326,6 @@
             id: "drilldown",
             name: "drilldown",
             yAxis: "percent",
-            cursor: 'pointer',
             minPointLength: 10,
         }],
         drilldown: {
