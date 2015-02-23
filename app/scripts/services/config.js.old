@@ -23,12 +23,12 @@
         paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
     })
 
-    //TimeZone settings
-    .constant('angularMomentConfig', {
-        format: 'MMM D YYYY, HH:mm',
-        preprocess: 'utc',
-        //timezone: 'Europe/London' // e.g. 'Europe/London'
-    })
+//TimeZone settings
+.constant('angularMomentConfig', {
+    format: 'MMM D YYYY, HH:mm',
+    preprocess: 'utc',
+    //timezone: 'Europe/London' // e.g. 'Europe/London'
+})
 
     .service('colors', function() {
         var list = Highcharts.getOptions('colors').colors;
@@ -51,114 +51,129 @@
 
 
     .constant('streamRatesChartConfig', {
-        chart: {
-            renderTo: 'srchart',
-            zoomType: 'x',
-            animation: {
-                duration: 500,
-                easing: 'linear'
+        options: { //not handled by angular controller
+            useHighStocks: true,
+            exporting: {
+                enabled: false
             },
-            events: {},
-        },
-        exporting: {
-            enabled: false
-        },
-        legend: {
-            enabled: true,
-            align: 'center',
-            verticalAlign: 'bottom',
-            //maxHeight: 50,
-        },
-        plotOptions: {
-            series: {
+            chart: {
                 animation: {
                     duration: 500,
                     easing: 'linear'
                 },
+                //marginTop: 10,
+                //spacingTop: 10,
+                zoomType: 'x',
+                events: {},
             },
-            column: {
-                groupPadding: 0.01,
-                pointPadding: 0,
-                borderWidth: 0.01,
-                events: {
-                    legendItemClick: function(event) {
-                        var cSerie = this.chart.get(this.name + "_complete");
-                        cSerie.setVisible(!this.visible, false);
+            legend: {
+                enabled: true,
+                align: 'center',
+                verticalAlign: 'bottom',
+                //maxHeight: 50,
+            },
+            plotOptions: {
+                series: {
+                    animation: {
+                        duration: 500,
+                        easing: 'linear'
                     },
-                }
-            }
-        },
-        tooltip: {
-            enabled: true,
-            followPointer: false,
-            //crosshairs: [true, true], //not visible with the grid
-            //shared: true,
-            //position on the left or right side of the point only with shared:false
-            positioner: function(labelWidth, labelHeight, point) {
-                var tooltipX, tooltipY;
-                if (point.plotX + labelWidth > this.chart.plotWidth) {
-                    tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
-                } else {
-                    tooltipX = point.plotX + this.chart.plotLeft + 20;
-                }
-                tooltipY = point.plotY + this.chart.plotTop - 20;
-                return {
-                    x: tooltipX,
-                    y: tooltipY
-                };
-            }
-        },
-        navigator: {
-            enabled: true,
-            adaptToUpdatedData: false,
-            series: {
-                type: 'area',
-                animation: {
-                    duration: 500,
                 },
-                fillOpacity: 0.3,
-            },
-            height: 25,
-            margin: 0,
-            yAxis: {
-                tickPixelInterval: 5,
-                title: {
-                    text: 'Totals'
-                },
-                labels: {
-                    enabled: true,
-                    formatter: function() {
-                        //return numeral(this.value).format('0a')
+                column: {
+                    groupPadding: 0.01,
+                    pointPadding: 0,
+                    borderWidth: 0.01,
+                    events: {
+                        legendItemClick: function(event) {
+                            var cSerie = this.chart.get(this.name + "_complete");
+                            cSerie.setVisible(!this.visible, false);
+                        },
                     }
-                },
+                }
             },
-            xAxis: {
-                tickPixelInterval: 50,
-                title: {
-                    text: ''
-                },
-                labels: {
-                    formatter: function() {
-                        //console.log(this.value)
-                        return this.value;
+            tooltip: {
+                enabled: true,
+                followPointer: false,
+                //crosshairs: [true, true], //not visible with the grid
+                //shared: true,
+                //position on the left or right side of the point only with shared:false
+                                positioner: function(labelWidth, labelHeight, point) {
+                
+                                    var tooltipX, tooltipY;
+                                    if (point.plotX + labelWidth > this.chart.plotWidth) {
+                                        tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
+                                    } else {
+                                        tooltipX = point.plotX + this.chart.plotLeft + 20;
+                                    }
+                                    tooltipY = point.plotY + this.chart.plotTop - 20;
+                                    return {
+                                        x: tooltipX,
+                                        y: tooltipY
+                                    };
+                                }
+            },
+
+            navigator: {
+
+                enabled: true,
+                adaptToUpdatedData: false,
+                series: {
+                    type: 'area',
+                    animation: {
+
+                        duration: 500,
                     },
-                    style: {
-                        color: "black",
-                        //fontWeight: "bold"
+                    fillOpacity: 0.3,
+                },
+                height: 25,
+                margin: 15,
+                yAxis: {
+                    tickPixelInterval: 5,
+                    title: {
+                        text: 'Totals'
+                    },
+                    labels: {
+                        enabled: true,
+                        formatter: function() {
+                            //return numeral(this.value).format('0a')
+                        }
                     },
                 },
-                events: {}
-            }
+                xAxis: {
+                    tickPixelInterval: 50,
+                    title: {
+                        text: ''
+                    },
+                    labels: {
+                        formatter: function() {
+                            //console.log(this.value)
+                            return this.value;
+                        },
+                        style: {
+                            color: "black",
+                            //fontWeight: "bold"
+                        },
+                    },
+                    events: {}
+                }
+            },
+            rangeSelector: {
+                enabled: false,
+            },
+
+            navigation: {
+                enabled: true
+            },
+            scrollbar: {
+                enabled: true,
+                liveRedraw: false,
+            },
+
+
         },
-        rangeSelector: {
-            enabled: false,
-        },
-        navigation: {
-            enabled: true
-        },
-        scrollbar: {
-            enabled: true,
-            liveRedraw: false,
+        //handled by angular controller
+        chart: {
+            zoomType: 'x',
         },
         title: {
             text: ''
@@ -186,30 +201,28 @@
             events: {}
         }],
         yAxis: [{
+            minPadding: 0,
+            maxPadding: 0,
             title: {
                 text: 'Events'
             },
-            showLastLabel:true,
-            minPadding: 0,
-            maxPadding: 0,
             id: "rates",
             height: "74%",
             lineWidth: 1,
             offset: 0,
-            opposite: false,
+            //opposite: false,
         }, {
-
+            minPadding: 0,
+            maxPadding: 0,
             title: {
                 text: 'Completeness %',
                 align: 'middle',
                 //margin: 30,
             },
-            showLastLabel:true,
-            minPadding: 0,
-            maxPadding: 0,
             max: 100,
             min: 0,
             height: "74%",
+
             id: "percent",
             lineWidth: 1,
             offset: 0,
@@ -220,8 +233,8 @@
         }, {
             title: {
                 text: 'miniMerge %',
+
             },
-            showLastLabel:true,
             max: 100,
             min: 0,
             id: "minipercent",
@@ -229,29 +242,26 @@
             top: "78%",
             lineWidth: 1,
             offset: 0,
-            opposite: false,
+            //opposite: false,
         }, {
             title: {
                 text: 'macroMerge %',
                 align: 'middle',
-                margin: 30,
+                //margin: 30,
             },
-            showLastLabel:true,
-            minPadding: 0,
-            maxPadding: 0,
             max: 100,
             min: 0,
-            height: "10%",
             id: "macropercent",
+            height: "10%",
             top: "90%",
             lineWidth: 1,
             offset: 0,
             opposite: true,
             labels: {
-                align: 'center',
-                
+                //align: 'right'
             }
         }],
+        series: [],
     })
 
     .constant('drillDownChartConfig', {
@@ -336,12 +346,12 @@
                 },
                 plotOptions: {
                     column: {
-                        pointRange: 5500,
+                        pointRange:5500,
                         gapsize: 0,
                         stacking: 'percent',
-                        groupPadding: 0,
-                        pointPadding: 0,
-                        borderWidth: 0,
+                        groupPadding:0,
+                        pointPadding:0,
+                        borderWidth:0,
                         connectNulls: false,
                         lineWidth: 0,
                         marker: {

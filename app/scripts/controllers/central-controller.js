@@ -146,16 +146,69 @@ Object.size = function(obj) {
     })
 
     .controller('streamRatesCtrl', function($scope, config, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
-        //$scope.service = streamRatesService;
         $scope.paramsChanged = streamRatesService.paramsChanged;
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
-        $scope.chartConfig = streamRatesChartConfig;
-        $scope.chartConfig.loading = config.chartWaitingMsg;
+
+        $scope.streams = {};
+        $scope.unit = 'e';
+
         var data = streamRatesService.data;
         var chart = false;
+        var miniSerie, macroSerie, streams, chartConfig;
+        var isDirty = true;
+
+
+        var chartCustomization = function() {
+            console.log('chartcustomization');
+            //setExtremes
+            chartConfig.xAxis[0].events.afterSetExtremes = function(event) {
+                conole.log('afterSetExtremes');
+            };
+            chartConfig.xAxis[0].events.setExtremes = function(event) {
+                console.log('setExtremes');
+                console.log(event);
+                event.preventDefault();
+                var min = Math.round(event.min);
+                var max = Math.round(event.max);
+                selectionRules(min, max)
+            };
+
+            //zoom selection
+            chartConfig.chart.events.selection = function(event) {
+                event.preventDefault();
+
+                var min = Math.round(event.xAxis[0].min);
+                var max = Math.round(event.xAxis[0].max);
+                var range = max - min;
+
+                if (range < 20) {
+                    min = min - Math.round((20 - range) / 2)
+                    max = max + Math.round((20 - range) / 2)
+                }
+
+                selectionRules(min, max)
+            }
+
+            //minimacro background clicks
+            chartConfig.chart.events.click = function(event) {
+                //var xRawValue = Math.round(Math.abs(event.xAxis[0].value)); 
+                //var xRealValue = data.lsList[xRawValue - 1]; 
+                var xRealValue = Math.round(Math.abs(event.xAxis[0].value));
+
+                var y2RawValue = Math.ceil(event.yAxis[2].value);
+                var y3RawValue = Math.ceil(event.yAxis[3].value);
+
+                if (y3RawValue < 100) {
+                    $scope.$parent.enableDrillDown('macromerge', xRealValue, data.interval)
+                } else if (y2RawValue < 100) {
+                    $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
+                }
+            }
+        }
 
         var selectionRules = function(min, max) {
+
             streamRatesService.stop();
             var lastLs = runInfoService.data.lastLs;
             if (min == 0) {
@@ -174,49 +227,168 @@ Object.size = function(obj) {
             }
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
+            console.log('selectionrules ', min, max);
             $scope.paramsChanged();
         }
 
 
-        //setExtremes
-        $scope.chartConfig.xAxis[0].events.setExtremes = function(event) {
-            event.preventDefault();
-            var min = Math.round(event.min);
-            var max = Math.round(event.max);
-            selectionRules(min, max)
-        };
 
-        //zoom selection
-        $scope.chartConfig.options.chart.events.selection = function(event) {
-            event.preventDefault();
+        var initChart = function() {
+            console.log('initchart');
 
-            var min = Math.round(event.xAxis[0].min);
-            var max = Math.round(event.xAxis[0].max);
-            var range = max - min;
+            if (chart) {
+                chart.destroy();
+                chart = false;
+                $("#" + chartConfig.chart.renderTo).empty().unbind();
+            };
+            miniSerie = false;
+            macroSerie = false;
 
-            if (range < 20) {
-                min = min - Math.round((20 - range) / 2)
-                max = max + Math.round((20 - range) / 2)
-            }
+            chartConfig = jQuery.extend({}, streamRatesChartConfig);
+            chartCustomization();
+            chart = new Highcharts.StockChart(chartConfig);
+            chart.showLoading('No Monitor Informations');
 
-            selectionRules(min, max)
+            streams = {};
+            isDirty = false;
         }
 
-        //minimacro background clicks
-        $scope.chartConfig.options.chart.events.click = function(event) {
-            //var xRawValue = Math.round(Math.abs(event.xAxis[0].value)); 
-            //var xRealValue = data.lsList[xRawValue - 1]; 
-            var xRealValue = Math.round(Math.abs(event.xAxis[0].value));
+        //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
+        var startChart = function() {
+            console.log('startChart');
+            chart.addSeries({
+                showInLegend: false,
+                visible: true,
+                name: 'navigator',
+                //type:area,
+                //id:'navigator',
+            });
+            chart.addSeries({
+                borderWidth: 0.5,
+                type: 'column',
+                id: "minimerge",
+                name: "minimerge",
+                yAxis: "minipercent",
+                showInLegend: false,
+                cursor: "pointer",
+                minPointLength: 5,
+            })
+            chart.addSeries({
+                borderWidth: 0.5,
+                type: 'column',
+                id: "macromerge",
+                name: "macromerge",
+                yAxis: "macropercent",
+                showInLegend: false,
+                cursor: "pointer",
+                minPointLength: 5,
+            })
 
-            var y2RawValue = Math.ceil(event.yAxis[2].value);
-            var y3RawValue = Math.ceil(event.yAxis[3].value);
+            miniSerie = chart.get('minimerge');
+            macroSerie = chart.get('macromerge');
 
-            if (y3RawValue < 100) {
-                $scope.$parent.enableDrillDown('macromerge', xRealValue, data.interval)
-            } else if (y2RawValue < 100) {
-                $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
-            }
+            //link first drilldown on points click
+            miniSerie.point = {
+                events: {
+                    click: function(event) {
+                        $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
+                    }
+                }
+            };
+            //link first drilldown on points click
+            macroSerie.point = {
+                events: {
+                    click: function() {
+                        $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
+                    }
+                }
+            };
+            chart.hideLoading();
+            isDirty = true;
         }
+
+        $scope.$on('runInfo.selected', function(event) {
+            if (isDirty) {
+                initChart()
+            };
+        })
+
+        $scope.$on('srChart.updated', function(event) {
+            console.log('updateChart');
+            if (!isDirty) {
+                startChart()
+            }
+            chart.xAxis[0].update({
+                tickPositions: data.lsList
+            }, true);
+            var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
+
+            var navSerie = chart.series[1];
+            navSerie.setData(out);
+
+            miniSerie.setData(data.minimerge.percents);
+            macroSerie.setData(data.macromerge.percents);
+
+            data.streams.data.forEach(function(item) {
+                var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
+                //add new series if doesnt exists
+                if ($.inArray(item.stream, Object.keys(streams)) == -1) {
+                    var newcolor = colors.get();
+                    var newSerie = {
+                        type: 'column',
+                        id: item.stream,
+                        name: item.stream,
+                        yAxis: "rates",
+                        color: newcolor,
+                        data: out,
+                    }
+                    chart.addSeries(newSerie);
+                    streams[item.stream] = chart.get(item.stream);
+
+
+                    var serieName = item.stream + '_complete';
+                    newSerie = {
+                        type: 'spline',
+                        id: serieName,
+                        name: serieName,
+                        yAxis: "percent",
+                        color: newcolor,
+                        data: item.percent,
+                        showInLegend: false,
+                    }
+                    chart.addSeries(newSerie);
+                    streams[serieName] = chart.get(serieName);
+
+                } else { //update series if exists
+                    streams[item.stream].setData(out);
+                    streams[item.stream + '_complete'].setData(item.percent);
+                }
+                //console.log(streams);
+            })
+        });
+
+
+
+
+        initChart();
+
+        return
+        //$scope.service = streamRatesService;
+        $scope.paramsChanged = streamRatesService.paramsChanged;
+        $scope.queryParams = streamRatesService.queryParams;
+        $scope.queryInfo = streamRatesService.queryInfo;
+        $scope.chartConfig = chartConfig;
+        $scope.chartConfig.loading = config.chartWaitingMsg;
+        var data = streamRatesService.data;
+        var chart = false;
+
+
+
+
+
+
+
+
 
         //$scope.miniSerie = $scope.chartConfig.series[1];
         //$scope.macroSerie = $scope.chartConfig.series[2];
@@ -224,8 +396,7 @@ Object.size = function(obj) {
         $scope.miniSerie = false;
         $scope.macroSerie = false;
 
-        $scope.streams = {};
-        $scope.unit = 'e';
+
 
 
 
@@ -244,143 +415,10 @@ Object.size = function(obj) {
             }, false);
         }
 
-        //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
-        var initChart = function() {
-            $scope.chartConfig.series.push({
-                showInLegend: false,
-                visible: true,
-                name: 'navigator',
-                //type:area,
-                //id:'navigator',
-            }, {
-                borderWidth: 0.5,
-                type: 'column',
-                id: "minimerge",
-                name: "minimerge",
-                yAxis: "minipercent",
-                showInLegend: false,
-                cursor: "pointer",
-                minPointLength: 5,
-            }, {
-                borderWidth: 0.5,
-                type: 'column',
-                id: "macromerge",
-                name: "macromerge",
-                yAxis: "macropercent",
-                showInLegend: false,
-                cursor: "pointer",
-                minPointLength: 5,
-            })
-
-            //console.log($scope.chartConfig.series);
-
-            $scope.miniSerie = $scope.chartConfig.series[1];
-            $scope.macroSerie = $scope.chartConfig.series[2];
-
-            //link first drilldown on points click
-            $scope.miniSerie.point = {
-                events: {
-                    click: function(event) {
-                        $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
-                    }
-                }
-            };
-            //link first drilldown on points click
-            $scope.macroSerie.point = {
-                events: {
-                    click: function() {
-                        $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
-                    }
-                }
-            };
-
-            $scope.$apply(); //this cause an error ant the beginning .. is not important but i dont know how to fix for now
-
-        }
-
-        $scope.$on('srChart.updated', function(event) {
-
-            //console.log(data.lsList, data.lsList.length)
-            if (!$scope.miniSerie) {
-                initChart();
-            }
 
 
 
-            if (!chart) {
-                chart = $scope.chartConfig.getHighcharts();
-            }
 
-            //axis label update
-            chart.xAxis[0].update({
-                tickPositions: data.lsList
-            }, true);
-
-            var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
-
-            //navigator update
-            var navSerie = _.findWhere(chart.series, {
-                name: 'Navigator'
-            });
-            navSerie.setData(out);
-
-            $scope.miniSerie.data = data.minimerge.percents;
-            $scope.macroSerie.data = data.macromerge.percents;
-
-            data.streams.data.forEach(function(item) {
-                var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
-                //add new series if doesnt exists
-                if ($.inArray(item.stream, Object.keys($scope.streams)) == -1) {
-                    var newcolor = colors.get();
-                    var newSerie = {
-                        type: 'column',
-                        id: item.stream,
-                        name: item.stream,
-                        yAxis: "rates",
-                        color: newcolor,
-                        data: out,
-                    }
-                    $scope.chartConfig.series.push(newSerie);
-                    $scope.streams[item.stream] = $scope.chartConfig.series[$scope.chartConfig.series.length - 1];
-                    var serieName = item.stream + '_complete';
-                    newSerie = {
-                        type: 'spline',
-                        id: serieName,
-                        name: serieName,
-                        yAxis: "percent",
-                        color: newcolor,
-                        data: item.percent,
-                        showInLegend: false,
-                    }
-                    $scope.chartConfig.series.push(newSerie);
-                    $scope.streams[serieName] = $scope.chartConfig.series[$scope.chartConfig.series.length - 1];
-                } else { //update series if exists
-                    $scope.streams[item.stream].data = out;
-                    $scope.streams[item.stream + '_complete'].data = item.percent;
-                }
-            })
-
-            if ($scope.chartConfig.loading) {
-                $scope.chartConfig.loading = false
-            }
-
-        });
-
-        $scope.$on('runInfo.selected', function(event) {
-            //GENERAL RESET!!
-            if ($scope.miniSerie) {
-                streamRatesService.stop();
-                $scope.chartConfig.loading = config.chartWaitingMsg;
-                $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
-                $scope.streams = {};
-                $scope.miniSerie = false;
-                $scope.macroSerie = false;
-                var chart = $scope.chartConfig.getHighcharts();
-                chart.series[3].setData([]);
-                colors.reset();
-            }
-
-        })
 
     })
 
@@ -403,7 +441,9 @@ Object.size = function(obj) {
 
                 var stateData = data[state];
 
-                var serie = _.findWhere(series, { name: state });
+                var serie = _.findWhere(series, {
+                    name: state
+                });
                 if (_.isEmpty(serie)) {
                     $scope.chartConfig.series.push({
                         type: 'area',
@@ -424,7 +464,7 @@ Object.size = function(obj) {
             microStatesService.stop();
             $scope.chartConfig.series.splice(0, $scope.chartConfig.series.length);
             $scope.chartConfig.loading = config.chartWaitingMsg;
-            
+
         })
 
     })

@@ -25,8 +25,7 @@
     'emguo.poller',
     'percentage',
     'ui.bootstrap',
-    'angularUtils.directives.dirPagination',
-    'highcharts-ng',
+    'angularUtils.directives.dirPagination',    
     'mgcrea.ngStrap',
     'angularMoment',
     'ngTimezone'
