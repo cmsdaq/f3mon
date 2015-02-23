@@ -281,7 +281,7 @@
 
         service.search = function() {
             mypoller.stop();
-            this.start();
+            service.start();
         };
 
         service.broadcast = function(msg) {

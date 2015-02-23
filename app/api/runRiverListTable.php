@@ -40,7 +40,8 @@ $typeList = array();
 $out = array("list"=>array(),"total"=>$res["hits"]["total"]);
 foreach ($res["hits"]["hits"] as $item) {
     $typeList[] = $item["_type"]; //for status check
-    $runindex = explode('_' , $item["_source"]["runIndex_read"])[1];    
+    $runindex = explode('_' , $item["_source"]["runIndex_read"]);    
+    $runindex = $runindex[1];
     //$runindex = $runindex[1];
     $out["list"][] = array(
         "name"      => $item["_type"],
