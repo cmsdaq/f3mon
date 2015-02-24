@@ -20,7 +20,7 @@ if(!isset($_GET["sysName"])) $sysName = "cdaq";
 
 
 //GET LEGEND
-$query = "ulegend";
+$query = "ulegenda";
 $index = "runindex_".$sysName."_read/microstatelegend";
 
 $stringQuery = file_get_contents("./json/".$query.".json");
