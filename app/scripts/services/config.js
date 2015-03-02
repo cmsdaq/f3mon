@@ -68,6 +68,7 @@
             align: 'center',
             verticalAlign: 'bottom',
             //maxHeight: 50,
+
         },
         plotOptions: {
             series: {
@@ -89,9 +90,33 @@
                 borderWidth: 0.01,
                 events: {
                     legendItemClick: function(event) {
-                        var cSerie = this.chart.get(this.name + "_complete");
-                        cSerie.setVisible(!this.visible, false);
-                    },
+
+                        var selectedName = this.name;
+                        var hideAllOthers = event.browserEvent.ctrlKey;
+
+                        if (hideAllOthers) {
+                            var series = this.chart.series;
+                            series.forEach(function(serie) {
+                                if (['navigator', 'Navigator', 'minimerge', 'macromerge'].indexOf(serie.name) > -1) {
+                                    return
+                                } else if (serie.name == selectedName || serie.name == selectedName + "_complete") {
+                                    serie.setVisible(true, false)
+
+                                } else {
+                                    serie.setVisible(!serie.visible, false)
+                                }
+                            })
+                            this.chart.redraw();
+                            return false;
+                        } else {
+                            var cSerie = this.chart.get(selectedName + "_complete");
+                            cSerie.setVisible(!this.visible, false);
+                        }
+
+
+
+                    }
+
                 }
             }
         },
@@ -366,6 +391,7 @@
             //height: 400,
             zoomType: 'xy',
         },
+
         plotOptions: {
             column: {
                 pointRange: 5500,
