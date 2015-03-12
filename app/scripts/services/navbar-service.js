@@ -137,6 +137,7 @@
         };
 
         $rootScope.$on('indices.selected', function(event) {
+            runInfoService.reset();
             runRanger.start();
         });
 

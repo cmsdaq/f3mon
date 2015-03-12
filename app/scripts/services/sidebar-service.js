@@ -32,6 +32,8 @@
 
 
 
+        
+
 
         var service = {
 
@@ -49,6 +51,20 @@
                 },
             }
         };
+
+        service.reset = function() {
+            if (!angular.isUndefined(mypoller)) { mypoller.stop() };
+
+            service.data.runNumber = false;
+            service.data.startTime = false;
+            service.data.endTime = false;
+            service.data.streams = [];
+            service.data.lastLs = false;
+
+            service.broadcast('selected');
+            console.log('runinfo reset')
+        };
+
 
 
         service.restartCollector = function(runNumber){
@@ -74,9 +90,11 @@
             this.data.runNumber = runNumber;
             this.start();
             this.broadcast('selected');
+            console.log('runinfo select')
         };
 
         service.start = function() {
+
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
                 mypoller = poller.get(resource, {
@@ -89,6 +107,7 @@
                     }]
                 });
                 mypoller.promise.then(null, null, function(data) {
+                    console.log('runinfo service update')
                     if (JSON.stringify(data) != cache) {
                         cache = JSON.stringify(data);
                         service.data.runNumber = data.runNumber;

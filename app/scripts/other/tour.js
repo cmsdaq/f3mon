@@ -1,4 +1,4 @@
-//NOTE: DISABLE TRANSLATE3d IN THE SWIPER CSS AND USECSS3TRANSFORM IN THE SWIPER.JS
+
 
     //var $demo, duration, remaining, tour;
     //$demo = $("#demo");

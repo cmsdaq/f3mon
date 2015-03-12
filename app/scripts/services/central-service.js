@@ -61,7 +61,7 @@
                 sysName: false,
                 streamList: false,
                 timePerLs: 23.4,
-                useDivisor: false,
+                useDivisor: true,
             },
             queryInfo: {
                 took: 0,
@@ -70,6 +70,7 @@
             }
         };
         service.stop = function() {
+            console.log('srchart service stop')
             if (!angular.isUndefined(mypoller)) {
                 //console.log('service stop')
                 mypoller.stop();
@@ -77,6 +78,7 @@
         };
 
         service.start = function() {
+            console.log('srchart service start')
             if (!runInfo.lastLs || !runInfo.streams) {
                 return;
             };
@@ -129,6 +131,10 @@
         var broadcast = function(msg) {
             $rootScope.$broadcast('srChart.' + msg);
         };
+
+        $rootScope.$on('runInfo.selected', function(event) {
+            service.stop();
+        })
 
         $rootScope.$on('runInfo.updated', function(event) {
             var q = service.queryParams;
@@ -283,6 +289,7 @@
         };
 
         $rootScope.$on('runInfo.updated', function(event) {
+
             var runInfo = runInfoService.data;
             var q = service.queryParams;
 

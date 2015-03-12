@@ -4,7 +4,7 @@
         <div id='srPanel' class='panel' style='height:50%'>
             <div class="panel panel-primary" style='height:100%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
                 <!-- Default panel contents -->
-                <div class="panel-heading">
+                <div class="panel-heading" style='height:10%;'>
                     <span ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
@@ -27,7 +27,7 @@
                     <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Stream Rates:</h3>
 
                 </div>
-                <div class="panel-body" style='height:85%;'>
+                <div class="panel-body" style='height:90%;'>
                     <div id="srchart" style='height:100%' ></div>
                 </div>
             </div>
@@ -55,11 +55,11 @@
             <!-- Microstate chart panel -->
             <div class="panel panel-primary" ng-controller='microStatesCtrl' style='height:100%' id='msPanel'>
                 <!-- Default panel contents -->
-                <div class="panel-heading">
+                <div class="panel-heading" style='height:10%;'>
                     <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
                 </div>
-                <div class="panel-body" style='height:88%;padding:0px; border:0px; margin:0px;'>
+                <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:0px;'>
                     <div id="mschart" style='height:100%'></div>
                 </div>
             </div>
