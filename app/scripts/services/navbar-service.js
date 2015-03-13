@@ -52,6 +52,7 @@
             this.select(config.defaultSubSystem)
         };
         indices.select = function(subSystem) {
+            console.log(this.list);
             var item = $.grep(this.list, function(e) {
                 return e.subSystem == subSystem;
             })[0];

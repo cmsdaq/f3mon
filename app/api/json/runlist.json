@@ -1,18 +1,23 @@
 {
-  "fields": [
-      "_timestamp",
-      "_source"
-   ],
-   "query": {
-      "range": {
-         "_timestamp": {
-            "from": "0",
-            "to": "now"
-         }
-      }
-   },
-  "size": 1,
-  "sort": {
-    "startTime": "desc"
-  }
+    "fields": [
+        "_timestamp",
+        "_source"
+    ],
+    "query": {
+        "range": {
+            "_timestamp": {
+                "from": "0",
+                "to": "now"
+            }
+        }
+    },
+    "filter": {
+        "missing": {
+            "field": "endTime"
+        }
+    },
+    "size": 1,
+    "sort": {
+        "startTime": "desc"
+    }
 }

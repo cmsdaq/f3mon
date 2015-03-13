@@ -30,11 +30,6 @@
             }
         });
 
-
-
-        
-
-
         var service = {
 
             data: {
@@ -289,13 +284,13 @@
 
         service.changeSorting = function(field) {
             mypoller.stop();
-            if(field != this.data.sortBy ) {
-                this.data.sortBy = field;
-                this.data.sortOrder = 'desc';
+            if(field != service.data.sortBy ) {
+                service.data.sortBy = field;
+                service.data.sortOrder = 'desc';
             } else {
-                this.data.sortOrder = (this.data.sortOrder == 'desc') ? 'asc' : 'desc';
+                service.data.sortOrder = (service.data.sortOrder == 'desc') ? 'asc' : 'desc';
             }
-            this.start();
+            service.start();
         };
 
         service.search = function() {
