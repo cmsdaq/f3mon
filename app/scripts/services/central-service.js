@@ -29,8 +29,8 @@
     })
 
 
-    .factory('streamRatesService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
-        var mypoller;
+    .factory('streamRatesService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+        var mypoller,config;
         var runInfo = runInfoService.data;
         var resource = $resource('api/streamhist.php', {
             callback: 'JSON_CALLBACK',
@@ -39,6 +39,12 @@
                 method: 'JSONP',
             }
         });
+        
+        
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+        });
+           
 
         var service = {
             data: {
@@ -77,6 +83,7 @@
         };
 
         service.start = function() {
+
             if (!runInfo.lastLs || !runInfo.streams) {
                 return;
             };
@@ -160,8 +167,8 @@
     })
 
     //First Drill Down plot service
-    .factory('drillDownService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
-        var mypoller, cache;
+    .factory('drillDownService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+        var mypoller, cache,config;
         var resource = $resource('api/minimacroperstream.php?', {
             callback: 'JSON_CALLBACK',
         }, {
@@ -169,6 +176,14 @@
                 method: 'JSONP',
             }
         });
+
+        
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+        });
+
+
+
         var service = {
             queryParams: {
                 runNumber: false,
@@ -236,8 +251,8 @@
     })
 
     //Second Drill Down plot service
-    .factory('secondDrillDownService', function($resource, $rootScope, poller, config, drillDownService, runInfoService, indexListService) {
-        var mypoller, cache;
+    .factory('secondDrillDownService', function($resource, $rootScope, poller, configService, drillDownService, runInfoService, indexListService) {
+        var mypoller, cache, config;
         var resource = $resource('api/minimacroperbu.php?', {
             callback: 'JSON_CALLBACK',
         }, {
@@ -245,9 +260,20 @@
                 method: 'JSONP',
             }
         });
+
+
+        
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+        });
+
+
+
         var service = {
             queryParams: drillDownService.queryParams
         };
+
+
 
         service.start = function() {
             cache = '';
@@ -305,8 +331,8 @@
     })
 
 
-    .factory('microStatesService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
-        var mypoller;
+    .factory('microStatesService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+        var mypoller,config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
 
@@ -317,6 +343,12 @@
                 method: 'JSONP',
             }
         });
+
+        
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+        });
+
 
         var service = {
             data: {},
@@ -392,10 +424,17 @@
         return service;
     })
 
-    .factory('logsService', function($resource, $rootScope, poller, config, runInfoService, indexListService) {
-        var mypoller, cache;
+    .factory('logsService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+        var mypoller, cache, config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
+
+        
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+        });
+
+
         var service = {
             data: {
                 numLogs: 0,
@@ -484,8 +523,8 @@
                     argumentsArray: [service.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    //console.log(data);
-                    //console.log('logupdate',data.lasttime,service.data.lastTime)
+                    console.log(data);
+                    console.log('logupdate',data.lastTime,service.data.lastTime)
                     if (data.lastTime != service.data.lastTime || data.iTotalRecords != service.data.displayTotal) {
                         service.data.lastTime = data.lastTime;
                         service.data.displayed = data.aaData;
@@ -508,7 +547,19 @@
             }
         }
 
-        $rootScope.$on('runInfo.updated', function(event) {
+        $rootScope.$on('runInfo.selected', function(event) {            
+            console.log('s');
+            if (!runInfo.startTime){
+                        service.data.lastTime = 0;
+                        service.data.displayed = [];
+                        service.data.displayTotal = 0; //at the moment there no differences between totals. need to be improved in the query
+                        service.data.numLogs = 0;
+            }
+
+
+        })
+
+        $rootScope.$on('runInfo.updated', function(event) {            
             var q = service.queryParams;
             service.stop();
 

@@ -103,7 +103,11 @@ function prepareServer(){
             'slowPollingDelay'=> 5000,
             'chartWaitingMsg'=> 'No monitoring information.',
             'msChartMaxPoints'=> 60,
-            'defaultTimezone'=> 'Locale',
+            'defaultTimezone'=> 'Locale',            
+            'secondsPerLsOn'  => true,
+            'secondsPerLsValue' => 23.4,
+            'streamRatesUnit' => 'Events',
+            'microStateChart' => true,
         ));
 
     $index = 'f3mon/config/default';

@@ -152,7 +152,9 @@ Object.size = function(obj) {
         })
     })
 
-    .controller('streamRatesCtrl', function($scope, config, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
+    .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
+        var config = configService.config;
+
         $scope.paramsChanged = streamRatesService.paramsChanged;
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
@@ -387,7 +389,9 @@ Object.size = function(obj) {
         initChart();
     })
 
-    .controller('microStatesCtrl', function($scope, config, moment, amMoment, microStatesService, microStatesChartConfig) {
+    .controller('microStatesCtrl', function($scope, configService, moment, amMoment, microStatesService, microStatesChartConfig) {
+        var config = configService.config;
+        
         var chart;
         var isDirty = true;
         var chartConfig;

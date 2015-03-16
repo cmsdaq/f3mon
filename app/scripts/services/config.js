@@ -39,33 +39,6 @@
     })
 
 
-
-
-    .run(function($cookieStore, $resource, config) {
-
-
-
-
-        var configName = $cookieStore.get('f3monConfigName') || 'default';
-
-        return;
-
-
-        var config = $resource('api/getConfig.php', {
-            callback: 'JSON_CALLBACK',
-            configName: configName,
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        }).query();
-
-    })
-
-
-
-
-
     //TimeZone settings
     .constant('angularMomentConfig', {
         format: 'MMM D YYYY, HH:mm',

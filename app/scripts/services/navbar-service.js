@@ -11,17 +11,90 @@
 (function() {
     angular.module('f3monApp')
 
-    .factory('config', function($resource, $rootScope, poller) {
+    .factory('configService', function($resource, $rootScope, $cookieStore, poller) {
+
+        var statusPoller, configPoller;
+        var statusRes = $resource('api/serverStatus.php', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP',
+            }
+        });
+
+        var configRes = $resource('api/getConfig.php', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP',
+            }
+        });
+
+
+        var waitingForGreenStatus = function() {
+            if (angular.isUndefined(statusPoller)) {
+                // Initialize poller and its callback
+                statusPoller = poller.get(statusRes, {
+                    action: 'jsonp_get',
+                    delay: 3000,
+                    smart: true,
+                    argumentsArray: []
+                });
+
+                statusPoller.promise.then(null, null, function(data) {
+                    var status = data.status;
+                    console.log(status);
+                    if (status == "green") {
+                        statusPoller.stop();
+                        waitingForConfig();
+                    }
+                });
+
+            }
+        }
+
+        var waitingForConfig = function() {
+            var configName = $cookieStore.get('f3monConfigName') || 'default';
+            console.log(configName);
+
+            configPoller = poller.get(configRes, {
+                action: 'jsonp_get',
+                delay: 3000,
+                smart: true,
+                argumentsArray: [{
+                    configName: configName
+                }]
+            });
+
+            configPoller.promise.then(null, null, function(data) {
+                configPoller.stop();
+                service.config = data.config;
+                broadcast("set");
+
+                console.log(data);
+
+            });
+        }
+
+
+        var broadcast = function(msg) {
+            $rootScope.$broadcast('config.' + msg);
+        }
+
+
+        waitingForGreenStatus();
 
         var service = {
-            'defaultSubSystem': "cdaq",
-            'fastPollingDelay': 3000,
-            'slowPollingDelay': 5000,
-            'chartWaitingMsg': 'No monitoring information.',
-            'msChartMaxPoints': 60,
-            'defaultTimezone': 'Locale',
-
-        }
+            config:false
+        };
+        //var service = {
+        //    'defaultSubSystem': "cdaq",
+        //    'fastPollingDelay': 3000,
+        //    'slowPollingDelay': 5000,
+        //    'chartWaitingMsg': 'No monitoring information.',
+        //    'msChartMaxPoints': 60,
+        //    'defaultTimezone': 'Locale',
+        //}
 
         return service;
 
@@ -30,7 +103,8 @@
 
 
     //Service for the system selector
-    .factory('indexListService', function($resource, $rootScope, poller, config) {
+    .factory('indexListService', function($resource, $rootScope, poller, configService) {
+        var config = false;
         var mypoller;
         var resource = $resource('api/getIndices.php', {
             callback: 'JSON_CALLBACK',
@@ -40,36 +114,56 @@
             }
         });
 
-        var mypoller = poller.get(resource, {
-            action: 'jsonp_get',
-            delay: config.fastPollingDelay,
-            smart: true
-        });
 
-        mypoller.promise.then(null, null, function(data) {
-            if (data.list && data.list.length != 0) {
-                indices.setList(data.list);
-                mypoller.stop();
-            } else {
-                console.error('Empty Indices List');
+
+        var start = function() {
+
+            if (angular.isUndefined(mypoller)) {
+                var mypoller = poller.get(resource, {
+                    action: 'jsonp_get',
+                    delay: config.fastPollingDelay,
+                    smart: true
+                });
+
+                mypoller.promise.then(null, null, function(data) {
+                    if (data.list && data.list.length != 0) {
+                        setList(data.list);
+                        mypoller.stop();
+                    } else {
+                        console.error('Empty Indices List');
+                    }
+                })
             }
-        })
+        }
 
-        var indices = {}
-        indices.selected = {};
-        indices.selected.index = "";
-        indices.selected.subSystem = "";
-        indices.list = [];
-        indices.setList = function(list) {
+        var setList = function(list) {
             if (list.length === 0) {
                 console.error('Empty Indices List');
                 return;
             };
-            this.list = list;
-            this.broadcast('list');
-            this.select(config.defaultSubSystem)
+            service.list = list;
+            broadcast('list');
+            service.select(config.defaultSubSystem);
         };
-        indices.select = function(subSystem) {
+
+
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+            start();
+        });
+
+        var broadcast = function(msg) {
+            $rootScope.$broadcast('indices.' + msg);
+        }
+
+
+        var service = {}
+        service.selected = {};
+        service.selected.index = "";
+        service.selected.subSystem = "";
+        service.list = [];
+
+        service.select = function(subSystem) {
             var item = $.grep(this.list, function(e) {
                 return e.subSystem == subSystem;
             })[0];
@@ -79,18 +173,16 @@
             };
             this.selected.index = item.index;
             this.selected.subSystem = item.subSystem;
-            this.broadcast('selected');
+            broadcast('selected');
         };
-        indices.broadcast = function(msg) {
-            $rootScope.$broadcast('indices.' + msg);
-        }
 
-        return indices;
+
+        return service;
     })
 
     //Service for the run ranger button
-    .factory('runRangerService', function($resource, $rootScope, config, poller, indexListService, runInfoService) {
-        var mypoller;
+    .factory('runRangerService', function($resource, $rootScope, configService, poller, indexListService, runInfoService) {
+        var mypoller,config;
         var resource = $resource('api/runList.php', {
             callback: 'JSON_CALLBACK',
         }, {
@@ -98,6 +190,11 @@
                 method: 'JSONP'
             }
         });
+
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+        });
+
 
         var runRanger = {};
         runRanger.isActive = true;
@@ -164,8 +261,8 @@
 
 
     //Service for the river status button
-    .factory('riverStatusService', function($resource, $rootScope, config, poller, runInfoService, indexListService) {
-        var mypoller;
+    .factory('riverStatusService', function($resource, $rootScope, configService, poller, runInfoService, indexListService) {
+        var mypoller,config;
 
         var resource = $resource('api/riverStatus.php', {
             callback: 'JSON_CALLBACK',
@@ -173,6 +270,10 @@
             jsonp_get: {
                 method: 'JSONP'
             }
+        });
+        
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
         });
 
 
@@ -190,7 +291,6 @@
         };
 
         service.restart = function() {
-            
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
                 mypoller = poller.get(resource, {
@@ -230,7 +330,7 @@
             var runInfo = runInfoService.data;
             var d = service.data;
 
-            d.isWorking = (d.main && d.collector) ? 'btn-success' : 'btn-danger' ;
+            d.isWorking = (d.main && d.collector) ? 'btn-success' : 'btn-danger';
             if (d.main) {
                 d.messages[0] = {
                     msg: "Main role running on server: " + d.main.host,
