@@ -39,6 +39,10 @@ $res=json_decode(esQuery($stringQuery,$index), true);
 //die();
 
 $hits = $res["hits"]["hits"];
+if(empty($hits)){
+    die();
+}
+
 $lasttime = $hits[0]["fields"]["_timestamp"];
 $ret = array(
     "lasttime" => $lasttime,

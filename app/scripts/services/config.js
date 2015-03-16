@@ -7,21 +7,64 @@
  * # config
  * Constant in the f3monApp.
  */
+
+
+//NOTE: default page config in api/config.php
 (function() {
     angular.module('f3monApp')
-        .constant('config', {
-            'defaultSubSystem': "cdaq",
-            'fastPollingDelay': 3000,
-            'slowPollingDelay': 5000,
-            'chartWaitingMsg': 'No monitoring information.',
-            'msChartMaxPoints': 60,
-            'defaultTimezone': 'Locale',
-        })
 
-    //Template required by the dirpagination plugin
-    .config(function(paginationTemplateProvider) {
+
+
+    .config(function($provide, paginationTemplateProvider) {
+        //Template required by the dirpagination plugin
         paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
+
+
+
+
+
+
+
+
+
+//        $provide.constant('config', {
+//            'defaultSubSystem': "cdaq",
+//            'fastPollingDelay': 3000,
+//            'slowPollingDelay': 5000,
+//            'chartWaitingMsg': 'No monitoring information.',
+//            'msChartMaxPoints': 60,
+//            'defaultTimezone': 'Locale',
+//        })
+
     })
+
+
+
+
+    .run(function($cookieStore, $resource, config) {
+
+
+
+
+        var configName = $cookieStore.get('f3monConfigName') || 'default';
+
+        return;
+
+
+        var config = $resource('api/getConfig.php', {
+            callback: 'JSON_CALLBACK',
+            configName: configName,
+        }, {
+            jsonp_get: {
+                method: 'JSONP',
+            }
+        }).query();
+
+    })
+
+
+
+
 
     //TimeZone settings
     .constant('angularMomentConfig', {

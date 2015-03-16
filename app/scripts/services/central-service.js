@@ -70,7 +70,6 @@
             }
         };
         service.stop = function() {
-            console.log('srchart service stop')
             if (!angular.isUndefined(mypoller)) {
                 //console.log('service stop')
                 mypoller.stop();
@@ -78,7 +77,6 @@
         };
 
         service.start = function() {
-            console.log('srchart service start')
             if (!runInfo.lastLs || !runInfo.streams) {
                 return;
             };

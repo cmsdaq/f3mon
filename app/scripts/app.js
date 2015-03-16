@@ -19,7 +19,7 @@
     'ngAnimate',
     'ngMessages',
     'ngResource',
-    'ngRoute',
+    'ngCookies',
     'ngTouch',
     'ngResource', 
     'emguo.poller',

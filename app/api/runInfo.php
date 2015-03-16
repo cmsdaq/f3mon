@@ -55,6 +55,8 @@ $jsonQuery["query"]["term"]["_parent"] = $runNumber;
 $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
+if(empty($res["hits"]["hits"])) {die();}
+
 $out["lastLs"] = $res["hits"]["hits"][0]["sort"];
 
 

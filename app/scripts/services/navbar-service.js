@@ -11,6 +11,24 @@
 (function() {
     angular.module('f3monApp')
 
+    .factory('config', function($resource, $rootScope, poller) {
+
+        var service = {
+            'defaultSubSystem': "cdaq",
+            'fastPollingDelay': 3000,
+            'slowPollingDelay': 5000,
+            'chartWaitingMsg': 'No monitoring information.',
+            'msChartMaxPoints': 60,
+            'defaultTimezone': 'Locale',
+
+        }
+
+        return service;
+
+    })
+
+
+
     //Service for the system selector
     .factory('indexListService', function($resource, $rootScope, poller, config) {
         var mypoller;
@@ -52,7 +70,6 @@
             this.select(config.defaultSubSystem)
         };
         indices.select = function(subSystem) {
-            console.log(this.list);
             var item = $.grep(this.list, function(e) {
                 return e.subSystem == subSystem;
             })[0];

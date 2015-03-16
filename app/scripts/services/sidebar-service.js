@@ -57,7 +57,6 @@
             service.data.lastLs = false;
 
             service.broadcast('selected');
-            console.log('runinfo reset')
         };
 
 
@@ -81,11 +80,11 @@
             if (runNumber == this.data.runNumber) {
                 return;
             }
-            //console.log('runinfo selected '+runNumber);
-            this.data.runNumber = runNumber;
-            this.start();
-            this.broadcast('selected');
-            console.log('runinfo select')
+            service.reset();
+            service.data.runNumber = runNumber;
+
+            service.start();
+            service.broadcast('selected');
         };
 
         service.start = function() {
@@ -102,7 +101,6 @@
                     }]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    console.log('runinfo service update')
                     if (JSON.stringify(data) != cache) {
                         cache = JSON.stringify(data);
                         service.data.runNumber = data.runNumber;

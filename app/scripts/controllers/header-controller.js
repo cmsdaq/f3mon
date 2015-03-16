@@ -61,6 +61,13 @@
         }
     })
 
+
+    .controller('settingsCtrl', function($scope, $cookieStore) {
+        //console.log('settingsCtrl')
+        
+    
+    })
+
     .controller('systemSelectorCtrl', function($scope, indexListService,$location,config) {
         $scope.$on( 'indices.list', function( event ) {
             $scope.list = indexListService.list;
@@ -80,7 +87,6 @@
         var checkUrl = function(){
             var path = $location.path().split('/') ;
             var subSystem = path[1];           
-            console.log(subSystem);
             if(!angular.isUndefined(subSystem)){
                 config.defaultSubSystem = subSystem;
             }

@@ -83,4 +83,36 @@ function startsWith($haystack, $needle)
 }
 
 
+function prepareServer(){
+    $index = 'f3mon';
+    $res=esQuery('',$index);
+
+    //create index for f3mon page if missing
+    if (strpos($res,'IndexMissingException')){
+        $res=esPut("", $index);
+
+        $index = 'f3mon/config/_mapping';
+        $stringQuery = file_get_contents("./json/f3monmapping.json");
+        
+        $res=esPut($stringQuery, $index);
+        
+    
+        $defaultConfig = json_encode(array(
+            'defaultSubSystem'=> "cdaq",
+            'fastPollingDelay'=> 3000,
+            'slowPollingDelay'=> 5000,
+            'chartWaitingMsg'=> 'No monitoring information.',
+            'msChartMaxPoints'=> 60,
+            'defaultTimezone'=> 'Locale',
+        ));
+
+    $index = 'f3mon/config/default';
+    $res = esPut($defaultConfig,$index);
+
+    } 
+
+}
+
+
+
 ?>

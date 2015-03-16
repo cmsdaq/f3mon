@@ -53,6 +53,8 @@ $stringQuery = json_encode($jsonQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
 
+if(empty($res["hits"])) {die();}
+
 $total = $res["hits"]["total"];
 $ret = array();
 foreach ($res["hits"]["hits"] as $item) {
