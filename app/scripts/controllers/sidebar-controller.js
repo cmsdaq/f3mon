@@ -39,12 +39,18 @@
 
     .controller('runInfoCtrl', function($scope, $modal, runInfoService) {
 
-        var modal = $modal({scope: $scope, template: 'views/restartModal.tpl.html',placement:'center', show: false, backdrop:true});
+        var modal = $modal({
+            scope: $scope,
+            template: 'views/restartModal.tpl.html',
+            placement: 'center',
+            show: false,
+            backdrop: true
+        });
         $scope.data = runInfoService.data;
         $scope.selected = false;
         $scope.restartCollector = runInfoService.restartCollector;
 
-        $scope.restartCollectorDialog = function (runNumber) {
+        $scope.restartCollectorDialog = function(runNumber) {
             console.log(runNumber)
             $scope.selected = runNumber;
             modal.$promise.then(modal.show);
@@ -55,7 +61,7 @@
         $scope.data = disksInfoService.data;
     })
 
-    .controller('runListCtrl', function($scope, runListService, runRangerService, runInfoService) {
+    .controller('runListCtrl', function($scope, runListService, runRangerService, runInfoService, globalService) {
         //$scope.noData = true;
         $scope.data = runListService.data;
         var service = runListService;
@@ -65,26 +71,41 @@
         $scope.changeSorting = service.changeSorting;
 
         $scope.selectRun = function(runNumber) {
-            runRangerService.shutdown();
-            runInfoService.select(runNumber);
+            //srchart need to have a container visible to set high and width properly
+            globalService.status.reset();
+
+            window.setTimeout(
+                function() {
+                    runRangerService.shutdown();
+                    runInfoService.select(runNumber);
+                }, 10);
+
+
         };
 
     })
 
-    .controller('riverListCtrl', function($scope,$modal, riverListService) {
-        var modal = $modal({scope: $scope, template: 'views/closeModal.tpl.html', show: false});
+    .controller('riverListCtrl', function($scope, $modal, riverListService) {
+        var modal = $modal({
+            scope: $scope,
+            template: 'views/closeModal.tpl.html',
+            show: false
+        });
         var service = riverListService;
 
         //$scope.search = service.search;
         $scope.pageChanged = service.pageChanged;
         $scope.sortedClass = service.sortedClass;
         $scope.changeSorting = service.changeSorting;
-        
+
         $scope.selected = false;
         $scope.data = service.data;
 
-        $scope.closeCollectorDialog = function (name,subSystem) {
-            $scope.selected = {"runNumber": name.split("_")[1], "subSystem" : subSystem};
+        $scope.closeCollectorDialog = function(name, subSystem) {
+            $scope.selected = {
+                "runNumber": name.split("_")[1],
+                "subSystem": subSystem
+            };
             modal.$promise.then(modal.show);
         };
 

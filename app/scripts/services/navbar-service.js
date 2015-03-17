@@ -31,6 +31,8 @@
         });
 
 
+
+
         var waitingForGreenStatus = function() {
             if (angular.isUndefined(statusPoller)) {
                 // Initialize poller and its callback
@@ -43,7 +45,6 @@
 
                 statusPoller.promise.then(null, null, function(data) {
                     var status = data.status;
-                    console.log(status);
                     if (status == "green") {
                         statusPoller.stop();
                         waitingForConfig();
@@ -55,8 +56,6 @@
 
         var waitingForConfig = function() {
             var configName = $cookieStore.get('f3monConfigName') || 'default';
-            console.log(configName);
-
             configPoller = poller.get(configRes, {
                 action: 'jsonp_get',
                 delay: 3000,
@@ -71,7 +70,7 @@
                 service.config = data.config;
                 broadcast("set");
 
-                console.log(data);
+                //console.log(data.config);
 
             });
         }
@@ -83,6 +82,14 @@
 
 
         waitingForGreenStatus();
+
+//$rootScope.$watch(function() {
+//  return service.config
+//}, function watchCallback(newValue, oldValue) {
+//  console.log(newValue)
+//});
+
+
 
         var service = {
             config:false

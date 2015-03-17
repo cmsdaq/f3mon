@@ -19,10 +19,19 @@
                 },
                 isTabSelected: function(num) {
                     return this.currentTab == num;
+                },
+                reset: function(){
+                    this.changeTab(0);
+                    broadcast('reset');
+
                 }
             },
 
         }
+
+        var broadcast = function(msg) {
+            $rootScope.$broadcast('global.' + msg);
+        };
 
         return service;
 
@@ -43,8 +52,14 @@
         
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
+            init();
         });
            
+
+        var init = function(){
+            service.queryParams.timePerLs = config.secondsPerLsValue;
+            service.queryParams.useDivisor = config.secondsPerLsOn;
+        }
 
         var service = {
             data: {
@@ -75,6 +90,8 @@
                 isToSelected: false,
             }
         };
+
+
         service.stop = function() {
             if (!angular.isUndefined(mypoller)) {
                 //console.log('service stop')
@@ -468,7 +485,6 @@
 
 
         service.pageChanged = function(newPageNumber) {
-            console.log(newPageNumber)
             service.stop();
             service.data.currentPage = newPageNumber;
             service.queryParams.from = (service.data.currentPage - 1) * service.data.itemsPerPage;
@@ -523,8 +539,6 @@
                     argumentsArray: [service.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    console.log(data);
-                    console.log('logupdate',data.lastTime,service.data.lastTime)
                     if (data.lastTime != service.data.lastTime || data.iTotalRecords != service.data.displayTotal) {
                         service.data.lastTime = data.lastTime;
                         service.data.displayed = data.aaData;
@@ -548,7 +562,6 @@
         }
 
         $rootScope.$on('runInfo.selected', function(event) {            
-            console.log('s');
             if (!runInfo.startTime){
                         service.data.lastTime = 0;
                         service.data.displayed = [];

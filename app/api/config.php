@@ -104,10 +104,10 @@ function prepareServer(){
             'chartWaitingMsg'=> 'No monitoring information.',
             'msChartMaxPoints'=> 60,
             'defaultTimezone'=> 'Locale',            
-            'secondsPerLsOn'  => true,
-            'secondsPerLsValue' => 23.4,
-            'streamRatesUnit' => 'Events',
-            'microStateChart' => true,
+            'secondsPerLsOn'  => true, //not working yet
+            'secondsPerLsValue' => 23.4, //not working yet
+            'streamRatesUnit' => 'Events', //not working yet
+            'microStateChart' => true, //not working yet
         ));
 
     $index = 'f3mon/config/default';

@@ -20,13 +20,6 @@
         paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
 
 
-
-
-
-
-
-
-
 //        $provide.constant('config', {
 //            'defaultSubSystem': "cdaq",
 //            'fastPollingDelay': 3000,

@@ -1,14 +1,5 @@
 'use strict';
 
-Object.size = function(obj) {
-    var size = 0,
-        key;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) size++;
-    }
-    return size;
-};
-
 /**
  * @ngdoc overview
  * @name f3monCentral
@@ -70,7 +61,9 @@ Object.size = function(obj) {
             $scope.status.currentPanel = num;
         }
 
-        $scope.$on('runInfo.selected', function(event) {})
+        $scope.$on('global.reset', function(event) {
+            $scope.selectPanel(1);
+        })
 
     })
 
@@ -153,14 +146,20 @@ Object.size = function(obj) {
     })
 
     .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
-        var config = configService.config;
+        var config;
+
+        $scope.$on('config.set', function(event) {
+            config = configService.config;
+            initChart();
+        });
+
 
         $scope.paramsChanged = streamRatesService.paramsChanged;
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
 
         $scope.streams = {};
-        $scope.unit = 'e';
+
 
         var data = streamRatesService.data;
         var chart = false;
@@ -169,7 +168,7 @@ Object.size = function(obj) {
 
 
         $scope.unitChanged = function() {
-            var axisTitle = $scope.unit == 'e' ? 'Events' : 'Bytes';
+            var axisTitle = $scope.unit;
             if ($scope.queryParams.useDivisor) {
                 axisTitle += '/s'
             }
@@ -256,11 +255,16 @@ Object.size = function(obj) {
 
 
         var initChart = function() {
+            $scope.unit = config.streamRatesUnit;
+
             if (chart) {
                 chart.destroy();
                 chart = false;
                 $("#" + chartConfig.chart.renderTo).empty().unbind();
+                chartConfig = false;
+                
             };
+
             miniSerie = false;
             macroSerie = false;
 
@@ -271,10 +275,13 @@ Object.size = function(obj) {
 
             streams = {};
             isDirty = false;
+            $scope.unitChanged();
+            
         }
 
         //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
         var startChart = function() {
+
             chart.addSeries({
                 showInLegend: false,
                 visible: true,
@@ -282,6 +289,7 @@ Object.size = function(obj) {
                 //type:area,
                 //id:'navigator',
             });
+
             chart.addSeries({
                 borderWidth: 0.5,
                 type: 'column',
@@ -319,24 +327,25 @@ Object.size = function(obj) {
 
             miniSerie = chart.get('minimerge');
             macroSerie = chart.get('macromerge');
-
+                        
             chart.hideLoading();
             isDirty = true;
         }
 
-        $scope.$on('runInfo.selected', function(event) {
+        $scope.$on('runInfo.selected', function(event) {            
             if (isDirty) {
-                initChart()
+                initChart();
             };
         })
 
         $scope.$on('srChart.updated', function(event) {
             if (!isDirty) {
-                startChart()
+                startChart();
             }
+            
 
             data.streams.data.forEach(function(item) {
-                    var out = $scope.unit == 'e' ? item.dataOut : item.fileSize;
+                    var out = $scope.unit == 'Events' ? item.dataOut : item.fileSize;
                     //add new series if doesnt exists
                     if ($.inArray(item.stream, Object.keys(streams)) == -1) {
                         var newcolor = colors.get();
@@ -374,7 +383,7 @@ Object.size = function(obj) {
             chart.xAxis[0].update({
                 tickPositions: data.lsList
             }, false, false);
-            var out = $scope.unit == 'e' ? data.navbar.events : data.navbar.files;
+            var out = $scope.unit == 'Events' ? data.navbar.events : data.navbar.files;
 
             var navSerie = chart.series[1];
             navSerie.setData(out, false, false);
@@ -386,7 +395,7 @@ Object.size = function(obj) {
 
         });
 
-        initChart();
+        //initChart();
     })
 
     .controller('microStatesCtrl', function($scope, configService, moment, amMoment, microStatesService, microStatesChartConfig) {
