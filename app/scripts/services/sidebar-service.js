@@ -64,6 +64,7 @@
             service.data.endTime = false;
             service.data.streams = [];
             service.data.lastLs = false;
+            cache = false;
 
             service.broadcast('selected');
         };
