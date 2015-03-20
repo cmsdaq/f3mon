@@ -4,7 +4,7 @@
         <div id='srPanel' class='panel' style='height:60%'>
             <div class="panel panel-primary" style='height:100%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
                 <!-- Default panel contents -->
-                <div class="panel-heading" style='height:10%;'>
+                <div class="panel-heading" >
                     <span ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
@@ -55,7 +55,7 @@
             <!-- Microstate chart panel -->
             <div class="panel panel-primary" ng-controller='microStatesCtrl' style='height:100%' id='msPanel'>
                 <!-- Default panel contents -->
-                <div class="panel-heading" style='height:10%;'>
+                <div class="panel-heading">
                     <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
                 </div>
