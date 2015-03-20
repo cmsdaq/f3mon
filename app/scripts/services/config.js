@@ -163,7 +163,8 @@
                 } else {
                     tooltipX = point.plotX + this.chart.plotLeft + 20;
                 }
-                tooltipY = point.plotY + this.chart.plotTop - 20;
+                //tooltipY = point.plotY + this.chart.plotTop - 20;
+                tooltipY = this.chart.plotTop;
                 return {
                     x: tooltipX,
                     y: tooltipY
@@ -444,7 +445,28 @@
             borderRadius: 5,
             borderWidth: 1,
             itemDistance: 5,
-            symbolRadius: 5
+            symbolRadius: 5,
+
+               labelFormatter: function(){
+                console.log('lf')
+                    var s = this.name;
+                    var r = "";
+                    var lastAppended = 0;
+                    var lastSpace = -1;
+                    for (var i = 0; i < s.length; i++) {
+                        if (s.charAt(i) == ' ') lastSpace = i;
+                        if (i - lastAppended > 50) {
+                            if (lastSpace == -1) lastSpace = i;
+                            r += s.substring(lastAppended, lastSpace);
+                            lastAppended = lastSpace;
+                            lastSpace = -1;
+                            r += "<br>";
+                        }
+                    }
+                    r += s.substring(lastAppended, s.length);
+                    return r;
+               }
+
         },
         xAxis: {
             ordinal: false,
