@@ -1,4 +1,4 @@
-<div class="col-md-4 full-height " id='siderbar' ng-controller='sidebarCtrl' style='padding-right: 0'>
+<div class="col-md-4 full-height" id='siderbar' ng-controller='sidebarCtrl' style='padding-right: 0'>
     <div class="panel-group full-height">
         <!-- RUNINFO PANEL -->
         <div id="runInfoPanel" class='panel'>
@@ -132,7 +132,6 @@
                 </div>
             </div>
         </div>
-
         <div id='riverListPanel' class='panel'>
             <!-- River List -->
             <div class="panel panel-primary" ng-controller="riverListCtrl">
@@ -164,8 +163,8 @@
                                 <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.total" pagination-id="riverListPag">
                                     <td>{{row.name}}</td>
                                     <td>{{row.role}}</td>
-                                    <td  style='white-space: nowrap' >{{row.host}}</span></td>
-                                    <td style='text-align: center'>{{row.subSystem}}</span></td>
+                                    <td style='white-space: nowrap' >{{row.host}}</td>
+                                    <td style='text-align: center'>{{row.subSystem}}</td>
                                     <td ng-show="row.role=='collector'" style='text-align: right'>
                                         <a ng-click="closeCollectorDialog(row.name,row.subSystem)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
                                     </td>
@@ -182,10 +181,10 @@
                                 </tr>
                             </tfoot>
                         </table>
-
                     </div>
                 </div>
             </div>
         </div>
 
     </div>
+</div>

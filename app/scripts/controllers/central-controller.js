@@ -399,8 +399,15 @@
     })
 
     .controller('microStatesCtrl', function($scope, configService, moment, amMoment, microStatesService, microStatesChartConfig) {
-        var config = configService.config;
+        var config;
         
+        $scope.$on('config.set', function(event) {
+            config = configService.config;
+            initChart();
+        });
+
+
+
         var chart;
         var isDirty = true;
         var chartConfig;
@@ -452,8 +459,6 @@
             //chart.hideLoading();
             if(!isDirty){isDirty = true;chart.hideLoading();}
         })
-
-        initChart();
 
     })
 
