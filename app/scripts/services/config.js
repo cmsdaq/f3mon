@@ -132,6 +132,8 @@
         tooltip: {
             formatter: function(tooltip) {
 
+                var percents={};
+
                 var items = this.points || splat(this),
                     series = items[0].series,
                     s;
@@ -139,11 +141,36 @@
                 // build the header
                 s = ['<b> Ls: ' + items[0].key + '</b><br/>'];
 
+
+                //get percents
+                var totals = $.grep(items,function(item,index){
+                    return item.series.name.indexOf('_complete')>0
+                })
+
+                totals.forEach(function(item){
+                    var name = item.series.name;
+                    var strIdx = name.indexOf('_complete');
+                    percents[name.substr(0,strIdx)] = item.point.y;                  
+                })
+
+                //console.log(percents);
+
                 // build the values
                 items.forEach(function(item) {
+                    var name = item.series.name;
+                    if(name.indexOf('_complete')>0){return;}
+
                     series = item.series;
-                    s.push((series.tooltipFormatter && series.tooltipFormatter(item)) ||
-                        item.point.tooltipFormatter(series.tooltipOptions.pointFormat));
+                    var formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
+                        item.point.tooltipFormatter(series.tooltipOptions.pointFormat);
+
+                    //add percentage
+                    if ( $.inArray(name,['minimerge','macromerge']) == -1  ){
+                        formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');    
+                    }
+                    
+                    s.push(formatString);
+                    
                 });
 
                 // footer
@@ -448,7 +475,7 @@
             symbolRadius: 5,
 
                labelFormatter: function(){
-                console.log('lf')
+                
                     var s = this.name;
                     var r = "";
                     var lastAppended = 0;
