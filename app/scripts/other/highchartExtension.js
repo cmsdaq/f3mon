@@ -1,3 +1,5 @@
+//JUST A PROTOTYPE NOT ACTUALLY USED
+
 $(function () {
     (function (H) {
         H.wrap(H.RangeSelector.prototype, 'setInputValue', function (boh, name, value) {
