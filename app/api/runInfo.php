@@ -24,7 +24,10 @@ $jsonQuery["filter"]["term"]["_id"] = $runNumber;
 $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
+
+
 $out = $res["hits"]["hits"][0]["_source"];
+
 
 //streams
 $query = "streamsinrun";
@@ -37,6 +40,8 @@ $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
 $terms = $res["facets"]["streams"]["terms"];
+
+
 $streams = array();
 foreach ($terms as $term) {
     $streams[] = $term['term'];
@@ -55,9 +60,14 @@ $jsonQuery["query"]["term"]["_parent"] = $runNumber;
 $stringQuery = json_encode($jsonQuery);
 $res=json_decode(esQuery($stringQuery,$index), true);
 
-if(empty($res["hits"]["hits"])) {die();}
+if(empty($res["hits"]["hits"])) {
+    $out["lastLs"] = 0 ;
+}
+else {
+    $out["lastLs"] = $res["hits"]["hits"][0]["sort"];        
+}
 
-$out["lastLs"] = $res["hits"]["hits"][0]["sort"];
+
 
 
 if ($format=="json"){  

@@ -298,7 +298,7 @@
                 yAxis: "minipercent",
                 showInLegend: false,
                 cursor: "pointer",
-                minPointLength: 5,
+                //minPointLength: 5,
                 point: {
                     events: {
                         click: function(event) {
@@ -315,7 +315,7 @@
                 yAxis: "macropercent",
                 showInLegend: false,
                 cursor: "pointer",
-                minPointLength: 5,
+                //minPointLength: 5,
                 point: {
                     events: {
                         click: function() {
