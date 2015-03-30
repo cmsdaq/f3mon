@@ -59,6 +59,10 @@
         var init = function(){
             service.queryParams.timePerLs = config.secondsPerLsValue;
             service.queryParams.useDivisor = config.secondsPerLsOn;
+            service.queryParams.from = false;
+            service.queryParams.to = false;
+            service.isFromSelected= false;
+            service.isToSelected= false;
         }
 
         var service = {

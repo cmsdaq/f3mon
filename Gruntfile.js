@@ -223,7 +223,7 @@ module.exports = function(grunt) {
                 flow: {
                     html: {
                         steps: {
-                            //js: ['concat', 'uglifyjs'],
+                            //js: ['concat', 'uglifyjs'], //REPLACE THE ROW BELOW WITH THIS TO REENABLE UGLIFY
                             js: ['concat'],
                             css: ['cssmin']
                         },
@@ -441,7 +441,7 @@ module.exports = function(grunt) {
         'copy:dist',
         'cdnify',
         'cssmin',
-        //'uglify',
+        //'uglify', //REMOVE COMMENT TO REENABLE UGLIFY
         'filerev',
         'usemin',
         'htmlmin'
