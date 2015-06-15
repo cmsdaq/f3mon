@@ -263,6 +263,12 @@
           placement: "bottom",
           title: "Stream Ouput Divisor",
           content: "It is possible to divide the stream output by a number. This can be useful to compute the streams rates.",
+        },
+        {
+          element: "#sr-rangeselectswitch",
+          placement: "bottom",
+          title: "Range Selector Modifier",
+          content: "It is possible to change the mode of in-plot range selection (mouse drag) to displaying selected range in micromerge or macromerge drilldown mode.",
         }, 
         {
           element: "#sr-qtdisplay",

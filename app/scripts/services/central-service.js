@@ -357,7 +357,7 @@
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
 
-        var resource = $resource('api/nstates.php', {
+        var resource = $resource('api/nstates-summary.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {

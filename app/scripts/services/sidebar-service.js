@@ -256,7 +256,7 @@
                 displayTotal: 0,
                 currentPage: 1,
                 itemsPerPage: 5,
-                sortBy: 'runNumber',
+                sortBy: 'startTime',
                 sortOrder: 'desc',
                 searchText: '',
                 displayed: [],

@@ -166,6 +166,7 @@
         var miniSerie, macroSerie, streams, chartConfig;
         var isDirty = true;
 
+        var currentRangeMode="stream";
 
         $scope.unitChanged = function() {
             var axisTitle = $scope.unit;
@@ -181,6 +182,9 @@
             }, false);
         }
 
+        $scope.selectorModeChanged = function() {
+            currentRangeMode=$scope.selectorMode;
+        }
 
         var setEvents = function() {
             //setExtremes
@@ -200,16 +204,26 @@
             chartConfig.chart.events.selection = function(event) {
                 event.preventDefault();
 
+
                 var min = Math.round(event.xAxis[0].min);
                 var max = Math.round(event.xAxis[0].max);
                 var range = max - min;
 
-                if (range < 20) {
-                    min = min - Math.round((20 - range) / 2)
-                    max = max + Math.round((20 - range) / 2)
-                }
+                if (currentRangeMode=="stream") {
 
-                selectionRules(min, max)
+                  if (range < 20) {
+                    min = min - Math.round((20 - range) / 2);
+                    max = max + Math.round((20 - range) / 2);
+                  }
+
+                  selectionRules(min, max);
+                }
+                else if (currentRangeMode=="minimerge") {
+                   $scope.$parent.enableDrillDown('minimerge', min, range);
+                }
+                else if (currentRangeMode=="macromerge") {
+                   $scope.$parent.enableDrillDown('macromerge', min, range);
+                }
             }
 
             //minimacro background clicks
@@ -256,7 +270,8 @@
 
         var initChart = function() {
             $scope.unit = config.streamRatesUnit;
-
+            $scope.selectorMode = "stream"; //todo:use config param
+            colors.reset();
             if (chart) {
                 chart.destroy();
                 chart = false;
@@ -342,8 +357,7 @@
             if (!isDirty) {
                 startChart();
             }
-            
-
+           
             data.streams.data.forEach(function(item) {
                     var out = $scope.unit == 'Events' ? item.dataOut : item.fileSize;
                     //add new series if doesnt exists

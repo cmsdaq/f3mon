@@ -1,0 +1,83 @@
+.input-group-addon.primary {
+  color: #ffffff;
+  background-color: #9f4237;
+  border-color: #9f4237;
+}
+
+.panel-primary > .panel-heading {
+  color: #ffffff;
+  background-color: #9f4237;
+  border-color: #9f4237;
+}
+
+.panel-primary {
+  border-color: #9f4237;
+}
+
+.btn-primary {
+  color: #ffffff;
+  background-color: #9f4237;
+  border-color: #8c3a30;
+}
+
+.btn-primary.active, .btn-primary:active, .btn-primary:focus, .btn-primary:hover, .open > .dropdown-toggle.btn-primary {
+  color: #FFF;
+  background-color: #81352D;
+  border-color: #5F2721;
+}
+
+.btn-primary.disabled, .btn-primary.disabled.active, .btn-primary.disabled:active, .btn-primary.disabled:focus, .btn-primary.disabled:hover, .btn-primary[disabled], .btn-primary.active[disabled], .btn-primary[disabled]:active, .btn-primary[disabled]:focus, .btn-primary[disabled]:hover, fieldset[disabled] .btn-primary, fieldset[disabled] .btn-primary.active, fieldset[disabled] .btn-primary:active, fieldset[disabled] .btn-primary:focus, fieldset[disabled] .btn-primary:hover {
+  background-color: #9f4237;
+  border-color: #8c3a30;
+}
+
+.panel-primary > .panel-heading .badge {
+  color: #62401E;
+  background-color: #FFF;
+}
+
+.navbar-btn-blue {
+  color: #FFF;
+  background-color: #428BCA;
+  border-color: #357EBD;
+}
+/*
+.navbar-btn-blue:hover, .navbar-btn-blue:active, .open > .dropdown-toggle.navbar-btn-blue  {
+  color: #FFF;
+  background-color: #3071A9;
+  border-color: #285E8E;
+}
+.navbar-btn-blue:focus {
+  color: #FFF;
+  background-color: #428BCA;
+  border-color: #357EBD;
+}
+
+*/
+.navbar-btn-blue.active, .navbar-btn-blue:active, .navbar-btn-blue:focus, .navbar-btn-blue:hover, .open > .dropdown-toggle.navbar-btn-blue {
+  color: #FFF;
+  background-color: #3071A9;
+  border-color: #285E8E;
+}
+
+.navbar-btn-blue.disabled, .navbar-btn-blue.disabled.active, .navbar-btn-blue.disabled:active, .navbar-btn-blue.disabled:focus, .navbar-btn-blue.disabled:hover, .navbar-btn-blue[disabled], .navbar-btn-blue.active[disabled], .navbar-btn-blue[disabled]:active, .navbar-btn-blue[disabled]:focus, .navbar-btn-blue[disabled]:hover, fieldset[disabled] .navbar-btn-blue, fieldset[disabled] .navbar-btn-blue.active, fieldset[disabled] .navbar-btn-blue:active, fieldset[disabled] .navbar-btn-blue:focus, fieldset[disabled] .navbar-btn-blue:hover {
+  background-color: #3071A9;
+  border-color: #285E8E;
+}
+
+.navbar-inverse .navbar-nav > .active > a, .navbar-inverse .navbar-nav > .active > a:focus, .navbar-inverse .navbar-nav > .active > a:hover {
+  color: rgba(174, 174, 174, 1);
+}
+
+/*
+.pagination > li > a,
+.pagination > li > span {
+  position: relative;
+  float: left;
+  padding: 1px 8px;
+  margin-left: -1px;
+  line-height: 1.42857;
+  text-decoration: none;
+  border: 1px solid #DDD;
+}
+*/

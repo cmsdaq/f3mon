@@ -1,4 +1,4 @@
-<div class="col-md-4 full-height" id='siderbar' ng-controller='sidebarCtrl' style='padding-right: 0'>
+<div class="col-md-3 full-height" id='siderbar' ng-controller='sidebarCtrl' style='padding-right: 0'>
     <div class="panel-group full-height">
         <!-- RUNINFO PANEL -->
         <div id="runInfoPanel" class='panel'>
@@ -49,12 +49,12 @@
         </div>
 
         <div id='disksInfoPanel' class='panel'>
-            <!-- Disk informations -->
+            <!-- Disk information -->
             <div class="panel panel-primary" ng-controller="disksInfoCtrl">
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("disksInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
-                    <h3 class="panel-title">Disks Informations:</h3>
+                    <h3 class="panel-title">Disks Information</h3>
                 </div>
                 <div class="panel-body">
                     <!-- Table -->
@@ -87,7 +87,7 @@
                 <div class="panel-heading">
                     <span ng-click='selectTour("runListPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <span class="badge pull-right"># Runs: {{data.numRuns}}</span>
-                    <h3 class="panel-title">Run List:</h3>
+                    <h3 class="panel-title">Run List</h3>
                 </div>
                 <div class="panel-body">
                     <!-- Table -->
@@ -118,14 +118,23 @@
                                 </tr>
                             </tbody>
                             <tfoot ng-show="!data.noData()">
+
+                                <tr>
+                                    <td colspan="10" class="text-center" style='vertical-align: middle'>
+                                        <dir-pagination-controls max-size='5' boundary-links='true' on-page-change="pageChanged(newPageNumber)" pagination-id="runListPag"></dir-pagination-controls>
+                                    </td>
+
+                                </tr>
+
                                 <tr>
                             
                                     <td colspan="4" class="text-right" style='vertical-align: middle'>
                                         <input style="width:35%" class="pull-left form-control" ng-model='data.searchText' ng-change='search()' type="text" placeholder='search...' />
-                                        <dir-pagination-controls max-size='5' on-page-change="pageChanged(newPageNumber)" pagination-id="runListPag"></dir-pagination-controls>
+<!--                                        <dir-pagination-controls max-size='7' on-page-change="pageChanged(newPageNumber)" pagination-id="runListPag"></dir-pagination-controls> -->
                                     </td>
 
                                 </tr>
+
                             </tfoot>
                         </table>
                     </div>
@@ -138,7 +147,7 @@
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("riverListPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
-                    <h3 class="panel-title">River List:</h3>
+                    <h3 class="panel-title">River List</h3>
                 </div>
                 <div class="panel-body">
                     <!-- Table -->
@@ -148,10 +157,10 @@
                                 <tr>
                                     <th class='clickable' ng-click='service.changeSorting("_type")'>Name <i class="fa" ng-class='service.sortedClass("_type")'></i>
                                     </th>
-                                    <th class='clickable' ng-click='service.changeSorting("role")'>Role <i class="fa" ng-class='service.sortedClass("role")'></i>
+                                    <!--<th class='clickable' ng-click='service.changeSorting("role")'>Role <i class="fa" ng-class='service.sortedClass("role")'></i>-->
                                     </th>
                                     <th style='text-align: center'>Host</th>
-                                    <th style='text-align: center'>Sys</th>
+                                    <th style='text-align: center'>System</th>
                                 </tr>
                             </thead>
                             <tbody ng-show="noData">
@@ -162,7 +171,7 @@
                             <tbody ng-show="!noData">
                                 <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.total" pagination-id="riverListPag">
                                     <td>{{row.name}}</td>
-                                    <td>{{row.role}}</td>
+                                    <!--<td>{{row.role}}</td>-->
                                     <td style='white-space: nowrap' >{{row.host}}</td>
                                     <td style='text-align: center'>{{row.subSystem}}</td>
                                     <td ng-show="row.role=='collector'" style='text-align: right'>
@@ -173,8 +182,8 @@
                             </tbody>
                             <tfoot ng-show="!noData">
                                 <tr>
-                                    <td colspan="2" class="text-center"></td>
-                                    <td colspan="3" class="text-right" style='vertical-align: middle'>
+                                    <td colspan="1" class="text-center"></td>
+                                    <td colspan="4" class="text-right" style='vertical-align: middle'>
                                         <dir-pagination-controls max-size='5' on-page-change="pageChanged(newPageNumber)" pagination-id="riverListPag"></dir-pagination-controls>
                                     </td>
 

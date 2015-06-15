@@ -41,8 +41,10 @@
 
     .service('colors', function() {
         var list = Highcharts.getOptions('colors').colors;
+        //var list = [ '#fd4338','#ff782e','#ffb632', '#a4ce3a','#44cc8a'];//'#ffdb00','#a9f1f6','#fff6cf','#ffcd80','#ffe9a6'];
+        //var list = [ '#fd4338','#ff782e','#ffb632', '#a4ce3a','#44cc8a','#ffdb00','#a9f1f6','#fff6cf','#ffcd80','#ffe9a6'];
         //var list =  ['#FFB300','#803E75','#FF6800','#A6BDD7','#C10020','#CEA262','#817066','#007D34','#F6768E','#00538A','#FF7A5C','#53377A','#FF8E00','#B32851','#F4C800','#7F180D','#93AA00','#593315','#F13A13','#232C16',];
-        var index = 0;
+        var index = 2;
 
         this.get = function() {
             var i = index;
@@ -55,7 +57,7 @@
         }
 
         this.reset = function() {
-            index = 0;
+            index = 2;
         }
     })
 
@@ -71,7 +73,7 @@
             events: {},
         },
         exporting: {
-            enabled: false
+            enabled: true
         },
         legend: {
             enabled: true,
@@ -102,7 +104,7 @@
                     legendItemClick: function(event) {
 
                         var selectedName = this.name;
-                        var hideAllOthers = event.browserEvent.ctrlKey;
+                        var hideAllOthers = event.browserEvent.ctrlKey || event.browserEvent.shiftKey;
 
                         if (hideAllOthers) {
                             var series = this.chart.series;
@@ -131,6 +133,7 @@
             }
         },
         tooltip: {
+            
             formatter: function(tooltip) {
 
                 var percents={};
@@ -140,7 +143,7 @@
                     s;
 
                 // build the header
-                s = ['<b> Ls: ' + items[0].key + '</b><br/>'];
+                s = ['<b> LS: ' + items[0].key + '</b><br/>'];
 
 
                 //get percents
@@ -154,6 +157,15 @@
                     percents[name.substr(0,strIdx)] = item.point.y;                  
                 })
 
+                var totalsRate = $.grep(items,function(item,index){
+                    return item.series.name.indexOf('_complete')<0
+                })
+
+                sumRate = 0;
+                totalsRate.forEach(function(item){
+                    sumRate += item.point.y;
+                })
+ 
                 //console.log(percents);
 
                 // build the values
@@ -165,14 +177,20 @@
                     var formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
                         item.point.tooltipFormatter(series.tooltipOptions.pointFormat);
 
+                    //console.log('fs'+formatString);
                     //add percentage
                     if ( $.inArray(name,['minimerge','macromerge']) == -1  ){
-                        formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');    
+                        formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
                     }
-                    
+                    else {
+                      formatString = formatString.replace('<br/>','%<br/>');
+                      //formatString = formatString.substring(formatString.indexOf('<br>'),formatString.indexOf('<br/>')+5);
+                    }
                     s.push(formatString);
                     
                 });
+                //s.push("<br>Total:<i>" + Math.round(sumRate) + "</i></br>");
+                s.push("<br>Total:<b>" + Math.round(sumRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "</b></br>");
 
                 // footer
                 s.push(tooltip.options.footerFormat || '');
@@ -187,9 +205,9 @@
             positioner: function(labelWidth, labelHeight, point) {
                 var tooltipX, tooltipY;
                 if (point.plotX + labelWidth > this.chart.plotWidth) {
-                    tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 20;
+                    tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 25;
                 } else {
-                    tooltipX = point.plotX + this.chart.plotLeft + 20;
+                    tooltipX = point.plotX + this.chart.plotLeft + 25;
                 }
                 //tooltipY = point.plotY + this.chart.plotTop - 20;
                 tooltipY = this.chart.plotTop;
@@ -271,11 +289,13 @@
             minPadding: 0,
             maxPadding: 0,
             //             startOnTick: true,
-            gridLineWidth: 1,
+            gridLineWidth: 0,
+            minorGridLineWidth: 0.5,
+            minorTickInterval: 0.5,
             id: "ls",
             allowDecimals: false,
             title: {
-                text: 'Ls'
+                text: 'LS'
             },
             //            categories: [],
             //            type: "category",
@@ -296,6 +316,8 @@
             lineWidth: 1,
             offset: 0,
             opposite: false,
+            minorGridLineWidth: 0.7,
+            gridLineWidth:1
         }, {
 
             title: {
@@ -313,6 +335,11 @@
             lineWidth: 1,
             offset: 0,
             opposite: true,
+            alignTicks: false,
+            gridLineWidth:0,
+            minorGridLineWidth:0,
+            gridLineColor:"#FFFFFF00",
+            minorGridLineColor:"#FFFFFF00",
             labels: {
                 //align: 'right',
             }
@@ -378,7 +405,7 @@
         },
         tooltip: {
             //enabled: false,
-            followPointer: true
+            followPointer: true,
         },
         legend: {
             enabled: false
@@ -464,7 +491,7 @@
                 }
             },
         },
-        //colors: Colors.colorList(),
+        colors: Colors.colorList(),
         legend: {
             layout: "vertical",
             align: "right",
