@@ -31,10 +31,14 @@ $stringQuery = json_encode($jsonQuery);
 
 $res=json_decode(esQuery($stringQuery,$index), true);
 $data = array();
+$resSummary=false;
 if($res['hits']['total']==0){$legend=false;}
 else{
-    $shortened  = $res["hits"]["hits"][0]["_source"]["names"]
-    $shortened = substr($shortened, 0, strpos($shortened, '33='))."33=Busy ";
+    $shortened  = $res["hits"]["hits"][0]["_source"]["names"];
+    if (strpos($shortened, '33=')!== false) {
+      $shortened = substr($shortened, 0, strpos($shortened, '33='))."33=Busy ";
+      $resSummary=true;
+    }
     $rawLegend = split(' ',trim($shortened));
     foreach($rawLegend as $item){
         $kv = split('=',$item);
@@ -78,15 +82,17 @@ if($legend){
             $value = $entry['count'];
             $name = $legend[$key];
             if ($key>32) {
-              $busySum=$busySum+$value
+              $busySum=$busySum+$value;
             }
             else {
               $entriesList[] = $name;
              $data[$name][] = array($timestamp,$value);
             }
         }
-        $entriesList[] = "Busy";
-        $data["Busy"][] = array($timestamp,$busySum);
+        if ($resSummary==true) {
+          $entriesList[] = "Busy";
+          $data["Busy"][] = array($timestamp,$busySum);
+        }
 
         $diff = array_diff(array_keys($data),$entriesList);
         foreach ($diff as $name){
