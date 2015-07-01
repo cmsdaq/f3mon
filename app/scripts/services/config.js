@@ -158,13 +158,17 @@
                 })
 
                 var totalsRate = $.grep(items,function(item,index){
-                    return item.series.name.indexOf('_complete')<0
+                    return item.series.name.indexOf('_complete')<0 && $.inArray(item.series.name,['minimerge','macromerge']) <0;
                 })
 
-                sumRate = 0;
-                totalsRate.forEach(function(item){
+                var sumRate = 0;
+                if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Events')=== 0)
+                  sumRate=-1;
+                else {
+                  totalsRate.forEach(function(item){
                     sumRate += item.point.y;
-                })
+                  });
+                }
  
                 //console.log(percents);
 
@@ -190,7 +194,8 @@
                     
                 });
                 //s.push("<br>Total:<i>" + Math.round(sumRate) + "</i></br>");
-                s.push("<br>Total:<b>" + Math.round(sumRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "</b></br>");
+                if (sumRate>=0)
+                  s.push("<br>Total:<b>" + Math.round(sumRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " "+ series.chart.yAxis[0].axisTitle.textStr +"</b></br>");
 
                 // footer
                 s.push(tooltip.options.footerFormat || '');

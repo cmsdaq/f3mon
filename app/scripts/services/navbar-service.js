@@ -54,6 +54,28 @@
             }
         }
 
+        var waitingForGreenOrYellowStatus = function() {
+            if (angular.isUndefined(statusPoller)) {
+                // Initialize poller and its callback
+                statusPoller = poller.get(statusRes, {
+                    action: 'jsonp_get',
+                    delay: 3000,
+                    smart: true,
+                    argumentsArray: []
+                });
+
+                statusPoller.promise.then(null, null, function(data) {
+                    var status = data.status;
+                    if (status == "green" || status == "yellow") {
+                        statusPoller.stop();
+                        waitingForConfig();
+                    }
+                });
+
+            }
+        }
+
+
         var waitingForConfig = function() {
             var configName = $cookieStore.get('f3monConfigName') || 'default';
             configPoller = poller.get(configRes, {
@@ -81,7 +103,7 @@
         }
 
 
-        waitingForGreenStatus();
+        waitingForGreenOrYellowStatus();
 
 //$rootScope.$watch(function() {
 //  return service.config
