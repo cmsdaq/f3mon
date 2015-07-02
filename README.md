@@ -3,22 +3,39 @@ F3 Monitor Web Interface
 Web interface for F3 infrastructure based on Elasticsearch engine.
 
 ##Development notes
-Requirements: node.js, bower, grunt
+Requirements: node.js, bower, grunt, npm
 
-#install DEV enviroment
-npm install
-bower install
+##Run as sudo / root
+yum install npm
+npm install grunt-cli
+
+##Run as local user in f3mon source directory to install dev environment
+npm install bower
+npm install grunt
+./node_modules/bower/bin/bower install
+npm install grunt-connect-proxy
+npm install load-grunt-tasks
+npm install time-grunt
+npm install jshint-stylish
+
+grunt install grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-contrib-concat grunt-contrib-connect grunt-contrib-copy grunt-contrib-cssmin grunt-contrib-htmlmin grunt-contrib-imagemin grunt-contrib-jshint grunt-contrib-uglify grunt-contrib-watch grunt-filerev grunt-google-cdn grunt-karma grunt-newer grunt-ng-annotate grunt-php grunt-svgmin grunt-usemin grunt-wiredep grunt-php
+
+#chrome
+
+#install DEV enviroment (obsolete):
+##npm install
+##bower install
 
 Notes:
 - At present time, highchart-ng lib need to be updated manually:
     cd bower_components/highchart-ng/dist
-    wget https://rawgithub.com/pablojim/highcharts-ng/master/src/highcharts-ng.js
     mv highcharts-ng.js highcharts-ng.js.old
-    mv highcharts-ng.js.1 highcharts-ng.js
+    wget https://rawgithub.com/pablojim/highcharts-ng/master/src/highcharts-ng.js
+    cd -
 
 - The Highstock library doesnt load the drilldown module as default, so add the "modules/drilldown.js", in bower_components/highstock-release/bower.json 
 
-#Run Dev server:
+#Run Dev server (optional):
 grunt serve (note: If it returns no errors but server doesnt start, try again and again )
 
 #Build
