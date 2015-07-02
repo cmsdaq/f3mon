@@ -354,6 +354,13 @@
         })
 
         $scope.$on('srChart.updated', function(event) {
+
+            //stop chart if no stream label information is available
+            if (data.streams.streamList.length==0) {
+                if (isDirty) stopChart();
+                return;
+            }
+ 
             if (!isDirty) {
                 startChart();
             }

@@ -105,7 +105,7 @@ function prepareServer(){
             'msChartMaxPoints'=> 60,
             'defaultTimezone'=> 'Locale',            
             'secondsPerLsOn'  => true, //not working yet
-            'secondsPerLsValue' => 23.4, //not working yet
+            'secondsPerLsValue' => 23.31, //not working yet
             'streamRatesUnit' => 'Events', //not working yet
             'microStateChart' => true, //not working yet
         ));
