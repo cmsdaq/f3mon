@@ -3,10 +3,13 @@ F3 Monitor Web Interface
 Web interface for F3 infrastructure based on Elasticsearch engine.
 
 ##Development notes
+
 Requirements: node.js, bower, grunt, npm
 
 ##Run as sudo / root
+
 yum install npm
+
 npm install grunt-cli
 
 ##Run as local user in f3mon source directory to install dev environment
@@ -56,6 +59,7 @@ bower install <libname> --save
 
 #Install node.js component
 sudo node install -g <componen-name> (this will install globally for usage in every project, need sudo priviledges)
+
 node install <componen-name> (for install locally)
 
 #highchart installation
