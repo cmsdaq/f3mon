@@ -22,10 +22,11 @@ npm install jshint-stylish
 grunt install grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-contrib-concat grunt-contrib-connect grunt-contrib-copy grunt-contrib-cssmin grunt-contrib-htmlmin grunt-contrib-imagemin grunt-contrib-jshint grunt-contrib-uglify grunt-contrib-watch grunt-filerev grunt-google-cdn grunt-karma grunt-newer grunt-ng-annotate grunt-php grunt-svgmin grunt-usemin grunt-wiredep grunt-php
 
 #install DEV enviroment (obsolete):
-#npm install
-#bower install
 
-Notes:
+npm install
+bower install
+
+#Notes:
 - At present time, highchart-ng lib need to be updated manually:
     cd bower_components/highchart-ng/dist
     mv highcharts-ng.js highcharts-ng.js.old
