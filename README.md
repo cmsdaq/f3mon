@@ -12,11 +12,17 @@ npm install grunt-cli
 ##Run as local user in f3mon source directory to install dev environment
 
 npm install bower
+
 npm install grunt
+
 ./node_modules/bower/bin/bower install
+
 npm install grunt-connect-proxy
+
 npm install load-grunt-tasks
+
 npm install time-grunt
+
 npm install jshint-stylish
 
 grunt install grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-contrib-concat grunt-contrib-connect grunt-contrib-copy grunt-contrib-cssmin grunt-contrib-htmlmin grunt-contrib-imagemin grunt-contrib-jshint grunt-contrib-uglify grunt-contrib-watch grunt-filerev grunt-google-cdn grunt-karma grunt-newer grunt-ng-annotate grunt-php grunt-svgmin grunt-usemin grunt-wiredep grunt-php
@@ -24,6 +30,7 @@ grunt install grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-cont
 #install DEV enviroment (obsolete):
 
 npm install
+
 bower install
 
 #Notes:
