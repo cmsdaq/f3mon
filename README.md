@@ -17,18 +17,21 @@ npm install -g bower
 
 ##Run as local user in f3mon source directory to install dev environment
 ```
-bower install
-
 npm install grunt grunt-connect-proxy load-grunt-tasks time-grunt jshint-stylish grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-contrib-concat grunt-contrib-connect grunt-contrib-copy grunt-contrib-cssmin grunt-contrib-htmlmin grunt-contrib-imagemin grunt-contrib-jshint grunt-contrib-uglify grunt-contrib-watch grunt-filerev grunt-google-cdn grunt-karma grunt-newer grunt-ng-annotate grunt-php grunt-svgmin grunt-usemin grunt-wiredep grunt-php
 ```
 
+##Run as local user in f3mon source directory to install f3mon dependencies (js libraries)
+```
+bower install
+```
+
+#Run this to update highcharts-ng lib to the latest version:
+
+```
+. update-highcharts-ng.sh 
+```
+
 #Notes:
-- At present time, highcharts-ng lib file need to be updated manually to the latest version:
-
-    ```
-    . update-highcharts-ng.sh 
-    ```
-
 - Overrides are present in bower.json to force loading highstock drilldown module and fix an issue between latest bootstrap and bower definition
 
 #Run Dev server (optional):
