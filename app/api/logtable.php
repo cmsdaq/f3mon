@@ -21,7 +21,7 @@ if(!isset($_GET["search"])) $search = "*";
     else $search = $_GET["search"];
 if(!isset($_GET["startTime"])) $startTime = "0";
     else $startTime = $_GET["startTime"];
-if(!isset($_GET["endTime"])) $endTime = "now";
+if(!isset($_GET["endTime"])  || $_GET["endTime"]=="false") $endTime = "now";
     else $endTime = $_GET["endTime"];
 if(!isset($_GET["sysName"])) $sysName = "cdaq";
     else $sysName = $_GET["sysName"];
