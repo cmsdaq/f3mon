@@ -25,7 +25,7 @@ npm install grunt grunt-connect-proxy load-grunt-tasks time-grunt jshint-stylish
 bower install
 ```
 
-#Run this to update highcharts-ng lib to the latest version:
+##Run this to update highcharts-ng lib to the latest version:
 
 ```
 . update-highcharts-ng.sh 
