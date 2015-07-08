@@ -1,4 +1,4 @@
-
+'use strict';
 
     //var $demo, duration, remaining, tour;
     //$demo = $("#demo");

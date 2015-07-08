@@ -54,7 +54,7 @@
             $scope.status.showDrillDown = false;
         }
         $scope.panelSelected = function(num) {
-            return $scope.status.currentPanel == num;
+            return $scope.status.currentPanel === num;
         }
 
         $scope.selectPanel = function(num) {
@@ -104,7 +104,7 @@
         var secondDrillUp = function(event) {
             if (event) {
                 event.preventDefault()
-            };
+            }
             dd2serie = false;
             $scope.queryParams.stream = false;
             secondDrillDownService.stop();
@@ -139,9 +139,9 @@
                 }
                 chart.addSeriesAsDrilldown(dd2Event.point, newSerie)
                 dd2serie = chart.series[0];
-            } else dd2serie.update({
+            } else {dd2serie.update({
                 data: secondDrillDownService.data,
-            })
+            })}
         })
     })
 
@@ -209,7 +209,7 @@
                 var max = Math.round(event.xAxis[0].max);
                 var range = max - min;
 
-                if (currentRangeMode=="stream") {
+                if (currentRangeMode==="stream") {
 
                   if (range < 20) {
                     min = min - Math.round((20 - range) / 2);
@@ -218,10 +218,10 @@
 
                   selectionRules(min, max);
                 }
-                else if (currentRangeMode=="minimerge") {
+                else if (currentRangeMode==="minimerge") {
                    $scope.$parent.enableDrillDown('minimerge', min, range);
                 }
-                else if (currentRangeMode=="macromerge") {
+                else if (currentRangeMode==="macromerge") {
                    $scope.$parent.enableDrillDown('macromerge', min, range);
                 }
             }
@@ -247,10 +247,10 @@
 
             streamRatesService.stop();
             var lastLs = runInfoService.data.lastLs;
-            if (min == 0) {
+            if (min === 0) {
                 min = 1
             }
-            if (max == lastLs) {
+            if (max === lastLs) {
                 $scope.queryInfo.isToSelected = false;
                 if ((max - min) < 20) {
                     $scope.queryInfo.isFromSelected = false;
@@ -356,7 +356,7 @@
         $scope.$on('srChart.updated', function(event) {
 
             //stop chart if no stream label information is available
-            if (data.streams.streamList.length==0) {
+            if (data.streams.streamList.length===0) {
                 if (isDirty) stopChart();
                 return;
             }

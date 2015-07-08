@@ -1,3 +1,5 @@
+'use strict';
+
 Colors = {};
 Colors.names = {
     darkblue: "#00008b",

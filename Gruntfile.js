@@ -430,7 +430,7 @@ module.exports = function(grunt) {
         'karma'
     ]);
 
-    grunt.registerTask('build', [
+    grunt.registerTask('devbuild', [
         'clean:dist',
         'wiredep',
         'useminPrepare',
@@ -439,17 +439,25 @@ module.exports = function(grunt) {
         'concat',
         'ngAnnotate',
         'copy:dist',
-        'cdnify',
-        'cssmin',
-        //'uglify', //REMOVE COMMENT TO REENABLE UGLIFY
+        'cdnify'
+    ]);
+
+    grunt.registerTask('build', [
+        'devbuild',
         'filerev',
+        //'uglify', //REMOVE COMMENT TO REENABLE UGLIFY
+        'cssmin',
         'usemin',
         'htmlmin'
     ]);
+
 
     grunt.registerTask('default', [
         'newer:jshint',
         'test',
         'build'
+    ]);
+    grunt.registerTask('check', [
+        'newer:jshint',
     ]);
 };
