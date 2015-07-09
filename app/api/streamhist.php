@@ -251,7 +251,7 @@ $streamOut["lsList"] = $streamTotals["lsList"];
 //Filter DQM from streamlist
 $mmStreamList = array();
 foreach ($streamList as $stream){
-    if (!startsWith($stream,"DQM")){
+    if (((!startsWith($stream,"DQM") &&  $stream!=="Error") || $stream==="DQMHistograms")) {
         $mmStreamList[] = $stream;
     }
 }

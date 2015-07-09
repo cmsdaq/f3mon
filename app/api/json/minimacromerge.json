@@ -10,70 +10,81 @@
       "fm_date": "desc"
    },
   "query": {
-    "filtered": {
-      "query": {
-            "bool": {
-               "must_not": [
-                  {
-                     "term": {
-                        "stream": {
-                           "value": "Error"
-                        }
-                     }
-                  },
-                  {
-                     "prefix": {
-                        "stream": {
-                           "value": "DQM"
-                        }
-                     }
-                  }
-               ]
-            }
-      },
-      "filter": {
-        "and": {
-          "filters": [
-            {
-              "prefix": {
-                "_id": "run225956"
-              }
-            }
-          ]
-        }
-      }
-    }
+	  "filtered": {
+		  "query": {
+			  "bool": {
+				  "must_not": 
+				  {
+					  "term": {
+						  "stream": {
+							  "value": "Error"
+						  }
+					  }
+				  },
+				  "should" : [
+					  {"bool" : {
+						  "must_not" : {
+							  "prefix": {
+								  "stream": {
+									  "value": "DQM"
+								  }
+							  }
+						  }
+					  }},{"bool" : {
+						  "must" : { 
+							  "term": {
+								  "stream": {
+									  "value": "DQMHistograms"
+								  }
+							  }
+						  }
+					  }}
+				  ]
+			  }
+		  },
+		  "filter": {
+			  "and": {
+				  "filters": [
+				  {
+					  "prefix": {
+						  "_id": "run225956"
+					  }
+				  }
+				  ]
+			  }
+		  }
+	  }
   },
   "aggs": {
-    "inrange": {
-      "filter": {
-        "range": {
-          "ls": {
-            "from": "1900",
-            "to": "1920"
-          }
-        }
-      },
-      "aggs": {
-        "ls": {
-          "histogram": {
-            "field": "ls",
-            "interval": 1,
-            "min_doc_count": 0,
-            "extended_bounds": {
-              "min": "1900",
-              "max": "1920"
-            }
-          },
-          "aggs": {
-            "processed": {
-              "sum": {
-                "field": "processed"
-              }
-            }
-          }
-        }
-      }
-    }
+	  "inrange": {
+		  "filter": {
+			  "range": {
+				  "ls": {
+					  "from": "1900",
+					  "to": "1920"
+				  }
+			  }
+		  },
+		  "aggs": {
+			  "ls": {
+				  "histogram": {
+					  "field": "ls",
+					  "interval": 1,
+					  "min_doc_count": 0,
+					  "extended_bounds": {
+						  "min": "1900",
+						  "max": "1920"
+					  }
+				  },
+				  "aggs": {
+					  "processed": {
+						  "sum": {
+							  "field": "processed"
+						  }
+					  }
+				  }
+			  }
+		  }
+	  }
   }
 }

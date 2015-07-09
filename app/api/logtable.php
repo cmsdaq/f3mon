@@ -26,7 +26,7 @@ if(!isset($_GET["endTime"])  || $_GET["endTime"]=="false") $endTime = "now";
 if(!isset($_GET["sysName"])) $sysName = "cdaq";
     else $sysName = $_GET["sysName"];
 
-$index = "hltdlogs_".$sysName."/hltdlog"; 
+$index = "hltdlogs_".$sysName."/hltdlog,cmsswlog"; 
 $query = "logmessages";
 
 $stringQuery = file_get_contents("./json/".$query.".json");
