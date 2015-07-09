@@ -111,16 +111,19 @@
                                 </th>
                             </tr style="width:100%">
                             <tr>
-                                <th class='clickable' ng-click='changeSorting("host")' style="width:15%;word-wrap:break-word;text-align: center">Host <i class="fa" ng-class='sortedClass("host")'></i>
+                                <th class='clickable' ng-click='changeSorting("host")' style="width:13%;word-wrap:break-word;text-align: center">Host<i class="fa" ng-class='sortedClass("host")'></i>
                                 </th>
 
-                                <th class='clickable' ng-click='changeSorting("severity")' style="width:10%;text-align: center">Severity <i class="fa" ng-class='sortedClass("severity")'></i>
+                                <th style="width:6%;word-wrap:break-word;text-align: center">Pid<i class="fa"></i>
                                 </th>
 
-                                <th style="width:60%;word-wrap:break-word;text-align: center">Message<i class="fa"></i>
+                                <th class='clickable' ng-click='changeSorting("severity")' style="width:8%;text-align: center">Severity<i class="fa" ng-class='sortedClass("severity")'></i>
                                 </th>
 
-                                <th class='clickable' ng-click='changeSorting("msgtime")' style="width:15%;text-align: center" data-toggle="tooltip" title='Local time of the host machine'>HostTime <i class="fa" ng-class='sortedClass("msgtime")'></i>
+                                <th style="width:58%;word-wrap:break-word;text-align: center">Message<i class="fa"></i>
+                                </th>
+
+                                <th class='clickable' ng-click='changeSorting("msgtime")' style="width:15%;text-align: center" data-toggle="tooltip" title='Local time of the host machine'>HostTime<i class="fa" ng-class='sortedClass("msgtime")'></i>
                                 </th>
                             </tr>
                         </thead>
@@ -132,9 +135,10 @@
 
                         <tbody>
                             <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="logPagination">
-                                <td style="width:15%;word-wrap:break-word;">{{row.host}}</td>
-                                <td style="width:10%;text-align: center">{{row.severity}}</td>
-                                <td style="width:60%;word-wrap:break-word">{{row.message}}</td>
+                                <td style="width:13%;word-wrap:break-word;">{{row.host}}</td>
+                                <td style="width:6%;word-wrap:break-word;">{{row.pid}}</td>
+                                <td style="width:8%;text-align: center">{{row.severity}}</td>
+                                <td style="width:58%;word-wrap:break-word">{{row.message}}</td>
                                 <td style="width:15%;">{{row.msgtime}}</td>
                             </tr>
                         </tbody>
