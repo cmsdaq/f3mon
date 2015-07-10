@@ -444,9 +444,9 @@ module.exports = function(grunt) {
 
     grunt.registerTask('build', [
         'devbuild',
+        'cssmin',
         'filerev',
         //'uglify', //REMOVE COMMENT TO REENABLE UGLIFY
-        'cssmin',
         'usemin',
         'htmlmin'
     ]);
