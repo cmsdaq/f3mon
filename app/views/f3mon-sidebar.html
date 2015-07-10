@@ -62,15 +62,15 @@
                             <tbody>
                                 <tr>
                                     <th scope="row">BU Ramdisks: </th>
-                                    <td style="text-align:right">{{data.buRamDisk.percent() ? (data.buRamDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                    <td style="text-align:right">{{data.buRamDisk.percent()!==false ? (data.buRamDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">BU Outdisks: </th>
-                                    <td style="text-align:right">{{data.buOutDisk.percent() ? (data.buOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                    <td style="text-align:right">{{data.buOutDisk.percent()!==false ? (data.buOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">FU Outdisks: </th>
-                                    <td style="text-align:right">{{data.fuOutDisk.percent() ? (data.fuOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                    <td style="text-align:right">{{data.fuOutDisk.percent()!==false ? (data.fuOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
                                 </tr>
                             </tbody>
                         </table>
