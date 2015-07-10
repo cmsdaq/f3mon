@@ -14,7 +14,8 @@
     .factory('configService', function($resource, $rootScope, $cookieStore, poller) {
 
         var statusPoller, configPoller;
-        var statusRes = $resource('api/serverStatus.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var statusRes = $resource(prePath+'/api/serverStatus.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -22,7 +23,8 @@
             }
         });
 
-        var configRes = $resource('api/getConfig.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var configRes = $resource(prePath+'/api/getConfig.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -135,7 +137,8 @@
     .factory('indexListService', function($resource, $rootScope, poller, configService) {
         var config = false;
         var mypoller;
-        var resource = $resource('api/getIndices.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/getIndices.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -212,7 +215,8 @@
     //Service for the run ranger button
     .factory('runRangerService', function($resource, $rootScope, configService, poller, indexListService, runInfoService) {
         var mypoller,config;
-        var resource = $resource('api/runList.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/runList.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -293,7 +297,8 @@
     .factory('riverStatusService', function($resource, $rootScope, configService, poller, runInfoService, indexListService) {
         var mypoller,config;
 
-        var resource = $resource('api/riverStatus.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/riverStatus.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {

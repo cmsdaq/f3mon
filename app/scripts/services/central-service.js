@@ -41,7 +41,8 @@
     .factory('streamRatesService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
         var mypoller,config;
         var runInfo = runInfoService.data;
-        var resource = $resource('api/streamhist.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/streamhist.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -190,7 +191,8 @@
     //First Drill Down plot service
     .factory('drillDownService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
         var mypoller, cache,config;
-        var resource = $resource('api/minimacroperstream.php?', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/minimacroperstream.php?', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -274,7 +276,8 @@
     //Second Drill Down plot service
     .factory('secondDrillDownService', function($resource, $rootScope, poller, configService, drillDownService, runInfoService, indexListService) {
         var mypoller, cache, config;
-        var resource = $resource('api/minimacroperbu.php?', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/minimacroperbu.php?', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -357,7 +360,8 @@
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
 
-        var resource = $resource('api/nstates-summary.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/nstates-summary.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -479,7 +483,8 @@
                 from: 0,
             },
         };
-        var resource = $resource('api/logtable.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/logtable.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {

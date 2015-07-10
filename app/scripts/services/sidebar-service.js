@@ -14,7 +14,8 @@
     .factory('runInfoService', function($resource, $rootScope, poller, configService, indexListService) {
         var mypoller, restartPoller, cache, config;
 
-        var resource = $resource('api/runInfo.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/runInfo.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -22,7 +23,8 @@
             }
         });
 
-        var restartCollectorRes = $resource('api/startCollector.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var restartCollectorRes = $resource(prePath+'/api/startCollector.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -149,7 +151,8 @@
     .factory('disksInfoService', function($resource, $rootScope, poller, configService, indexListService, runInfoService) {
         var mypoller, config;
 
-        var resource = $resource('api/getDisksStatus.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/getDisksStatus.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -235,7 +238,8 @@
     //Service for the disks information panel
     .factory('runListService', function($resource, $rootScope, poller, configService, indexListService) {
         var mypoller, cache, config;
-        var resource = $resource('api/runListTable.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/runListTable.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -351,7 +355,8 @@
         var mypoller, closePoller, cache, config;
 
 
-        var resource = $resource('api/runRiverListTable.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var resource = $resource(prePath+'/api/runRiverListTable.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -359,7 +364,8 @@
             }
         });
 
-        var closeCollectorRes = $resource('api/closeRun.php', {
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        var closeCollectorRes = $resource(prePath+'/api/closeRun.php', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
