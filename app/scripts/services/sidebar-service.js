@@ -174,21 +174,21 @@
                     total: false,
                     used: false,
                     percent: function() {
-                        return this.used!==false ? (this.used / this.total) : false
+                        return this.used!==false && this.total!==false ? (this.used / this.total) : false
                     }
                 },
                 buOutDisk: {
                     total: false,
                     used: false,
                     percent: function() {
-                        return this.used!==false ? (this.used / this.total) : false
+                        return this.used!==false && this.total!==false ? (this.used / this.total) : false
                     }
                 },
                 fuOutDisk: {
                     total: false,
                     used: false,
                     percent: function() {
-                        return this.used!==false ? (this.used / this.total) : false
+                        return this.used!==false && this.total!==false ? (this.used / this.total) : false
                     }
                 },
             }
