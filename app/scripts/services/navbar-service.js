@@ -15,7 +15,8 @@
 
         var statusPoller, configPoller;
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var statusRes = $resource(prePath+'/api/serverStatus.php', {
+        //var statusRes = $resource(prePath+'/api/serverStatus.php', {
+        var statusRes = $resource('api/serverStatus', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -138,7 +139,8 @@
         var config = false;
         var mypoller;
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/getIndices.php', {
+        //var resource = $resource(prePath+'/api/getIndices.php', {
+        var resource = $resource('api/getIndices', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -216,7 +218,8 @@
     .factory('runRangerService', function($resource, $rootScope, configService, poller, indexListService, runInfoService) {
         var mypoller,config;
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/runList.php', {
+        //var resource = $resource(prePath+'/api/runList.php', {
+        var resource = $resource('api/runList', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -298,7 +301,8 @@
         var mypoller,config;
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/riverStatus.php', {
+        //var resource = $resource(prePath+'/api/riverStatus.php', {
+        var resource = $resource('api/riverStatus', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {

@@ -152,7 +152,8 @@
         var mypoller, config;
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/getDisksStatus.php', {
+        //var resource = $resource(prePath+'/api/getDisksStatus.php', {
+        var resource = $resource('api/getDisksStatus', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -239,7 +240,8 @@
     .factory('runListService', function($resource, $rootScope, poller, configService, indexListService) {
         var mypoller, cache, config;
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/runListTable.php', {
+        //var resource = $resource(prePath+'/api/runListTable.php', {
+        var resource = $resource('api/runListTable', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -356,7 +358,8 @@
 
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/runRiverListTable.php', {
+        //var resource = $resource(prePath+'/api/runRiverListTable.php', {
+        var resource = $resource('api/runRiverListTable', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -365,7 +368,8 @@
         });
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var closeCollectorRes = $resource(prePath+'/api/closeRun.php', {
+        //var closeCollectorRes = $resource(prePath+'/api/closeRun.php', {
+        var closeCollectorRes = $resource('api/closeRun', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
