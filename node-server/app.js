@@ -1,11 +1,13 @@
+'use strict';
 var express = require('express');
 var app = express();
 app.use(express.static('web'));
 
+var JSONpath = './web/node-f3mon/api/json/';
 var elasticsearch = require('elasticsearch');
 
 var client = new elasticsearch.Client({
-  host: 'localhost:9200',
+  host: 'cu-01.cern.ch:9200',
   log: 'trace'
 });
 
@@ -93,7 +95,7 @@ console.log('received getDisksStatus request!');
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require ('./web/node-f3mon/api/json/disks.json');
+var queryJSON = require (JSONpath+'disks.json');
 
 //GET query string params (needed to parameterize the query)
 var qparam_runNumber = req.query.runNumber;
@@ -126,7 +128,7 @@ console.log('received runList request');
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require ('./web/node-f3mon/api/json/runlist.json');
+var queryJSON = require (JSONpath+'/runlist.json');
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -183,7 +185,7 @@ console.log('received runListTable request');
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require ('./web/node-f3mon/api/json/rltable.json');
+var queryJSON = require (JSONpath+'rltable.json');
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -267,7 +269,7 @@ if (qparam_size == null){qparam_size = 100;}
 if (qparam_query == null){qparam_query = 'riverstatus';}
 
 //loads query definition from file
-var queryJSON = require ('./web/node-f3mon/api/json/'+qparam_query+'.json');
+var queryJSON = require (JSONpath+qparam_query+'.json');
 
 //parameterize query fields 
 queryJSON.size = qparam_size;
@@ -445,7 +447,7 @@ if (qparam_sortOrder == null){qparam_sortOrder = '';}
 //search ES - Q1 (get meta)
 var q1 = function (callback){
 
-  var queryJSON = require ('./web/node-f3mon/api/json/runriver-meta.json');
+  var queryJSON = require (JSONpath+'runriver-meta.json');
 
   //set query parameters
   queryJSON.size = qparam_size;
@@ -459,7 +461,7 @@ var q1 = function (callback){
 		"unmapped_type" : "string"	
 	}; 
 	var temp = {};
-	temp[qparam_
+	//temp[qparam_;
   }
 
 
@@ -503,7 +505,7 @@ if (qparam_size == null){qparam_size = 100;}
 if (qparam_query == null){qparam_query = 'riverstatus';}
 
 //loads query definition from file
-//var queryJSON = require ('./web/node-f3mon/api/json/***.json');	//uncomment and define
+//var queryJSON = require (JSONpath+'***.json');	//uncomment and define
 
 
 });//end callback
