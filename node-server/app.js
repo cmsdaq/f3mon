@@ -3,11 +3,11 @@ var express = require('express');
 var app = express();
 app.use(express.static('web'));
 
-var JSONpath = './web/node-f3mon/api/json/';
 var elasticsearch = require('elasticsearch');
-
+var JSONPath = './web/node-f3mon/api/json/';
+var ESServer = 'cu-01.cern.ch';
 var client = new elasticsearch.Client({
-  host: 'cu-01.cern.ch:9200',
+  host: ESServer+':9200',
   log: 'trace'
 });
 
@@ -95,7 +95,7 @@ console.log('received getDisksStatus request!');
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONpath+'disks.json');
+var queryJSON = require (JSONPath+'disks.json');
 
 //GET query string params (needed to parameterize the query)
 var qparam_runNumber = req.query.runNumber;
@@ -128,7 +128,7 @@ console.log('received runList request');
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONpath+'/runlist.json');
+var queryJSON = require (JSONPath+'runlist.json');
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -185,7 +185,7 @@ console.log('received runListTable request');
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONpath+'rltable.json');
+var queryJSON = require (JSONPath+'rltable.json');
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -269,7 +269,7 @@ if (qparam_size == null){qparam_size = 100;}
 if (qparam_query == null){qparam_query = 'riverstatus';}
 
 //loads query definition from file
-var queryJSON = require (JSONpath+qparam_query+'.json');
+var queryJSON = require (JSONPath+qparam_query+'.json');
 
 //parameterize query fields 
 queryJSON.size = qparam_size;
@@ -447,7 +447,7 @@ if (qparam_sortOrder == null){qparam_sortOrder = '';}
 //search ES - Q1 (get meta)
 var q1 = function (callback){
 
-  var queryJSON = require (JSONpath+'runriver-meta.json');
+  var queryJSON = require (JSONPath+'runrivertable-meta.json');
 
   //set query parameters
   queryJSON.size = qparam_size;
@@ -461,16 +461,33 @@ var q1 = function (callback){
 		"unmapped_type" : "string"	
 	}; 
 	var temp = {};
-	//temp[qparam_;
-  }
+	temp[qparam_sortBy] = inner;
+	var outer = [temp];
+        queryJSON.sort = outer;
 
+  }
 
   client.search({
   index:'_river',
   body: JSON.stringify(queryJSON)
         }).then (function(body){
         var results = body.hits.hits; //hits for query 1
-	callback(statusList);
+	var typeList = [];
+	var list = [];
+	for (index = 0 ; index < results.length; index++){
+		typeList.push(results[index]._type);
+		var runindex = results[index]._source.runIndex_read.split('_');
+		runindex = runindex[1];
+		var o = {
+			"name" : results[index]._type,
+			"role" : results[index]._source.hasOwnProperty("role") ? results[index]._source.role : 'main',
+			"status" : false,
+			"subSystem" : runindex
+		}
+		list.push(o);
+	}
+	
+	callback(typeList, list);
   }, function (error){
         console.trace(error.message);
   });
@@ -479,9 +496,27 @@ var q1 = function (callback){
 
 
 //search ES - Q2 (check status)
-var q2 = function (statusList){
+var q2 = function (typeList, list){
 
+  var queryJSON = require (JSONPath+'runrivertable-status.json');
+  
+  //set query parameter
+  queryJSON.query.bool.must[1].terms._type = typeList;
 
+  client.search({
+  index: '_river',
+  body: JSON.stringify(queryJSON)
+	}).then (function(body){
+	var results = body.hits.hits; //hits for query 2
+	for (index=0;index<list.length;index++){
+		var clbk = function (value, name){return value._type == name; }
+		//todo
+	}
+	
+	
+	}, function (error){
+		console.trace(error.message);
+	});
 }//end q2
 
 
@@ -499,17 +534,163 @@ console.log('received closeRun request');
 var cb = req.query.callback;
 
 //GET query string params
-var qparam_size = req.query.size;
 var qparam_query = req.query.query;
-if (qparam_size == null){qparam_size = 100;}
-if (qparam_query == null){qparam_query = 'riverstatus';}
+var qparam_runNumber = req.query.runNumber;
+var qparam_sysName = req.query.sysName;
+
+if (qparam_query == null){qparam_query = 'runinfo';}
+if (qparam_runNumber == null){qparam_runNumber = 180017;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 //loads query definition from file
-//var queryJSON = require (JSONpath+'***.json');	//uncomment and define
+var queryJSON = require (JSONPath+qparam_query+'.json');
+
+//client.search({
+  //index: 'run
 
 
 });//end callback
 
+
+//callback 11
+app.get('/node-f3mon/api/logtable', function (req, res) {
+console.log('received logtable request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_from = req.query.from;
+var qparam_size = req.query.size;
+var qparam_sortBy = req.query.sortBy;
+var qparam_sortOrder = req.query.sortOrder;
+var qparam_search = req.query.search;
+var qparam_startTime = req.query.startTime;
+var qparam_endTime = req.query.endTime;
+var qparam_sysName = req.query.sysName;
+
+if (qparam_from == null){qparam_from = 0;}
+if (qparam_size == null){qparam_size = 100;}
+if (qparam_sortBy == null){qparam_sortBy = '';}
+if (qparam_sortOrder == null){qparam_sortOrder = '';}
+if (qparam_search == null){qparam_search = '*';}
+if (qparam_startTime == null || qparam_startTime == 'false'){qparam_startTime = 0;}
+if (qparam_endTime == null || qparam_endTime == 'false'){qparam_endTime = 'now';}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+//loads query definition from file
+var queryJSON = require (JSONPath+'logmessages.json');
+
+//parameterize query
+queryJSON.size = qparam_size;
+queryJSON.from = qparam_from;
+queryJSON.query.filtered.filter.and[0].range._timestamp.from = qparam_startTime;
+queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
+
+if (qparam_search != ''){
+	queryJSON.query.filtered.query.bool.should[0].query_string.query = qparam_search;
+}
+
+var missing = '_last';
+if (qparam_sortOrder == 'desc'){
+        missing = '_first';
+}
+
+if (qparam_sortBy != '' && qparam_sortOrder != ''){
+        var inner = {
+                "order" : qparam_sortOrder,
+                "missing" : missing
+        };
+        var temp = {};
+        temp[qparam_sortBy] = inner;
+        var outer = temp;
+        queryJSON.sort = outer;
+}
+
+client.search({
+  index: 'hltdlogs_'+qparam_sysName,
+  type: 'hltdlog',
+  body: JSON.stringify(queryJSON)
+        }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	if (body.hits.length==0){
+                //send empty response if hits list is empty
+                 res.send();
+        }else{
+		var total = body.hits.total;
+		var ret = [];
+		for (index = 0 ; index < results.length; index++){
+			ret[index] = results[index]._source;
+		}
+		var retObj = {
+			"iTotalRecords" : total,
+			"iTotalDisplayRecords" : total,
+			"aaData" : ret,
+			"lastTime" : body.aggregations.lastTime.value
+		};
+		res.set('Content-Type', 'text/javascript');
+		res.send(cb +' ('+JSON.stringify(retObj)+')');
+
+	}                  
+  }, function (error){
+        console.trace(error.message);
+  });
+
+
+
+});//end callback
+
+
+//callback 12
+app.get('/node-f3mon/api/startCollector', function (req, res) {
+console.log('received startCollector request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_sysName = req.query.sysName;
+
+if (qparam_runNumber == null){qparam_runNumber = 37;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var runIndex = 'runindex_'+qparam_sysName+'_read';
+client.search({
+  index: '_river',
+  type: 'runriver',
+  body : JSON.stringify({
+	"query" : {
+		"term" : {
+			"runIndex_read" : {
+				"value" : runIndex
+					}
+ 			}
+		}
+	}) }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	var source = results[0]._source;
+	if (!source){
+		res.send();
+	}else{
+		source.role = 'collector';
+		source.runNumber = qparam_runNumber;
+		source.startsBy = 'Web Interface';
+		mapping.dynamic = true;
+	}
+
+
+
+
+}, function (error){
+        console.trace(error.message);
+  });
+
+
+
+
+
+
+
+});//end callback
 
 
 //sets server listening for connections at port 3000
