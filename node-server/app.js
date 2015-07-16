@@ -1,4 +1,4 @@
-'use strict';
+//'use strict'; //deactivated until slight changes are applied, to be in accordance with strict mode
 var express = require('express');
 var app = express();
 app.use(express.static('web'));
@@ -52,7 +52,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
 app.get('/node-f3mon/api/getIndices', function (req, res) {
     console.log("received getIndices request!");
 
-    cb = req.query.callback;
+    var    cb = req.query.callback;
     client.cat.aliases({
       name: 'runindex*read'}
     ).then(
@@ -60,14 +60,14 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
         //console.log('received response from ES :\n'+body+'\nend-response');
         var aliasList = [];
 
-        alias_infos = body.split('\n');
+        var alias_infos = body.split('\n');
         //console.log(alias_infos);
         for(var alias_info in alias_infos) {
           if (!alias_infos[alias_info].length) continue;
           //console.log(alias_infos[alias_infos]);
-          info = alias_infos[alias_info].split(' ');
-          mySubsys = info[0].split("_")[1];
-          myAlias = info[0];
+          var info = alias_infos[alias_info].split(' ');
+          var mySubsys = info[0].split("_")[1];
+          var myAlias = info[0];
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
         //console.log('sending '+aliasList);
@@ -283,7 +283,7 @@ var q1 = function (callback) {
   body: JSON.stringify(queryJSON)
         }).then (function(body){
 	var results = body.hits.hits; //hits for query 1
-	statusList = []; //built in Q1, used in Q2
+	var statusList = []; //built in Q1, used in Q2
 	for (index = 0 ; index < results.length; index++){
 		//impl. php substr() for negative length parameter l
 		var l = 6;
@@ -320,7 +320,7 @@ var q2 = function (statusList){
         var host = [];
 	var source = [];
 	var system = [];
-        index = 0;
+        index = 0; //may need var declaration for strict mode!
 
         var prepareLookup = function () {
           if (index < results.length) {
@@ -542,12 +542,71 @@ if (qparam_query == null){qparam_query = 'runinfo';}
 if (qparam_runNumber == null){qparam_runNumber = 180017;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//loads query definition from file
-var queryJSON = require (JSONPath+qparam_query+'.json');
+var q1= function(callback){
+ //loads query definition from file
+ var queryJSON = require (JSONPath+qparam_query+'.json');
+ queryJSON.filter.term._id = qparam_runNumber;
+ client.search({
+   index: 'runindex_'+qparam_sysName+'_write',
+   type: 'run',
+   body: JSON.stringify(queryJSON)
+         }).then (function(body){
+		var results = body.hits.hits; //hits for query
+		var time = new Date().toISOString();
+		var ret = results[0]._source;
+		console.log('test q_before: '+JSON.stringify(ret));
+		ret.endTime = time;
+		console.log('test q_after: '+JSON.stringify(ret));
+     	if (ret.length == 0){
+		res.send();
+	}else{
+		callback(del,ret);
+	}
+   }, function (error){
+         console.trace(error.message);
+   });
+}//end q1
 
-//client.search({
-  //index: 'run
+var put = function (callback, ret){
+  client.create({
+  index: 'runindex_'+qparam_sysName+'_write',
+  type: 'run',
+  id: qparam_runNumber,
+  body: JSON.stringify(ret)
+  	}).then (function(body){
+		callback(body);
+	}, function (error, response) {
+	console.trace(error.message);
+  });
+	
 
+}//end put
+
+var del = function(prevRes){
+
+  client.delete({
+  index: '_river',
+  type: 'runriver_'+qparam_runNumber,
+  body: JSON.stringify(ret)
+        }).then (function(body){
+
+	var retObj = {
+               	"runDoument" : prevRes,
+               	"riverDocument" : body
+	};
+
+         res.set('Content-Type', 'text/javascript');
+	 res.send(cb +' ('+JSON.stringify(retObj)+')');
+
+	 }).then (function(body){
+	 }, function (error, response) {
+        	console.trace(error.message);
+  });
+
+
+}//end del
+
+q1(put);
 
 });//end callback
 
@@ -653,6 +712,7 @@ var qparam_sysName = req.query.sysName;
 if (qparam_runNumber == null){qparam_runNumber = 37;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+
 var runIndex = 'runindex_'+qparam_sysName+'_read';
 client.search({
   index: '_river',
@@ -674,7 +734,9 @@ client.search({
 		source.role = 'collector';
 		source.runNumber = qparam_runNumber;
 		source.startsBy = 'Web Interface';
-		mapping.dynamic = true;
+		mapping = {
+			"dynamic" : true
+		};
 	}
 
 
@@ -685,12 +747,48 @@ client.search({
   });
 
 
+});//end callback
 
 
+//callback 13
+app.get('/node-f3mon/api/nstates-summary', function (req, res) {
+console.log('received nstates-summary request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_timeRange = req.query.timeRange;
+var qparam_sysName = req.query.sysName;
+
+if (qparam_runNumber == null){qparam_runNumber = 10;}
+if (qparam_timeRange == null){qparam_timeRange = 60;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var q1 = function(callback){
+  //loads query definition from file
+  var queryJSON = require (JSONPath+'ulegenda.json');
+  
+  queryJSON.query.filtered.query.term._parent = qparam_runNumber;
+
+  client.search({
+  index: '_river',
+  type: 'runriver',
+  body : JSON.stringify(queryJSON)
+
+  }).then (function(body){
+        var results = body.hits.hits; //hits for query
+
+  }, function (error){
+        console.trace(error.message);
+  });
+
+}//end q1
 
 
 
 });//end callback
+
 
 
 //sets server listening for connections at port 3000
