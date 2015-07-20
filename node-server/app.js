@@ -204,7 +204,7 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 //console.log(qparam_sortBy);
 //parameterize query fields
-queryJSON.size = qparam_size;
+queryJSON.size =  qparam_size;
 queryJSON.from = qparam_from;
 
 if (qparam_search != ''){
@@ -772,20 +772,154 @@ var q1 = function(callback){
   queryJSON.query.filtered.query.term._parent = qparam_runNumber;
 
   client.search({
-  index: '_river',
-  type: 'runriver',
+  index: 'runindex_'+qparam_sysName+'_read',
+  type: 'microstatelegend',
   body : JSON.stringify(queryJSON)
 
   }).then (function(body){
-        var results = body.hits.hits; //hits for query
-
+	var legend;
+	var resSummary = false;
+	//var data = [];	//Id1: data array format
+	var data = {}
+	if (body.hits.total ===0){
+		legend = false;
+		var out = {
+			"lastTime" : null,
+			"timeList" : null,
+			"data" : data
+		};
+		res.set('Content-Type', 'text/javascript');
+                res.send(cb +' ('+JSON.stringify(out)+')');
+	}else{
+        	var results = body.hits.hits; //hits for query
+		//console.log('L?='+(results.length));	
+		var shortened = results[0]._source.names;
+		if (shortened.indexOf('33=')>-1){
+			shortened = shortened.substr(0, shortened.indexOf('33='))+'33=Busy';	
+			resSummary = true;
+		}
+		var rawLegend = shortened.trim().split(' ');
+		var name;
+		var legend = [];
+		for (i = 0; i<rawLegend.length;i++){
+			var kv = rawLegend[i].split('=');
+			//console.log('kv0='+kv[0]);
+			if (kv[1]==''){
+				continue;
+				//name = kv[0];
+			}else{
+				name = kv[1];
+			}
+			var lEntry = {};
+			lEntry[kv[0]] = name;
+			legend.push(lEntry);
+			//var dEntry = {}; //Id1: data array format
+			//dEntry[name] = [];
+			//data.push(dEntry);
+			data[name] = [];
+		}
+	//console.log(JSON.stringify(data));	
+	callback(legend, resSummary, data);
+	}
+	
   }, function (error){
         console.trace(error.message);
   });
 
 }//end q1
 
+var q2 = function(legend, resSummary, data){
 
+//console.log("\nexec. q2\n");
+//console.log(JSON.stringify(data));
+
+ if (legend){
+  //loads query definition from file
+  var queryJSON = require (JSONPath+'nstates.json');
+
+  queryJSON.query.bool.must[1].range._timestamp.from = 'now-'+qparam_timeRange+'s';
+  queryJSON.query.bool.must[0].term._parent = qparam_runNumber;
+
+  client.search({
+  index: 'runindex_'+qparam_sysName+'_read',
+  type: 'state-hist',
+  body : JSON.stringify(queryJSON)
+
+  }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	var timeList = [];
+		
+	for (i=0;i<results.length;i++){
+		var timestamp = results[i].sort[0];
+		var entries = results[i]._source.hmicro.entries;
+		timeList.push(timestamp);
+		var entriesList = [];
+		var busySum = 0;
+		
+		for (j=0;j<entries.length;j++){
+			var key = entries[j].key;
+			var value = entries[j].count;
+			var name = legend[key];
+			if (key>32){
+				busySum = busySum + value;
+			}else{
+				entriesList.push(name);
+				var arr = [timestamp,value];
+				//var e = {}; //Id1: data array format
+				//e[name] = arr;
+				//data.push(e);
+				data[name] = arr;
+			}
+		}
+		if (resSummary == true){
+			entriesList.push('Busy');
+			var arr = [timestamp,busySum];
+			//var o = {};  //Id1: data array format
+			//o["Busy"] = arr;
+			//data.push(o);
+			data["Busy"] = arr;
+		}
+		var properties = [];
+		for (var pName in data){
+			properties.push(data[pname]);
+		}
+		var diff = properties.not(entriesList).get();
+		for (k=0;k<diff.length;k++){
+			var arr = [timestamp,null];
+			//data[diff(k)].push(arr); //Id1: data array format
+			data[diff(k)] = arr;
+		}
+	}
+	var lastTime = null;
+	if (results.length>0){
+		lastTime = results[results.length-1].sort[0];
+	}
+	var retObj = {
+		"lastTime" : lastTime,
+		"timeList" : timeList,
+		"data" : data
+	};
+	res.set('Content-Type', 'text/javascript');
+	res.send(cb +' ('+JSON.stringify(retObj)+')');
+
+  }, function (error){
+        console.trace(error.message);
+  });
+ }else{
+	var retObj = {
+             "lastTime" : null,
+             "timeList" : null,
+             "data" : data
+        };
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+ 
+ }
+
+
+}//end q2
+
+q1(q2); //call q1 with q2 as its callback
 
 });//end callback
 
