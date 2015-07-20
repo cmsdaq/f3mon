@@ -780,8 +780,9 @@ var q1 = function(callback){
 	var legend;
 	var resSummary = false;
 	//var data = [];	//Id1: data array format
-	var data = {}
+	//var data = {}
 	if (body.hits.total ===0){
+		var data = []; 
 		legend = false;
 		var out = {
 			"lastTime" : null,
@@ -791,6 +792,7 @@ var q1 = function(callback){
 		res.set('Content-Type', 'text/javascript');
                 res.send(cb +' ('+JSON.stringify(out)+')');
 	}else{
+		var data = {};
         	var results = body.hits.hits; //hits for query
 		//console.log('L?='+(results.length));	
 		var shortened = results[0]._source.names;
