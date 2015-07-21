@@ -226,7 +226,7 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	var outer = [temp]; //follows rltable.json format for sort
 	queryJSON.sort = outer;
 }
-
+console.log("test\n"+JSON.stringify(queryJSON));
 //search ES
 client.search({
 index:'runindex_'+qparam_sysName+'_read',
@@ -234,7 +234,6 @@ type: 'run',
 body: JSON.stringify(queryJSON)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query
-
 	//format response content here
 	var total = body.aggregations.total.value;
 	var filteredTotal = body.hits.total;
@@ -704,6 +703,11 @@ app.get('/node-f3mon/api/startCollector', function (req, res) {
 console.log('received startCollector request');
 
 var cb = req.query.callback;
+var retObj = {
+	"oldRiverDocument" : "",
+	"newRiverMapping" : "",
+	"newRiverDocument" : ""
+};
 
 //GET query string params
 var qparam_runNumber = req.query.runNumber;
@@ -712,40 +716,66 @@ var qparam_sysName = req.query.sysName;
 if (qparam_runNumber == null){qparam_runNumber = 37;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+//start collector
+var q4 = function(callback){
+}//end q4
 
-var runIndex = 'runindex_'+qparam_sysName+'_read';
-client.search({
+//put dynamic mapping
+var q3 = function(callback){
+}//end q3
+
+//deleting old instances
+var q2 = function(callback,source,mapping){
+ client.delete({
   index: '_river',
-  type: 'runriver',
-  body : JSON.stringify({
-	"query" : {
-		"term" : {
-			"runIndex_read" : {
-				"value" : runIndex
-					}
- 			}
-		}
-	}) }).then (function(body){
-        var results = body.hits.hits; //hits for query
-	var source = results[0]._source;
-	if (!source){
-		res.send();
-	}else{
-		source.role = 'collector';
-		source.runNumber = qparam_runNumber;
-		source.startsBy = 'Web Interface';
-		mapping = {
-			"dynamic" : true
-		};
-	}
-
-
-
-
-}, function (error){
-        console.trace(error.message);
+  type: 'runriver_'+qparam_runNumber
+        }).then (function(body){
+		retObj.oldRiverDocument = body;
+		callback();
+         }, function (error, response) {
+                console.trace(error.message);
   });
 
+
+}//end q2
+
+
+//get parameters from the main river
+var q1 = function (callback){
+  var runIndex = 'runindex_'+qparam_sysName+'_read';
+  client.search({
+    index: '_river',
+    type: 'runriver',
+    body : JSON.stringify({
+        "query" : {
+                "term" : {
+                        "runIndex_read" : {
+                                "value" : runIndex
+                                        }
+                        }
+                }
+        }) }).then (function(body){
+        var results = body.hits.hits; //hits for query
+        var source = results[0]._source;
+        if (!source){
+                res.send();
+        }else{
+                source.role = 'collector';
+                source.runNumber = qparam_runNumber;
+                source.startsBy = 'Web Interface';
+                var mapping;
+		mapping["dynamic"] = true;
+		callback(q3,source,mapping);
+        }
+
+  },function (error){
+       console.trace(error.message);
+  });
+
+
+}//end q1
+
+q1(q2);
 
 });//end callback
 
