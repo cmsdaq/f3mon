@@ -719,13 +719,39 @@ var qparam_sysName = req.query.sysName;
 if (qparam_runNumber == null){qparam_runNumber = 37;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var sendResult = function(){
+	res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
 //start collector
 var q4 = function(callback){
+  client.index({  
+    index:'_river',
+    type:'runriver_'+qparam_runNumber,
+    id:'_meta',
+    body:source
+  }).then(function(body){
+        retObj.newRiverDocument = body;
+   	callback(); //calls sendResult to end the callback
+
+  }, function (error){
+
+  });
 }//end q4
 
 //put dynamic mapping
 var q3 = function(callback){
- 
+  client.indices.putMapping({
+    index:'_river',
+    type:'runriver_'+qparam_runNumber,
+    body:mapping
+  }).then(function(body){
+	retObj.newRiverMapping = body;
+ 	callback(sendResult);
+  }, function (error){
+
+  }); 
 }//end q3
 
 //deleting old instances
@@ -755,7 +781,6 @@ var getAllEntries = function(callback){
  		"match_all" : { }
 		}
 	})  }).then (function(body){
-	console.log('#entries to be deleted='+body.hits.total);
 	var results = body.hits.hits;
 	var ids = [];
 	for (i=0;i<results.length;i++){
