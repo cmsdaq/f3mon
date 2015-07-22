@@ -46,7 +46,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
     );
 
 
-});
+});//end callback
 
 //callback 4
 app.get('/node-f3mon/api/getIndices', function (req, res) {
@@ -86,7 +86,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
  
     }).then(
   */  
-});
+});//end callback
 
 //callback 5
 app.get('/node-f3mon/api/getDisksStatus', function (req, res) {
@@ -708,6 +708,9 @@ var retObj = {
 	"newRiverMapping" : "",
 	"newRiverDocument" : ""
 };
+var source;
+var mapping = {};
+
 
 //GET query string params
 var qparam_runNumber = req.query.runNumber;
@@ -722,22 +725,47 @@ var q4 = function(callback){
 
 //put dynamic mapping
 var q3 = function(callback){
+ 
 }//end q3
 
 //deleting old instances
-var q2 = function(callback,source,mapping){
- client.delete({
-  index: '_river',
-  type: 'runriver_'+qparam_runNumber
-        }).then (function(body){
-		retObj.oldRiverDocument = body;
-		callback();
-         }, function (error, response) {
-                console.trace(error.message);
+var q2 = function(callback,ids){
+ client.indices.deleteMapping({
+  index:'_river',
+  type:'runriver_'+qparam_runNumber
+  }).then (function(body){
+	retObj.oldRiverDocument = body;
+	callback(q4);
+  }, function (error){
+   retObj.oldRiverDocument = error.body;
+   console.trace(error.message);
+   callback(q4);
   });
 
-
 }//end q2
+
+/*
+//retrieves all entries from an index type (first step on bulk operations on these entries)
+var getAllEntries = function(callback){
+  client.search({
+   index: '_river',
+   type: 'runriver_'+qparam_runNumber,
+   body: JSON.stringify({
+	"query" : {
+ 		"match_all" : { }
+		}
+	})  }).then (function(body){
+	console.log('#entries to be deleted='+body.hits.total);
+	var results = body.hits.hits;
+	var ids = [];
+	for (i=0;i<results.length;i++){
+		ids[i] = results[i]._id;
+	}
+	//callback(...); //fill with callback function, if needed
+  }, function (error){
+        console.trace(error.message);
+  });
+}*/
 
 
 //get parameters from the main river
@@ -756,16 +784,16 @@ var q1 = function (callback){
                 }
         }) }).then (function(body){
         var results = body.hits.hits; //hits for query
-        var source = results[0]._source;
+	//console.log(results.length);
+        source = results[0]._source; //assigns value to callback-wide scope variable
         if (!source){
                 res.send();
         }else{
                 source.role = 'collector';
                 source.runNumber = qparam_runNumber;
                 source.startsBy = 'Web Interface';
-                var mapping;
-		mapping["dynamic"] = true;
-		callback(q3,source,mapping);
+		mapping["dynamic"] = true; //assigns value to callback-wide scope variable
+		callback(q3);
         }
 
   },function (error){
@@ -805,7 +833,6 @@ var q1 = function(callback){
   index: 'runindex_'+qparam_sysName+'_read',
   type: 'microstatelegend',
   body : JSON.stringify(queryJSON)
-
   }).then (function(body){
 	var legend;
 	var resSummary = false;
@@ -955,6 +982,25 @@ q1(q2); //call q1 with q2 as its callback
 
 });//end callback
 
+//idx refresh for one index
+app.get('/node-f3mon/api/idx-refr', function (req, res) {
+console.log('received idx-refr request');
+
+//GET query string params
+var qparam_indexAlias = req.query.indexAlias;
+if (qparam_indexAlias == null){qparam_indexAlias = '';}
+
+client.indices.refresh({
+  index: qparam_indexAlias
+  }).then (function(body){
+	res.set('Content-Type', 'text/javascript');
+        res.send('('+JSON.stringify(body)+')');
+  }, function (error){
+	res.set('Content-Type', 'text/javascript');
+	res.send('Error! Check console for trace...');
+        console.trace(error.message);
+  });
+});//end idx-refr
 
 
 //sets server listening for connections at port 3000
