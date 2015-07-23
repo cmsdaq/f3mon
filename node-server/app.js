@@ -1,4 +1,4 @@
-//'use strict'; //deactivated until slight changes are applied, to be in accordance with strict mode
+'use strict'; //all variables must be explicitly declared, be careful with 'this'
 var express = require('express');
 var app = express();
 app.use(express.static('web'));
@@ -52,7 +52,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
 app.get('/node-f3mon/api/getIndices', function (req, res) {
     console.log("received getIndices request!");
 
-    var    cb = req.query.callback;
+    var cb = req.query.callback;
     client.cat.aliases({
       name: 'runindex*read'}
     ).then(
@@ -238,7 +238,7 @@ body: JSON.stringify(queryJSON)
 	var total = body.aggregations.total.value;
 	var filteredTotal = body.hits.total;
 	var arr = [];
-        for (index = 0 ; index < results.length; index++){
+        for (var index = 0 ; index < results.length; index++){
         	arr[index] = results[index]._source;
         }
 
@@ -283,7 +283,7 @@ var q1 = function (callback) {
         }).then (function(body){
 	var results = body.hits.hits; //hits for query 1
 	var statusList = []; //built in Q1, used in Q2
-	for (index = 0 ; index < results.length; index++){
+	for (var index = 0 ; index < results.length; index++){
 		//impl. php substr() for negative length parameter l
 		var l = 6;
 		var suffix = results[index]._source.node.transport_address.substr(l);
@@ -319,7 +319,7 @@ var q2 = function (statusList){
         var host = [];
 	var source = [];
 	var system = [];
-        index = 0; //may need var declaration for strict mode!
+        var index = 0;
 
         var prepareLookup = function () {
           if (index < results.length) {
@@ -473,7 +473,7 @@ var q1 = function (callback){
         var results = body.hits.hits; //hits for query 1
 	var typeList = [];
 	var list = [];
-	for (index = 0 ; index < results.length; index++){
+	for (var index = 0 ; index < results.length; index++){
 		typeList.push(results[index]._type);
 		var runindex = results[index]._source.runIndex_read.split('_');
 		runindex = runindex[1];
@@ -507,12 +507,11 @@ var q2 = function (typeList, list){
   body: JSON.stringify(queryJSON)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query 2
-	for (index=0;index<list.length;index++){
+	for (var index=0;index<list.length;index++){
 		var clbk = function (value, name){return value._type == name; }
 		//todo
 	}
-	
-	
+		
 	}, function (error){
 		console.trace(error.message);
 	});
@@ -676,7 +675,7 @@ client.search({
         }else{
 		var total = body.hits.total;
 		var ret = [];
-		for (index = 0 ; index < results.length; index++){
+		for (var index = 0 ; index < results.length; index++){
 			ret[index] = results[index]._source;
 		}
 		var retObj = {
@@ -884,7 +883,7 @@ var q1 = function(callback){
 		var rawLegend = shortened.trim().split(' ');
 		var name;
 		var legend = [];
-		for (i = 0; i<rawLegend.length;i++){
+		for (var i = 0; i<rawLegend.length;i++){
 			var kv = rawLegend[i].split('=');
 			//console.log('kv0='+kv[0]);
 			if (kv[1]==''){
@@ -932,14 +931,14 @@ var q2 = function(legend, resSummary, data){
         var results = body.hits.hits; //hits for query
 	var timeList = [];
 		
-	for (i=0;i<results.length;i++){
+	for (var i=0;i<results.length;i++){
 		var timestamp = results[i].sort[0];
 		var entries = results[i]._source.hmicro.entries;
 		timeList.push(timestamp);
 		var entriesList = [];
 		var busySum = 0;
 		
-		for (j=0;j<entries.length;j++){
+		for (var j=0;j<entries.length;j++){
 			var key = entries[j].key;
 			var value = entries[j].count;
 			var name = legend[key];
@@ -967,7 +966,7 @@ var q2 = function(legend, resSummary, data){
 			properties.push(data[pname]);
 		}
 		var diff = properties.not(entriesList).get();
-		for (k=0;k<diff.length;k++){
+		for (var k=0;k<diff.length;k++){
 			var arr = [timestamp,null];
 			//data[diff(k)].push(arr); //Id1: data array format
 			data[diff(k)] = arr;
