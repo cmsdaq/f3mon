@@ -438,6 +438,8 @@ var retObj = {
 	"total" : ""
 };
 
+var ipAddresses = [];
+var hostNames = [];
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -454,9 +456,32 @@ var sendResult = function(){
    res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
+//fills 'host' fields with using reverse dns lookup
+var assignHostnames = function (callback, list){
+	for (var i=0;i<ipAddresses.length;i++){
+		if (ipAddresses[i] === -1){
+			continue;
+		}
+		var idx = i;
+		require('dns').reverse(ipAddresses[i], function(err, domains) {
+    		if(err) {
+        		console.log(err.toString());
+			hostNames[this.idx] = ipAddresses[this.idx];
+        		return;
+   		}
+    		hostNames[this.idx] = domains[0];
+		}.bind({idx:idx}));
 
-var f3 = function (callback){
-
+	var count  = 0; //debug
+	console.log('ip size: '+ipAddresses.length); //debug
+	while (hostNames.length<ipAddresses.length){
+		console.log('host size: '+hostNames.length+' (iter:'+count+')'); //debug
+		count++;
+	}
+	//todo :wait until hostNames is filled, then set list.host accordingly (iteratively)
+	}
+	retObj.list = list;
+	callback();
 }
 
 
@@ -476,34 +501,28 @@ var q2 = function (callback, typeList, list){
     
     	for (var index=0;index<list.length;index++){
 	   var stat = [];
-	console.log ('test1:'+stat.length);
-
            var itemName = list[index].name;
 		for (var j=0;j<results.length;j++){
 			if (results[j]._type == itemName){
 				stat.push(results[j]);
 			}
 		}
-	console.log ('test2:'+stat.length);
 
 	   if (stat.length>0){
-		//do stuff, handle list w. hosts, assign it to the retObj and callback to the sendResult
 		var ipstring = stat[0];
 		ipstring = ipstring._source.node.transport_address;
-			////////////////////
-			//
-			//
-		
+		var ip;
+		var start = ipstring.indexOf('/')+1;
+		var suffix = ipstring.substr(start);
+		var len = ipstring.indexOf(':')-ipstring.length; //always negative, remove chars from the end
+		ip = suffix.substring(0, suffix.length+len);
+		ipAddresses[index] = ip;
 		list[index].status = true;
-		//also assign list host with either ip or hostname if managed to be resolved
-		//call send result to send it out
-
-
 	   }else{
-	      retObj.list = list;
-	      callback();
+	        ipAddresses[index] = -1;
 	   }
    	 }	
+	callback(sendResult, list);
 
     }, function (error){
             console.trace(error.message);
@@ -555,8 +574,7 @@ var q1 = function (callback){
 		};
 		list.push(o);
 	}
-	console.log('test0:'+list.length);
-	callback(sendResult,typeList, list);
+	callback(assignHostnames,typeList, list);
   }, function (error){
         console.trace(error.message);
   });
