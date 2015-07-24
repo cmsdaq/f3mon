@@ -433,6 +433,12 @@ console.log('received runRiverListTable request');
 
 var cb = req.query.callback;
 
+var retObj = {
+	"list" : "",
+	"total" : ""
+};
+
+
 //GET query string params
 var qparam_from = req.query.from;
 var qparam_size = req.query.size;
@@ -442,6 +448,70 @@ if (qparam_from == null){qparam_from = 0;}
 if (qparam_size == null){qparam_size = 100;}
 if (qparam_sortBy == null){qparam_sortBy = '';}
 if (qparam_sortOrder == null){qparam_sortOrder = '';}
+
+var sendResult = function(){
+   res.set('Content-Type', 'text/javascript');
+   res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+
+var f3 = function (callback){
+
+}
+
+
+//search ES - Q2 (check status)
+var q2 = function (callback, typeList, list){
+
+  var queryJSON = require (JSONPath+'runrivertable-status.json');
+
+  //set query parameter
+  queryJSON.query.bool.must[1].terms._type = typeList;
+
+  client.search({
+    index: '_river',
+    body: JSON.stringify(queryJSON)
+        }).then (function(body){
+        var results = body.hits.hits; //hits for query 2
+    
+    	for (var index=0;index<list.length;index++){
+	   var stat = [];
+	console.log ('test1:'+stat.length);
+
+           var itemName = list[index].name;
+		for (var j=0;j<results.length;j++){
+			if (results[j]._type == itemName){
+				stat.push(results[j]);
+			}
+		}
+	console.log ('test2:'+stat.length);
+
+	   if (stat.length>0){
+		//do stuff, handle list w. hosts, assign it to the retObj and callback to the sendResult
+		var ipstring = stat[0];
+		ipstring = ipstring._source.node.transport_address;
+			////////////////////
+			//
+			//
+		
+		list[index].status = true;
+		//also assign list host with either ip or hostname if managed to be resolved
+		//call send result to send it out
+
+
+	   }else{
+	      retObj.list = list;
+	      callback();
+	   }
+   	 }	
+
+    }, function (error){
+            console.trace(error.message);
+     });
+
+
+}//end q2
+
 
 //search ES - Q1 (get meta)
 var q1 = function (callback){
@@ -458,12 +528,11 @@ var q1 = function (callback){
 		"order" : qparam_sortOrder,
 		"missing" : "main",
 		"unmapped_type" : "string"	
-	}; 
+	};
 	var temp = {};
 	temp[qparam_sortBy] = inner;
 	var outer = [temp];
         queryJSON.sort = outer;
-
   }
 
   client.search({
@@ -471,6 +540,7 @@ var q1 = function (callback){
   body: JSON.stringify(queryJSON)
         }).then (function(body){
         var results = body.hits.hits; //hits for query 1
+	retObj.total = body.hits.total;
 	var typeList = [];
 	var list = [];
 	for (var index = 0 ; index < results.length; index++){
@@ -482,45 +552,17 @@ var q1 = function (callback){
 			"role" : results[index]._source.hasOwnProperty("role") ? results[index]._source.role : 'main',
 			"status" : false,
 			"subSystem" : runindex
-		}
+		};
 		list.push(o);
 	}
-	
-	callback(typeList, list);
+	console.log('test0:'+list.length);
+	callback(sendResult,typeList, list);
   }, function (error){
         console.trace(error.message);
   });
 }//end q1
 
-
-
-//search ES - Q2 (check status)
-var q2 = function (typeList, list){
-
-  var queryJSON = require (JSONPath+'runrivertable-status.json');
-  
-  //set query parameter
-  queryJSON.query.bool.must[1].terms._type = typeList;
-
-  client.search({
-  index: '_river',
-  body: JSON.stringify(queryJSON)
-	}).then (function(body){
-	var results = body.hits.hits; //hits for query 2
-	for (var index=0;index<list.length;index++){
-		var clbk = function (value, name){return value._type == name; }
-		//todo
-	}
-		
-	}, function (error){
-		console.trace(error.message);
-	});
-}//end q2
-
-
-//loads query definition from file
-//var queryJSON = require ('./web/node-f3mon/api/json/***.json');	//uncomment and define
-
+q1(q2);
 
 });//end callback
 
@@ -532,7 +574,7 @@ console.log('received closeRun request');
 var cb = req.query.callback;
 var retObj = {
         "runDocument" : "",
-        "riverDocument" : "",
+        "riverDocument" : ""
 };
 //var source;
 //var mapping = {};
