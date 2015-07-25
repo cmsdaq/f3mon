@@ -414,7 +414,7 @@ var q2 = function (statusList){
           res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}
 
-        prepareLookup(index); //initial caller
+        prepareLookup(); //initial caller
 
   }, function (error){
         console.trace(error.message);
@@ -440,6 +440,8 @@ var retObj = {
 
 var ipAddresses = [];
 var hostNames = [];
+var finFlag = false;
+var counter;
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -456,33 +458,38 @@ var sendResult = function(){
    res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
-//fills 'host' fields with using reverse dns lookup
-var assignHostnames = function (callback, list){
-	for (var i=0;i<ipAddresses.length;i++){
-		if (ipAddresses[i] === -1){
-			continue;
-		}
-		var idx = i;
-		require('dns').reverse(ipAddresses[i], function(err, domains) {
-    		if(err) {
-        		console.log(err.toString());
-			hostNames[this.idx] = ipAddresses[this.idx];
-        		return;
-   		}
-    		hostNames[this.idx] = domains[0];
-		}.bind({idx:idx}));
+var indx = 0;
 
-	var count  = 0; //debug
-	console.log('ip size: '+ipAddresses.length); //debug
-	while (hostNames.length<ipAddresses.length){
-		console.log('host size: '+hostNames.length+' (iter:'+count+')'); //debug
-		count++;
+var prepareLookup = function (){
+	if (indx < ipAddresses.length){
+		var ip = ipAddresses[indx];
+		if (ip == -1){
+			indx++;
+			prepareLookup();	
+		}else{
+			var idx = indx;
+			require('dns').reverse(ip, checkResult.bind({idx:idx}));
+		}	
+	}else{
+		sendResult();
 	}
-	//todo :wait until hostNames is filled, then set list.host accordingly (iteratively)
+
+}//end prepareLookup
+
+var checkResult = function (err, domains){
+	if (err){
+		console.log(err.toString());
+		retObj.list[this.idx].host = ipAddresses[this.idx]; //escape with IP in case of unresolved
+		return;
 	}
-	retObj.list = list;
-	callback();
-}
+	if (domains.length>0){
+              retObj.list[this.idx].host  = domains[0]; //assign the first possible hostname
+        }else{
+              retObj.list[this.idx].host  = ipAddresses[this.idx]; //escape with IP in case of unresolved
+        }
+	indx++;
+	prepareLookup();
+}//end checkResult 
 
 
 //search ES - Q2 (check status)
@@ -521,8 +528,9 @@ var q2 = function (callback, typeList, list){
 	   }else{
 	        ipAddresses[index] = -1;
 	   }
-   	 }	
-	callback(sendResult, list);
+   	 }
+	retObj.list = list;//passes list to callback-level scope, next functs will access it directly
+	callback();
 
     }, function (error){
             console.trace(error.message);
@@ -574,7 +582,7 @@ var q1 = function (callback){
 		};
 		list.push(o);
 	}
-	callback(assignHostnames,typeList, list);
+	callback(prepareLookup,typeList, list);
   }, function (error){
         console.trace(error.message);
   });
