@@ -439,9 +439,6 @@ var retObj = {
 };
 
 var ipAddresses = [];
-var hostNames = [];
-var finFlag = false;
-var counter;
 
 //GET query string params
 var qparam_from = req.query.from;
