@@ -1120,7 +1120,7 @@ var queryJSON = require (JSONPath+'lastls.json');
 var q2 = function (callback){
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'streamsinrun.json');
+var queryJSON = require (JSONPath+'streamsinrun.json');  //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
 
   queryJSON.query.term._parent = qparam_runNumber;
 
@@ -1130,10 +1130,10 @@ var queryJSON = require (JSONPath+'streamsinrun.json');
     body : JSON.stringify(queryJSON)
     }).then (function(body){
         //var results = body.hits.hits; //hits for query
-        var terms = body.facets.streams.terms; //facets will soon be deprecated...use aggregations
+        var terms = body.aggregations.streams.buckets; //replacing facet implementation (facets->deprecated)
 	var streams = [];
 	for (var i=0;i<terms.length;i++){
-		streams[i] = terms[i].term;
+		streams[i] = terms[i].key;
 	}
 	retObj.streams = streams;
         callback(sendResult);
