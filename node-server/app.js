@@ -506,6 +506,7 @@ var q2 = function (callback, typeList, list){
     	for (var index=0;index<list.length;index++){
 	   var stat = [];
            var itemName = list[index].name;
+		//impl. array_diff functionality
 		for (var j=0;j<results.length;j++){
 			if (results[j]._type == itemName){
 				stat.push(results[j]);
@@ -1069,6 +1070,107 @@ var q2 = function(legend, resSummary, data){
 q1(q2); //call q1 with q2 as its callback
 
 });//end callback
+
+
+//callback 14
+app.get('/node-f3mon/api/runInfo', function (req, res) {
+console.log('received runInfo request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_sysName = req.query.sysName;
+
+if (qparam_runNumber == null){qparam_runNumber = 700032;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var retObj = {};
+
+var sendResult = function(){
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+//last LS number
+var q3 = function (callback){
+
+var queryJSON = require (JSONPath+'lastls.json');
+
+  queryJSON.query.term._parent = qparam_runNumber;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'eols',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+	var results = body.hits.hits; //hits for query
+	if (results.length === 0){
+		retObj.lastLs = 0;
+	}else{
+		retObj.lastLs = results[0].sort;
+	}
+	callback();
+  }, function (error){
+        console.trace(error.message);
+  });
+}//end q3
+
+//streams
+var q2 = function (callback){
+
+//loads query definition from file
+var queryJSON = require (JSONPath+'streamsinrun.json');
+
+  queryJSON.query.term._parent = qparam_runNumber;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'stream-hist',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        //var results = body.hits.hits; //hits for query
+        var terms = body.facets.streams.terms; //facets will soon be deprecated...use aggregations
+	var streams = [];
+	for (var i=0;i<terms.length;i++){
+		streams[i] = terms[i].term;
+	}
+	retObj.streams = streams;
+        callback(sendResult);
+  }, function (error){
+        console.trace(error.message);
+  });
+
+
+
+}//end q2
+
+//start and end time
+var q1 = function (callback){
+
+//loads query definition from file
+ var queryJSON = require (JSONPath+'runinfo.json');
+
+  queryJSON.filter.term._id = qparam_runNumber;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'run',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	retObj = results[0]._source;
+	callback(q3);
+  }, function (error){
+        console.trace(error.message);
+  });
+
+}//end q1
+
+q1(q2)
+
+});//end callback
+
 
 //idx refresh for one index
 app.get('/node-f3mon/api/idx-refr', function (req, res) {
