@@ -1120,7 +1120,7 @@ var queryJSON = require (JSONPath+'lastls.json');
 var q2 = function (callback){
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'streamsinrun.json');  //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
+var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
 
   queryJSON.query.term._parent = qparam_runNumber;
 
@@ -1148,7 +1148,7 @@ var queryJSON = require (JSONPath+'streamsinrun.json');  //changed compared to t
 //start and end time
 var q1 = function (callback){
 
-//loads query definition from file
+ //loads query definition from file
  var queryJSON = require (JSONPath+'runinfo.json');
 
   queryJSON.filter.term._id = qparam_runNumber;
@@ -1171,6 +1171,136 @@ q1(q2)
 
 });//end callback
 
+//callback 15
+app.get('/node-f3mon/api/minimacroperstream', function (req, res) {
+console.log('received minimacroperstream request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_from = req.query.from;
+var qparam_to = req.query.to;
+var qparam_sysName = req.query.sysName;
+var qparam_streamList = req.query.streamList;
+var qparam_type = req.query.type;
+
+
+if (qparam_runNumber == null){qparam_runNumber = 390008;}
+if (qparam_from == null){qparam_from = 1000;}
+if (qparam_to == null){qparam_to = 2000;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
+if (qparam_type == null){qparam_type = 'minimerge';}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var streamListArray;
+var inner = [];
+var retObj = {
+	"percents" : inner
+};
+
+var sendResult = function(){
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+//Get minimerge
+var q2 = function(callback, total_q1){
+  
+   //loads query definition from file 
+   var queryJSON = require (JSONPath+'minimacroperstream.json');
+
+   queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
+   queryJSON.query.bool.must[0].range.ls.from = qparam_from;
+   queryJSON.query.bool.must[0].range.ls.to = qparam_to;
+
+   client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: qparam_type,
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        //var results = body.hits.hits; //hits for query
+        var streams = body.aggregations.stream.buckets;
+        for (var i=0;i<streams.length;i++){
+		var stream = streams[i].key;
+		if (stream == '' || streamListArray.indexOf(stream) == -1){
+			continue;
+		}
+		var processed = streams[i].processed.value;
+		var doc_count = streams[i].doc_count;
+
+		//calc minimerge percents
+		var percent;
+		if (total_q1 == 0){
+			if (doc_count == 0){
+				percent = 0;
+			}else{
+				percent = 100;
+			}
+		}else{
+			var p = 100*processed/total_q1;
+			percent = Math.round(p*100)/100;
+		}
+		
+		var color = '';
+		if (percent >= 100){
+			color = 'green';
+		}else if (percent >= 50){
+			color = 'orange';
+		}else{
+			color = 'red';
+		}	
+		
+		var b = false;
+		if (qparam_type === 'minimerge'){
+			b = true;
+		}
+
+		var entry = {
+			"name" : stream,
+			"y" : percent,
+			"color" : color,
+			"drilldown" : b
+		};
+		retObj.percents.push(entry);
+	}
+        callback();
+    }, function (error){
+        console.trace(error.message);
+    });
+
+};//end q2
+
+//Get total
+var q1 = function(callback){
+  streamListArray = qparam_streamList.split(',');
+
+  //loads query definition from file 
+  var queryJSON = require (JSONPath+'teols.json');
+
+  queryJSON.aggregations = queryJSON.aggregations.ls.aggs;
+  queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON.query.filtered.query.range.ls.from = qparam_from;
+  queryJSON.query.filtered.query.range.ls.to = qparam_to;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'eols',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+       // var results = body.hits.hits; //hits for query
+        var total = body.aggregations.events.value;
+	var doc_count = body.hits.total;
+        callback(sendResult, total);
+  }, function (error){
+        console.trace(error.message);
+  });
+
+};//end q1
+
+q1(q2);
+});//end callback
 
 //idx refresh for one index
 app.get('/node-f3mon/api/idx-refr', function (req, res) {
