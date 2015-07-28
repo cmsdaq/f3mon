@@ -1278,8 +1278,7 @@ var q1 = function(callback){
 
   //loads query definition from file 
   var queryJSON = require (JSONPath+'teols.json');
-
-  queryJSON.aggregations = queryJSON.aggregations.ls.aggs;
+ 
   queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
   queryJSON.query.filtered.query.range.ls.to = qparam_to;
