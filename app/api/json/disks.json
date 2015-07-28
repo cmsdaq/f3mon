@@ -1,12 +1,5 @@
 {
     "size": 1,
-    "query": {
-        "wildcard": {
-            "activeRuns": {
-                "value": ""
-            }
-        }
-    },
     "aggregations": {
         "data": {
             "avg": {

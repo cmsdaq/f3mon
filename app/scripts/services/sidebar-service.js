@@ -15,7 +15,8 @@
         var mypoller, restartPoller, cache, config;
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var resource = $resource(prePath+'/api/runInfo.php', {
+        //var resource = $resource(prePath+'/api/runInfo.php', {
+	var resource = $resource('api/runInfo', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
@@ -24,7 +25,8 @@
         });
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var restartCollectorRes = $resource(prePath+'/api/startCollector.php', {
+        //var restartCollectorRes = $resource(prePath+'/api/startCollector.php', {
+	var restartCollectorRes = $resource('api/startCollector', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {

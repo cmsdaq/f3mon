@@ -21,17 +21,6 @@
       }
    },
    "aggregations": {
-      "ls": {
-         "histogram": {
-            "field": "ls",
-            "interval" : 1,
-            "min_doc_count" : 0,
-            "extended_bounds" : {
-                    "min" : 0,
-                    "max" : 550
-            }
-         },
-         "aggs": {
             "events": {
                "sum": {
                   "field": "NEvents"
@@ -42,7 +31,6 @@
                   "field": "NFiles"
                }
             }
-         }
-      }
    }
 }
+

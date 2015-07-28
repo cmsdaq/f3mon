@@ -1299,6 +1299,77 @@ var q1 = function(callback){
 };//end q1
 
 q1(q2);
+
+});//end callback
+
+//callback 16
+app.get('/node-f3mon/api/minimacroperbu', function (req, res) {
+console.log('received minimacroperbu request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_from = req.query.from;
+var qparam_to = req.query.to;
+var qpamar_stream = req.query.stream;
+var qparam_sysName = req.query.sysName;
+var qparam_streamList = req.query.streamList;
+var qparam_type = req.query.type;
+
+
+if (qparam_runNumber == null){qparam_runNumber = 390008;}
+if (qparam_from == null){qparam_from = 1000;}
+if (qparam_to == null){qparam_to = 2000;}
+if (qparam_stream == null){qparam_stream = 'A';}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
+if (qparam_type == null){qparam_type = 'minimerge';}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var streamListArray;
+var inner = [];
+var retObj = {
+	"percents" : inner
+};
+
+var sendResult = function(){
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+//Get mini or macro merge
+var q2 = function (callback){
+}//end q2
+
+//Get total
+var q1 = function (callback){
+  streamListArray = qparam_streamList.split(',');
+
+  //loads query definition from file 
+  var queryJSON = require (JSONPath+'teolsperbu.json');
+  
+  queryJSON.size = 2000000;
+  queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON.query.filtered.query.range.ls.from = qparam_from;
+  queryJSON.query.filtered.query.range.ls.to = qparam_to;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'eols',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+       var results = body.hits.hits; //hits for query
+        
+        callback(sendResult);
+  }, function (error){
+        console.trace(error.message);
+  });
+
+}//end q1
+
+q1(q2);
+
 });//end callback
 
 //idx refresh for one index

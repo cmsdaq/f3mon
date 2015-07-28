@@ -8,12 +8,12 @@
   "sort": {
     "_timestamp": "desc"
   },
-  "facets": {
+  "aggs": {
     "streams": {
       "terms": {
         "size":100,
         "field": "stream",
-        "order": "term"
+        "order": {"_term" : "asc"}
       }
     }
   }
