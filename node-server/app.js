@@ -1029,7 +1029,9 @@ var q2 = function(legend, resSummary, data){
 		}
 		var properties = [];
 		for (var pName in data){
-			properties.push(data[pname]);
+			if (data.hasOwnProperty(pName)){
+				properties.push(data[pname]);
+			}
 		}
 		var diff = properties.not(entriesList).get();
 		for (var k=0;k<diff.length;k++){
@@ -1243,6 +1245,7 @@ var q2 = function(callback, total_q1){
 			percent = Math.round(p*100)/100;
 		}
 		
+		/* //moved to function for reusability	
 		var color = '';
 		if (percent >= 100){
 			color = 'green';
@@ -1250,7 +1253,9 @@ var q2 = function(callback, total_q1){
 			color = 'orange';
 		}else{
 			color = 'red';
-		}	
+		}*/
+		
+		var color = percColor(percent);	
 		
 		var b = false;
 		if (qparam_type === 'minimerge'){
@@ -1277,7 +1282,7 @@ var q1 = function(callback){
   streamListArray = qparam_streamList.split(',');
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teols.json');
+  var queryJSON = require (JSONPath+'teolsperstream.json');
  
   queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
@@ -1312,7 +1317,7 @@ var cb = req.query.callback;
 var qparam_runNumber = req.query.runNumber;
 var qparam_from = req.query.from;
 var qparam_to = req.query.to;
-var qpamar_stream = req.query.stream;
+var qparam_stream = req.query.stream;
 var qparam_sysName = req.query.sysName;
 var qparam_streamList = req.query.streamList;
 var qparam_type = req.query.type;
@@ -1339,7 +1344,74 @@ var sendResult = function(){
 }
 
 //Get mini or macro merge
-var q2 = function (callback){
+var q2 = function (callback,totals_q1){
+
+  //loads query definition from file 
+  var queryJSON = require (JSONPath+'minimacroperbu.json');
+
+  queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
+  queryJSON.query.bool.must[0].range.ls.from = qparam_from;
+  queryJSON.query.bool.must[0].range.ls.to = qparam_to;
+  queryJSON.query.bool.must[2].term.stream.value = qparam_stream;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: qparam_type,
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	var totalProc = {};
+		
+	for (var i=0;i<results.length;i++){
+                var id = results[i]._id;
+                var strpos = id.indexOf('bu');
+                var bu = id.substring(strpos);
+		var processed = results[i]._source.processed;
+		if (totalProc[bu] == null){
+                        totalProc[bu] = 0;
+                }
+                totalProc[bu] += processed;
+	}
+
+	for (var buname in totals_q1){
+        	if (totals_q1.hasOwnProperty(buname)){
+                	var total = totals_q1[buname];
+			var proc = -1;
+			if (totalProc[buname] == null){
+				proc = 0;
+			}else{
+				proc = totalProc[buname];
+			}
+
+			//calc percents
+			var percent;
+			if (total == 0){
+				if (proc == 0){
+					percent = 0;
+				}else{
+					percent = 100;
+				}
+			}else{
+				var p = 100*proc/total;
+                        	percent = Math.round(p*100)/100;
+			}
+			var color = percColor(percent);
+
+			var entry = {
+                        "name" : buname,
+                        "y" : percent,
+                        "color" : color,
+                        "drilldown" : false
+                	};
+                	retObj.percents.push(entry);
+                }
+	}
+	callback();
+
+    }, function (error){
+        console.trace(error.message);
+    });
+
 }//end q2
 
 //Get total
@@ -1359,9 +1431,20 @@ var q1 = function (callback){
     type: 'eols',
     body : JSON.stringify(queryJSON)
     }).then (function(body){
-       var results = body.hits.hits; //hits for query
-        
-        callback(sendResult);
+        var results = body.hits.hits; //hits for query
+  	var totals = {}; //obj to hold per bu event counters
+
+	for (var i=0;i<results.length;i++){
+		var id = results[i]._id;
+		var total = results[i]._source.NEvents;
+		var strpos = id.indexOf('bu');
+		var bu = id.substring(strpos);
+		if (totals[bu] == null){
+			totals[bu] = 0;	
+		}
+		totals[bu] += total;
+	}
+        callback(sendResult, totals);
   }, function (error){
         console.trace(error.message);
   });
@@ -1392,6 +1475,26 @@ client.indices.refresh({
   });
 });//end idx-refr
 
+//percColor function
+var percColor = function percColor (percent){
+		//console.log('called percColor with arg='+percent);
+		var color = '';
+		if (percent >= 100){
+                        color = 'green';
+                }else if (percent >= 50){
+                        color = 'orange';
+                }else{
+                        color = 'red';
+                }
+		return color;
+}
+
+//tester
+app.get('/node-f3mon/api/testf', function (req, res) {
+var finput = 'undef';
+//col = percColor(req.query.c);
+res.send(finput);
+});//end tester
 
 //sets server listening for connections at port 3000
 var server = app.listen(3000, function () {
