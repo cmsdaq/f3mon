@@ -1,0 +1,46 @@
+//start collector
+var q4 = function(callback){
+  client.index({
+    index:'_river',
+    type:'runriver_'+qparam_runNumber,
+    id:'_meta',
+    body:source
+  }).then(function(body){
+        retObj.newRiverDocument = body;
+        callback(); //calls sendResult to end the callback
+
+  }, function (error){
+
+  });
+}//end q4
+
+//put dynamic mapping
+var q3 = function(callback){
+  client.indices.putMapping({
+    index:'_river',
+    type:'runriver_'+qparam_runNumber,
+    body:mapping
+  }).then(function(body){
+        retObj.newRiverMapping = body;
+        callback(sendResult);
+  }, function (error){
+
+  });
+}//end q3
+
+//deleting old instances
+var q2 = function(callback,ids){
+ client.indices.deleteMapping({
+  index:'_river',
+  type:'runriver_'+qparam_runNumber
+  }).then (function(body){
+        retObj.oldRiverDocument = body;
+        callback(q4);
+  }, function (error){
+   retObj.oldRiverDocument = error.body;
+   console.trace(error.message);
+   callback(q4);
+  });
+
+}//end q2
+

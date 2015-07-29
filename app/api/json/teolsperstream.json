@@ -1,0 +1,36 @@
+{  "size": 1,
+   "fields": ["_timestamp"],
+   "sort": {
+      "_timestamp": "desc"
+   },
+   "query": {
+      "filtered": {
+         "query": {
+            "range": {
+               "ls": {
+                  "from": 1,
+                  "to": 5
+               }
+            }
+         },
+         "filter": {
+                   "prefix": {
+                      "_id": "290011"
+                  }
+         }
+      }
+   },
+   "aggregations": {
+            "events": {
+               "sum": {
+                  "field": "NEvents"
+               }
+            },
+            "files": {
+               "sum": {
+                  "field": "NFiles"
+               }
+            }
+   }
+}
+

@@ -1,0 +1,23 @@
+{  "size": 1,
+   "sort": {
+      "_timestamp": "desc"
+   },
+   "query": {
+      "filtered": {
+         "query": {
+            "range": {
+               "ls": {
+                  "from": 1,
+                  "to": 5
+               }
+            }
+         },
+         "filter": {
+                   "prefix": {
+                      "_id": "290011"
+                  }
+         }
+      }
+   }
+}
+
