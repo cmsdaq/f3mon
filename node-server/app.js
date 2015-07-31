@@ -1518,13 +1518,66 @@ var sendResult = function(){
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
+//Get macromerge
 var q5 = function (callback){
-	callback();
+	//loads query definition from file
+        var queryJSON = require (JSONPath+'minimacromerge.json');
+
+	queryJSON.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
+	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+
+	client.search({
+	 index: 'runindex_'+qparam_sysName+'_read',
+         type: 'macromerge',
+         body : JSON.stringify(queryJSON)
+    	}).then (function(body){
+        	var results = body.hits.hits; //hits for query
+		lastTimes.push(results[0].fields.fm_date[0]*1000);
+
+		//todo DO SOMETHING WITH RESULTS HERE - Q5
+
+		callback();
+	}, function (error){
+        	console.trace(error.message);
+  	 });
+
 }//end q5
 
+
+//Get minimerge
 var q4 = function (callback){
-	callback(sendResult);
+	//loads query definition from file
+        var queryJSON = require (JSONPath+'minimacromerge.json');
+
+	queryJSON.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
+	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+
+	client.search({
+	 index: 'runindex_'+qparam_sysName+'_read',
+         type: 'minimerge',
+         body : JSON.stringify(queryJSON)
+    	}).then (function(body){
+        	var results = body.hits.hits; //hits for query
+		lastTimes.push(results[0].fields.fm_date[0]*1000);
+
+		
+		//todo DO SOMETHING WITH RESULTS HERE -Q4
+
+		callback(sendResult);
+	}, function (error){
+        	console.trace(error.message);
+  	 });
+
 }//end q4
+
 
 //Get stream out
 var q3 = function (callback){
@@ -1611,8 +1664,14 @@ var q3 = function (callback){
 	retObj.lsList = streamTotals.lsList;
 	
 	//Filter DQM from streamlist
-	//todo
-
+	var mmStreamList = [];
+	for (var k=0;k<streamListArray.length;k++){
+		var s = streamListArray[k];
+		if ((!(s.substr(0,3)==='DQM')&&(s!=='Error'))||(s==='DQMHistograms')){
+			mmStreamList.push(streamListArray[k]);
+		}
+	}
+	streamNum = mmStreamList.length;
 	
 	callback(q5);
    }, function (error){
