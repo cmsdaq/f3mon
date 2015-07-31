@@ -4,8 +4,8 @@ var app = express();
 app.use(express.static('web'));
 
 var elasticsearch = require('elasticsearch');
-var JSONPath = './web/node-f3mon/api/json/';
-var ESServer = 'cu-01.cern.ch';
+var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
+var ESServer = 'cu-01.cern.ch';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   log: 'trace'
@@ -1454,6 +1454,183 @@ var q1 = function (callback){
 q1(q2);
 
 });//end callback
+
+//callback 17
+app.get('/node-f3mon/api/streamhist', function (req, res) {
+console.log('received streamhist request');
+
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_from = req.query.from;
+var qparam_to = req.query.to;
+var qparam_lastLs = req.query.lastLs;
+var qparam_intervalNum = req.query.intervalNum;
+var qparam_sysName = req.query.sysName;
+var qparam_streamList = req.query.streamList;
+var qparam_timePerLs = req.query.timePerLs;
+var qparam_useDivisor = req.query.useDivisor;
+
+
+if (qparam_runNumber == null){qparam_runNumber = 124029;}
+if (qparam_from == null){qparam_from = 1;}
+if (qparam_to == null){qparam_to = 1;}
+if (qparam_lastLs == null){qparam_lastLs = 58;}
+if (qparam_intervalNum == null){qparam_intervalNum = 28;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';}
+if (qparam_timePerLs == null){qparam_timePerLs = 23.4;}
+if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor = (req.query.useDivisor === 'true');}
+
+var streamListArray = qparam_streamList.split(',');
+if (qparam_lastLs<21){qparam_lastLs = 21;}
+if (!qparam_useDivisor){qparam_timePerLs = 1;}
+var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNum);
+var interval = Math.round(x); 
+if (interval == 0){interval = 1;}
+
+var lastTimes = [];
+
+var retObj = {
+	"streams" : "",
+	"took" : "",
+	"lsList" : "",
+        "minimerge" : "",
+	"macromerge" : "",
+	"navbar" : "",
+	"interval" : "",
+	"lastTime" : ""
+};
+
+var sendResult = function(){
+	//set lastTime to max(lastTimes)
+	var maxLastTime = Math.max.apply(Math, lastTimes);
+	retObj.lastTime = maxLastTime;
+	//console.log(JSON.stringify(lastTimes));
+        
+	res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+var q5 = function (callback){
+	callback();
+}//end q5
+
+var q4 = function (callback){
+	callback(sendResult);
+}//end q4
+
+var q3 = function (callback){
+	callback(q5);
+}//end q3
+
+//Get totals
+var q2 = function (callback,took_q1){
+  //loads query definition from file
+  var queryJSON = require (JSONPath+'teols.json');
+
+  queryJSON.aggregations.ls.histogram.interval = parseInt(interval);
+  queryJSON.aggregations.ls.histogram.extended_bounds.min = qparam_from;
+  queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_to;
+  queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON.query.filtered.query.range.ls.from = qparam_from;
+  queryJSON.query.filtered.query.range.ls.to = qparam_to;
+
+client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'eols',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        var results = body.hits.hits; //hits for query
+        lastTimes.push(results[0].fields._timestamp);
+	var buckets = body.aggregations.ls.buckets;
+	var postOffset = buckets[buckets.length-1];
+        postOffset = qparam_to - postOffset.key;
+	var ret = {
+		"lsList" : [],
+                "events" : [],
+                "files" : [],
+		"doc_counts" : []
+        };	
+
+	var took = took_q1 + body.took;
+	for (var i=0;i<buckets.length;i++){
+		var ls = buckets[i].key;
+                var events = buckets[i].events.value;
+		var doc_count = buckets[i].doc_count;
+		//todo
+	}
+	//var streamTotals = ret;	
+	callback(q4);
+   }, function (error){
+        console.trace(error.message);
+   });
+
+}//end q2
+
+//Navbar full range totals
+var q1 = function (callback){
+  var x = (parseInt(qparam_lastLs) - parseInt(1))/parseInt(qparam_intervalNum);
+  var navInterval = Math.round(x);
+  if (navInterval == 0){navInterval = 1;}
+  
+  //loads query definition from file 
+  var queryJSON = require (JSONPath+'teols.json');
+  
+  queryJSON.aggregations.ls.histogram.interval = parseInt(navInterval);
+  queryJSON.aggregations.ls.histogram.extended_bounds.min = 1;
+  queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_lastLs;
+  queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON.query.filtered.query.range.ls.from = 1;
+  queryJSON.query.filtered.query.range.ls.to = qparam_lastLs;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'eols',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	lastTimes.push(results[0].fields._timestamp);
+	var ret = {
+		"events" : [],
+		"files" : []
+	};
+	var took = body.took;
+	var buckets = body.aggregations.ls.buckets;
+
+	var postOffset = buckets[buckets.length-1];
+	postOffset = qparam_lastLs - postOffset.key;
+
+	if (buckets[0].key>0){
+		var arr = [0,0];
+		ret.events.push(arr);
+		ret.files.push(arr);
+	}
+	
+	for (var i=0;i<buckets.length;i++){
+		var ls = buckets[i].key;
+		var events = buckets[i].events.value;
+		var files = buckets[i].files.value; 
+		var add = ls + postOffset; 
+		var arr_e = [add,events];
+		var arr_f = [add,files];
+		ret.events.push(arr_e);
+                ret.files.push(arr_f);
+	}
+	retObj.navbar = ret;
+	callback(q3,took);
+  }, function (error){
+        console.trace(error.message);
+  });
+
+  
+}//end q1
+
+q1(q2);
+
+});//end callback
+
 
 //idx refresh for one index
 app.get('/node-f3mon/api/idx-refr', function (req, res) {

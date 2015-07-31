@@ -1490,7 +1490,12 @@ var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNu
 var interval = Math.round(x); 
 if (interval == 0){interval = 1;}
 
+//helper variables with cb-wide scope
 var lastTimes = [];
+var streamTotals;
+var took = 0;
+var streamNum;
+var postOffSt;
 
 var retObj = {
 	"streams" : "",
@@ -1521,12 +1526,103 @@ var q4 = function (callback){
 	callback(sendResult);
 }//end q4
 
+//Get stream out
 var q3 = function (callback){
+	//loads query definition from file
+	var queryJSON = require (JSONPath+'outls.json');
+
+	queryJSON.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
+	queryJSON.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.stream.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+
+   client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'stream-hist',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	lastTimes.push(results[0].fields._timestamp);
+	took += body.took;
+	
+	var streams = body.aggregations.stream.buckets;
+	
+	var streamData = {
+		"streamList" : [],
+		"data" : []
+	};
+	
+	for (var i=0;i<streams.length;i++){
+		 if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
+                        continue;
+                }
+		var sout = {
+			"stream" : streams[i].key,
+			"dataOut" : [],
+			"fileSize" : [],
+			"percent" : []
+		};
+		streamData.streamList.push(streams[i].key);
+		
+		var lsList = streams[i].inrange.ls.buckets;
+		for (var j=0;j<lsList.length;j++){
+			var ls = lsList[j].key+postOffSt;
+			var total = streamTotals.events[ls];
+			var doc_count = streamTotals.doc_counts[ls];
+			
+			//rounding with 2 dp precision
+			var inval = Math.round(100*lsList[j].in.value)/100;
+			var outval = Math.round(100*lsList[j].out.value)/100;
+			var fsval = Math.round(100*lsList[j].filesize.value)/100;
+
+			//calc stream percents
+			var percent;
+			if (total == 0){
+				if (doc_count == 0){
+					percent = 0;
+				}else{
+					percent = 100;
+				}
+			}else{
+				var p = 100*inval/total;
+                                percent = Math.round(p*100)/100;
+			}
+
+			//output
+			if (qparam_timePerLs>1){
+				outval = Math.round((outval/qparam_timePerLs)*100)/100;
+				fsval = Math.round((fsval/qparam_timePerLs)*100)/100;
+			}		
+			
+			var d = {"x":ls,"y":outval}; 
+			var f = {"x":ls,"y":fsval};
+			var p = {"x":ls,"y":percent};
+			sout.dataOut.push(d);
+			sout.fileSize.push(f);
+			sout.percent.push(p);
+
+		}//end for j
+		streamData.data.push(sout);			
+	}//end for i
+	retObj.streams = streamData;
+	retObj.took = took;
+	retObj.lsList = streamTotals.lsList;
+	
+	//Filter DQM from streamlist
+	//todo
+
+	
 	callback(q5);
+   }, function (error){
+        console.trace(error.message);
+   });
+
 }//end q3
 
 //Get totals
-var q2 = function (callback,took_q1){
+var q2 = function (callback){
   //loads query definition from file
   var queryJSON = require (JSONPath+'teols.json');
 
@@ -1537,7 +1633,7 @@ var q2 = function (callback,took_q1){
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
   queryJSON.query.filtered.query.range.ls.to = qparam_to;
 
-client.search({
+ client.search({
     index: 'runindex_'+qparam_sysName+'_read',
     type: 'eols',
     body : JSON.stringify(queryJSON)
@@ -1547,21 +1643,25 @@ client.search({
 	var buckets = body.aggregations.ls.buckets;
 	var postOffset = buckets[buckets.length-1];
         postOffset = qparam_to - postOffset.key;
+	postOffSt = postOffset; //pass to wider scope
 	var ret = {
 		"lsList" : [],
-                "events" : [],
+                "events" : {},		//obj repres. associative array (but order not guaranteed!)
                 "files" : [],
-		"doc_counts" : []
+		"doc_counts" : {}	//obj repres. associative array (but order not guaranteed!)
         };	
-
-	var took = took_q1 + body.took;
+	took += body.took;
 	for (var i=0;i<buckets.length;i++){
 		var ls = buckets[i].key;
                 var events = buckets[i].events.value;
 		var doc_count = buckets[i].doc_count;
-		//todo
+		ret.events[ls] = events;
+		ret.doc_counts[ls] = doc_count;
+		//ret.events.push(ev_entry);	//old impl. using indxd array and intermediate obj for entry
+		//ret.doc_counts.push(dc_entry); //same as above
+		ret.lsList.push(ls);
 	}
-	//var streamTotals = ret;	
+	streamTotals = ret;	
 	callback(q4);
    }, function (error){
         console.trace(error.message);
@@ -1596,7 +1696,7 @@ var q1 = function (callback){
 		"events" : [],
 		"files" : []
 	};
-	var took = body.took;
+	took = body.took;
 	var buckets = body.aggregations.ls.buckets;
 
 	var postOffset = buckets[buckets.length-1];
@@ -1619,15 +1719,35 @@ var q1 = function (callback){
                 ret.files.push(arr_f);
 	}
 	retObj.navbar = ret;
-	callback(q3,took);
+	callback(q3);
   }, function (error){
         console.trace(error.message);
   });
 
-  
 }//end q1
 
 q1(q2);
+
+});//end callback
+
+//callback 18
+app.get('/node-f3mon/api/getstreamlist', function (req, res) {
+console.log('received getstreamlist request');
+
+//todo
+//callback that queries runindex_cdaq/stream_label and populates a list with all stream names
+//will return this: angular.callbacks._fj ({"streamList":["A","B","DQM","DQMHistograms","HLTRates","L1Rates"]})
+//akin to part of stream-hist response (streams.streamList)
+//must define query parameters before implementation
+
+var retObj = {
+        "streamList" : []
+};
+
+var sendResult = function(){
+	res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+        }
 
 });//end callback
 
