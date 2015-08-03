@@ -1513,7 +1513,8 @@ var sendResult = function(){
 	var maxLastTime = Math.max.apply(Math, lastTimes);
 	retObj.lastTime = maxLastTime;
 	//console.log(JSON.stringify(lastTimes));
-        
+	retObj.interval = interval;
+
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1536,10 +1537,48 @@ var q5 = function (callback){
          body : JSON.stringify(queryJSON)
     	}).then (function(body){
         	var results = body.hits.hits; //hits for query
-		lastTimes.push(results[0].fields.fm_date[0]*1000);
+		if (results.length>0){
+			lastTimes.push(results[0].fields.fm_date[0]*1000);
+		}
+		took += body.took;
 
-		//todo DO SOMETHING WITH RESULTS HERE - Q5
+		var macromerge = {
+			"percents" : [],
+			"took" : body.took
+		};
+		
+		var lsList = body.aggregations.inrange.ls.buckets;
+		
+		for (var i=0;i<lsList.length;i++){
+			var ls = lsList[i].key+postOffSt;
+			var processed = lsList[i].processed.value;
+			var total = streamTotals.events[ls]*streamNum;
+			var doc_count = streamTotals.doc_counts[ls];
+			var mdoc_count = lsList[i].doc_count;
 
+			//calc macromerge percents
+ 			var percent;
+                        if (total == 0){
+                                if (doc_count == 0 || mdoc_count == 0){
+                                        percent = 0;
+                                }else{
+                                        percent = 100;
+                                }
+                        }else{
+                                var p = 100*processed/total;
+                                percent = Math.round(p*100)/100;
+                        }
+                        var color = percColor(percent);
+
+                        var entry = {
+                        "x" : ls,
+                        "y" : percent,
+                        "color" : color
+                        };
+                        macromerge.percents.push(entry);
+		}
+		retObj.macromerge = macromerge;
+		retObj.took = took;
 		callback();
 	}, function (error){
         	console.trace(error.message);
@@ -1566,11 +1605,47 @@ var q4 = function (callback){
          body : JSON.stringify(queryJSON)
     	}).then (function(body){
         	var results = body.hits.hits; //hits for query
-		lastTimes.push(results[0].fields.fm_date[0]*1000);
+		if (results.length>0){
+			lastTimes.push(results[0].fields.fm_date[0]*1000);
+		}
+		took += body.took;
 
+		var minimerge = {
+			"percents" : [],
+			"took" : body.took
+		};
 		
-		//todo DO SOMETHING WITH RESULTS HERE -Q4
+		var lsList = body.aggregations.inrange.ls.buckets;
+		
+		for (var i=0;i<lsList.length;i++){
+			var ls = lsList[i].key+postOffSt;
+			var processed = lsList[i].processed.value;
+			var total = streamTotals.events[ls]*streamNum;
+			var doc_count = streamTotals.doc_counts[ls];
+			var mdoc_count = lsList[i].doc_count;
 
+			//calc minimerge percents
+ 			var percent;
+                        if (total == 0){
+                                if (doc_count == 0 || mdoc_count == 0){
+                                        percent = 0;
+                                }else{
+                                        percent = 100;
+                                }
+                        }else{
+                                var p = 100*processed/total;
+                                percent = Math.round(p*100)/100;
+                        }
+                        var color = percColor(percent);
+
+                        var entry = {
+                        "x" : ls,
+                        "y" : percent,
+                        "color" : color
+                        };
+                        minimerge.percents.push(entry);
+		}
+		retObj.minimerge = minimerge;
 		callback(sendResult);
 	}, function (error){
         	console.trace(error.message);
@@ -1597,7 +1672,9 @@ var q3 = function (callback){
     body : JSON.stringify(queryJSON)
     }).then (function(body){
         var results = body.hits.hits; //hits for query
-	lastTimes.push(results[0].fields._timestamp);
+	if (results.length>0){
+		lastTimes.push(results[0].fields._timestamp);
+	}
 	took += body.took;
 	
 	var streams = body.aggregations.stream.buckets;
@@ -1698,7 +1775,9 @@ var q2 = function (callback){
     body : JSON.stringify(queryJSON)
     }).then (function(body){
         var results = body.hits.hits; //hits for query
-        lastTimes.push(results[0].fields._timestamp);
+	if (results.length>0){
+        	lastTimes.push(results[0].fields._timestamp);
+	}
 	var buckets = body.aggregations.ls.buckets;
 	var postOffset = buckets[buckets.length-1];
         postOffset = qparam_to - postOffset.key;
@@ -1709,6 +1788,7 @@ var q2 = function (callback){
                 "files" : [],
 		"doc_counts" : {}	//obj repres. associative array (but order not guaranteed!)
         };	
+
 	took += body.took;
 	for (var i=0;i<buckets.length;i++){
 		var ls = buckets[i].key;
@@ -1750,7 +1830,9 @@ var q1 = function (callback){
     body : JSON.stringify(queryJSON)
     }).then (function(body){
         var results = body.hits.hits; //hits for query
-	lastTimes.push(results[0].fields._timestamp);
+	if (results.length>0){
+		lastTimes.push(results[0].fields._timestamp);
+	}
 	var ret = {
 		"events" : [],
 		"files" : []
@@ -1793,20 +1875,66 @@ q1(q2);
 app.get('/node-f3mon/api/getstreamlist', function (req, res) {
 console.log('received getstreamlist request');
 
+var cb = req.query.callback;
+
+//GET query string params
+var qparam_runNumber = req.query.runNumber;
+var qparam_from = req.query.from;
+var qparam_to = req.query.to;
+var qparam_lastLs = req.query.lastLs;
+var qparam_intervalNum = req.query.intervalNum;
+var qparam_sysName = req.query.sysName;
+var qparam_streamList = req.query.streamList;
+var qparam_timePerLs = req.query.timePerLs;
+var qparam_useDivisor = req.query.useDivisor;
+
+
+if (qparam_runNumber == null){qparam_runNumber = 124029;}
+if (qparam_from == null){qparam_from = 1;}
+if (qparam_to == null){qparam_to = 1;}
+if (qparam_lastLs == null){qparam_lastLs = 58;}
+if (qparam_intervalNum == null){qparam_intervalNum = 28;}
+if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';}
+if (qparam_timePerLs == null){qparam_timePerLs = 23.4;}
+if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor = (req.query.useDivisor === 'true');}
+
 //todo
 //callback that queries runindex_cdaq/stream_label and populates a list with all stream names
 //will return this: angular.callbacks._fj ({"streamList":["A","B","DQM","DQMHistograms","HLTRates","L1Rates"]})
 //akin to part of stream-hist response (streams.streamList)
 //must define query parameters before implementation
 
-var retObj = {
+  var retObj = {
         "streamList" : []
-};
+  };
 
-var sendResult = function(){
+  var sendResult = function(){
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
-        }
+       }
+
+  //todo write a query file here, then parameterize query
+  var queryJSON = require (JSONPath+'teols.json');
+
+  queryJSON.aggregations.ls.histogram.interval = parseInt(navInterval);
+  queryJSON.aggregations.ls.histogram.extended_bounds.min = 1;
+  queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_lastLs;
+  queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON.query.filtered.query.range.ls.from = 1;
+  queryJSON.query.filtered.query.range.ls.to = qparam_lastLs;
+
+  client.search({
+    index: 'runindex_'+qparam_sysName+'_read',
+    type: 'stream_label',
+    body : JSON.stringify(queryJSON)
+    }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	//todo take all the stream names from hit._source, and return them sorted (no duplicates, should use set implementation)
+  }, function (error){
+        console.trace(error.message);
+  });
+
 
 });//end callback
 
@@ -1849,7 +1977,13 @@ var percColor = function percColor (percent){
 app.get('/node-f3mon/api/testf', function (req, res) {
 var finput = 'undef';
 //col = percColor(req.query.c);
-res.send(finput);
+
+var s = req.query.c;
+if ((!(s.substr(0,3)==='DQM')&&(s!=='Error'))||(s==='DQMHistograms')){
+                        res.send('passed');
+                }else{res.send('failed');}
+
+//res.send(finput);
 });//end tester
 
 //sets server listening for connections at port 3000
