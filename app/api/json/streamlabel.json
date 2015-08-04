@@ -1,0 +1,32 @@
+{
+   "size": 10000,
+   "query": {
+      "bool": {
+         "must": [
+            {
+               "prefix": {
+                  "_id": {
+                     "value": "run225956"
+                  }
+               }
+            }
+         ],
+         "must_not": [
+            {
+               "term": {
+                  "stream": {
+                     "value": "Error"
+                  }
+               }
+            }
+          ]
+      }
+   },
+     "sort":[ 
+      {
+         "stream": {
+            "order": "asc"
+         }
+      }
+   ]
+}

@@ -1872,6 +1872,8 @@ q1(q2);
 });//end callback
 
 //callback 18
+//queries runindex_cdaq/stream_label and populates a list with all stream names for a run
+//(further filtering by ls interval is also possible to implement)
 app.get('/node-f3mon/api/getstreamlist', function (req, res) {
 console.log('received getstreamlist request');
 
@@ -1879,31 +1881,14 @@ var cb = req.query.callback;
 
 //GET query string params
 var qparam_runNumber = req.query.runNumber;
-var qparam_from = req.query.from;
-var qparam_to = req.query.to;
-var qparam_lastLs = req.query.lastLs;
-var qparam_intervalNum = req.query.intervalNum;
+//var qparam_from = req.query.from;
+//var qparam_to = req.query.to;
 var qparam_sysName = req.query.sysName;
-var qparam_streamList = req.query.streamList;
-var qparam_timePerLs = req.query.timePerLs;
-var qparam_useDivisor = req.query.useDivisor;
-
 
 if (qparam_runNumber == null){qparam_runNumber = 124029;}
-if (qparam_from == null){qparam_from = 1;}
-if (qparam_to == null){qparam_to = 1;}
-if (qparam_lastLs == null){qparam_lastLs = 58;}
-if (qparam_intervalNum == null){qparam_intervalNum = 28;}
+//if (qparam_from == null){qparam_from = 1;}
+//if (qparam_to == null){qparam_to = 1;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
-if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';}
-if (qparam_timePerLs == null){qparam_timePerLs = 23.4;}
-if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor = (req.query.useDivisor === 'true');}
-
-//todo
-//callback that queries runindex_cdaq/stream_label and populates a list with all stream names
-//will return this: angular.callbacks._fj ({"streamList":["A","B","DQM","DQMHistograms","HLTRates","L1Rates"]})
-//akin to part of stream-hist response (streams.streamList)
-//must define query parameters before implementation
 
   var retObj = {
         "streamList" : []
@@ -1913,29 +1898,33 @@ if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
        }
+  var q = function(callback){
+   var queryJSON = require (JSONPath+'streamlabel.json');
 
-  //todo write a query file here, then parameterize query
-  var queryJSON = require (JSONPath+'teols.json');
+    queryJSON.query.bool.must[0].prefix._id = 'run'+qparam_runNumber;
+    //queryJSON.query.filtered.query.range.ls.from = qparam_from;
+    //queryJSON.query.filtered.query.range.ls.to = qparam_to;
 
-  queryJSON.aggregations.ls.histogram.interval = parseInt(navInterval);
-  queryJSON.aggregations.ls.histogram.extended_bounds.min = 1;
-  queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_lastLs;
-  queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-  queryJSON.query.filtered.query.range.ls.from = 1;
-  queryJSON.query.filtered.query.range.ls.to = qparam_lastLs;
-
-  client.search({
-    index: 'runindex_'+qparam_sysName+'_read',
-    type: 'stream_label',
-    body : JSON.stringify(queryJSON)
-    }).then (function(body){
+    client.search({
+     index: 'runindex_'+qparam_sysName+'_read',
+     type: 'stream_label',
+     body : JSON.stringify(queryJSON)
+     }).then (function(body){
         var results = body.hits.hits; //hits for query
-	//todo take all the stream names from hit._source, and return them sorted (no duplicates, should use set implementation)
-  }, function (error){
+	var set = {};
+	for (var i=0;i<results.length;i++){
+		if (!set.hasOwnProperty(results[i]._source.stream)){
+			retObj.streamList.push(results[i]._source.stream);
+			set[results[i]._source.stream] = true;	//avoiding duplicates, if they occur
+		}
+	}
+	callback();
+   }, function (error){
         console.trace(error.message);
   });
+}//end q
 
-
+q(sendResult);
 });//end callback
 
 
