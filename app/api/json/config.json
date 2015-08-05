@@ -1,0 +1,15 @@
+config":{
+        "defaultSubSystem":"cdaq",
+        "fastPollingDelay":3000,
+        "slowPollingDelay":5000,
+        "chartWaitingMsg":"No monitoring information.",
+        "msChartMaxPoints":60,
+        "defaultTimezone":"Locale",
+        "secondsPerLsOn":true,
+        "secondsPerLsValue":23.31,
+        "streamRatesUnit":"Events",
+        "microStateChart":true
+        },
+ "time":0
+}
+

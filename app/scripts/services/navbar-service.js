@@ -25,7 +25,8 @@
         });
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        var configRes = $resource(prePath+'/api/getConfig.php', {
+        //var configRes = $resource(prePath+'/api/getConfig.php', {
+	var configRes = $resource('api/getConfig', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {
