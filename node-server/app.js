@@ -5,10 +5,11 @@ app.use(express.static('web'));
 
 var elasticsearch = require('elasticsearch');
 var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
-var ESServer = 'cu-01.cern.ch';  //set in each deployment, if using a different ES service
+var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
-  log: 'trace'
+  //log: 'trace'
+  log: 'debug'
 });
 
 //callback 1 (test)
@@ -40,6 +41,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
         res.send(cb + ' (' + JSON.stringify({'status':body['status']})+')');
 
       }, function (err) {
+	excpEscES(res,err);
         console.log(err.message);
         //res.send();
       }
@@ -75,6 +77,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
         res.send(cb + ' (' + JSON.stringify({'list':aliasList})+')');
       },
       function(error) {
+	excpEscES(res,error);
       console.log(error)
     });
 
@@ -115,7 +118,9 @@ body : JSON.stringify(queryJSON)
 	//do something with these results (eg. format) and send a response
 	var retObj = body.aggregations;
 	res.set('Content-Type', 'text/javascript');
-	res.send(cb +  ' (' +JSON.stringify(retObj)+')'); }, function (error){
+	res.send(cb +  ' (' +JSON.stringify(retObj)+')');
+	 }, function (error){
+	excpEscES(res,error);
 	console.trace(error.message);
 	});//end  client.search(...)
 });//end callback
@@ -173,6 +178,7 @@ body: JSON.stringify(queryJSON)
 
 	}
 	},function (error){
+	excpEscES(res,error);
         console.trace(error.message);
 	});
 });//end callback
@@ -207,8 +213,9 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 queryJSON.size =  qparam_size;
 queryJSON.from = qparam_from;
 
+var searcher = false;
 if (qparam_search != ''){
-	queryJSON.filter.query.query_string.query = '*'+qparam_search+'*';	
+	searcher = true;
 }
 
 var missing = '_last';
@@ -226,12 +233,19 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	var outer = [temp]; //follows rltable.json format for sort
 	queryJSON.sort = outer;
 }
-console.log("test\n"+JSON.stringify(queryJSON));
+
+var qsubmitted = queryJSON;
+if (searcher){
+	qsubmitted["filter"] = {"query":
+				{"query_string":
+				 {"query": '*'+qparam_search+'*'}}};
+}
+//console.log("test\n"+JSON.stringify(queryJSON));
 //search ES
 client.search({
 index:'runindex_'+qparam_sysName+'_read',
 type: 'run',
-body: JSON.stringify(queryJSON)
+body: JSON.stringify(qsubmitted)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query
 	//format response content here
@@ -250,6 +264,7 @@ body: JSON.stringify(queryJSON)
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}, function (error){
+	excpEscES(res,error);
 	console.trace(error.message);
 	});
 
@@ -296,6 +311,7 @@ var q1 = function (callback) {
         }
 	callback(statusList);
   }, function (error){
+	excpEscES(res,error);
 	console.trace(error.message);
   });
 }//end q1
@@ -417,6 +433,7 @@ var q2 = function (statusList){
         prepareLookup(); //initial caller
 
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 }//end q2
@@ -531,7 +548,8 @@ var q2 = function (callback, typeList, list){
 	callback();
 
     }, function (error){
-            console.trace(error.message);
+	excpEscES(res,error);
+         console.trace(error.message);
      });
 
 
@@ -582,6 +600,7 @@ var q1 = function (callback){
 	}
 	callback(prepareLookup,typeList, list);
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 }//end q1
@@ -624,7 +643,7 @@ var del = function(callback){
         }).then (function(body){
 		retObj.riverDocument = body;
 		callback();
-         }, function (error, response) {
+         }, function (error) {
 		retObj.riverDocument = error.body;
                 console.trace(error.message);
 		callback();
@@ -641,7 +660,8 @@ var put = function (callback, ret){
         }).then (function(body){
 		retObj.runDocument = body;
 		callback(sendResult);
-        }, function (error, response) {
+        }, function (error) {
+	excpEscES(res,error);
         console.trace(error.message);
   });
 }//end put
@@ -666,6 +686,7 @@ var q1= function(callback){
 		callback(del,ret); //passing control to its callback (here:put)
 	}
    }, function (error){
+	excpEscES(res,error);
          console.trace(error.message);
    });
 }//end q1
@@ -755,6 +776,7 @@ client.search({
 
 	}                  
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
@@ -800,6 +822,7 @@ var q4 = function(callback){
         retObj.newRiverDocument = body;
    	callback(); //calls sendResult to end the callback
   }, function (error){
+	excpEscES(res,error);
 	console.trace(error.message);
   });
 }//end q4
@@ -814,6 +837,7 @@ var q3 = function(callback){
 	retObj.newRiverMapping = body;
  	callback(sendResult);
   }, function (error){
+	excpEscES(res,error);
 	console.trace(error.message);
   }); 
 }//end q3
@@ -835,7 +859,8 @@ var q2 = function(callback){
 }//end q2
 
 /*
-//retrieves all entries from an index type (first step on bulk operations on these entries)
+ *-initial version-
+ * retrieves all entries from an index type (first step on bulk operations on these entries)
 var getAllEntries = function(callback){
   client.search({
    index: '_river',
@@ -886,6 +911,7 @@ var q1 = function (callback){
         }
 
   },function (error){
+	excpEscES(res,error);
        console.trace(error.message);
   });
 
@@ -912,6 +938,21 @@ if (qparam_runNumber == null){qparam_runNumber = 10;}
 if (qparam_timeRange == null){qparam_timeRange = 60;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var retObj = {
+                "lastTime" : null,
+                "timeList" : null,
+                "data" : ""
+        };
+
+var sendResult = function(){
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+var resSummary = false;
+var legend = {};
+
+//Get legend
 var q1 = function(callback){
   //loads query definition from file
   var queryJSON = require (JSONPath+'ulegenda.json');
@@ -923,24 +964,12 @@ var q1 = function(callback){
   type: 'microstatelegend',
   body : JSON.stringify(queryJSON)
   }).then (function(body){
-	var legend;
-	var resSummary = false;
-	//var data = [];	//Id1: data array format
-	//var data = {}
 	if (body.hits.total ===0){
-		var data = []; 
-		legend = false;
-		var out = {
-			"lastTime" : null,
-			"timeList" : null,
-			"data" : data
-		};
-		res.set('Content-Type', 'text/javascript');
-                res.send(cb +' ('+JSON.stringify(out)+')');
+		retObj.data = [];
+		sendResult();
 	}else{
-		var data = {};
+		retObj.data = {};
         	var results = body.hits.hits; //hits for query
-		//console.log('L?='+(results.length));	
 		var shortened = results[0]._source.names;
 		if (shortened.indexOf('33=')>-1){
 			shortened = shortened.substr(0, shortened.indexOf('33='))+'33=Busy';	
@@ -948,40 +977,38 @@ var q1 = function(callback){
 		}
 		var rawLegend = shortened.trim().split(' ');
 		var name;
-		var legend = [];
 		for (var i = 0; i<rawLegend.length;i++){
 			var kv = rawLegend[i].split('=');
-			//console.log('kv0='+kv[0]);
 			if (kv[1]==''){
 				continue;
-				//name = kv[0];
+				//name = kv[0];  //accept empty legend??
 			}else{
 				name = kv[1];
 			}
-			var lEntry = {};
-			lEntry[kv[0]] = name;
-			legend.push(lEntry);
+			legend[kv[0]] = name;
 			//var dEntry = {}; //Id1: data array format
 			//dEntry[name] = [];
 			//data.push(dEntry);
-			data[name] = [];
+			retObj.data[name] = [];
 		}
 	//console.log(JSON.stringify(data));	
-	callback(legend, resSummary, data);
+	callback(sendResult);
 	}
 	
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
 }//end q1
 
-var q2 = function(legend, resSummary, data){
+
+//Get states
+var q2 = function(callback){
 
 //console.log("\nexec. q2\n");
 //console.log(JSON.stringify(data));
 
- if (legend){
   //loads query definition from file
   var queryJSON = require (JSONPath+'nstates.json');
 
@@ -1016,7 +1043,7 @@ var q2 = function(legend, resSummary, data){
 				//var e = {}; //Id1: data array format
 				//e[name] = arr;
 				//data.push(e);
-				data[name] = arr;
+				retObj.data[name].push(arr);
 			}
 		}
 		if (resSummary == true){
@@ -1025,46 +1052,38 @@ var q2 = function(legend, resSummary, data){
 			//var o = {};  //Id1: data array format
 			//o["Busy"] = arr;
 			//data.push(o);
-			data["Busy"] = arr;
+			retObj.data["Busy"].push(arr);
 		}
+
+		//discovering array keys
 		var properties = [];
-		for (var pName in data){
-			if (data.hasOwnProperty(pName)){
-				properties.push(data[pname]);
-			}
+		for (var pName in retObj.data){
+				properties.push(pName);
 		}
-		var diff = properties.not(entriesList).get();
+
+		Array.prototype.diff = function(a) {
+  		  return this.filter(function(i) {return a.indexOf(i) < 0;});
+		};
+		var diff = properties.diff(entriesList);
+
+		//var diff = properties.not(entriesList).get(); //this impl. needs jQuery
 		for (var k=0;k<diff.length;k++){
 			var arr = [timestamp,null];
-			//data[diff(k)].push(arr); //Id1: data array format
-			data[diff(k)] = arr;
+			//data[diff[k]].push(arr); //Id1: data array format
+			retObj.data[diff[k]].push(arr);
 		}
 	}
-	var lastTime = null;
+	
+	retObj.timeList = timeList;
 	if (results.length>0){
-		lastTime = results[results.length-1].sort[0];
+		var lastTime = results[results.length-1].sort[0];
+		retObj.lastTime = lastTime;
 	}
-	var retObj = {
-		"lastTime" : lastTime,
-		"timeList" : timeList,
-		"data" : data
-	};
-	res.set('Content-Type', 'text/javascript');
-	res.send(cb +' ('+JSON.stringify(retObj)+')');
-
+	callback();
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
- }else{
-	var retObj = {
-             "lastTime" : null,
-             "timeList" : null,
-             "data" : data
-        };
-        res.set('Content-Type', 'text/javascript');
-        res.send(cb +' ('+JSON.stringify(retObj)+')');
- 
- }
 
 
 }//end q2
@@ -1114,6 +1133,7 @@ var queryJSON = require (JSONPath+'lastls.json');
 	}
 	callback();
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 }//end q3
@@ -1140,6 +1160,7 @@ var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to th
 	retObj.streams = streams;
         callback(sendResult);
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
@@ -1164,6 +1185,7 @@ var q1 = function (callback){
 	retObj = results[0]._source;
 	callback(q3);
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
@@ -1272,6 +1294,7 @@ var q2 = function(callback, total_q1){
 	}
         callback();
     }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
     });
 
@@ -1298,6 +1321,7 @@ var q1 = function(callback){
 	var doc_count = body.hits.total;
         callback(sendResult, total);
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
@@ -1409,6 +1433,7 @@ var q2 = function (callback,totals_q1){
 	callback();
 
     }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
     });
 
@@ -1446,6 +1471,7 @@ var q1 = function (callback){
 	}
         callback(sendResult, totals);
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
@@ -1581,6 +1607,7 @@ var q5 = function (callback){
 		retObj.took = took;
 		callback();
 	}, function (error){
+		excpEscES(res,error);
         	console.trace(error.message);
   	 });
 
@@ -1648,6 +1675,7 @@ var q4 = function (callback){
 		retObj.minimerge = minimerge;
 		callback(sendResult);
 	}, function (error){
+		excpEscES(res,error);
         	console.trace(error.message);
   	 });
 
@@ -1752,6 +1780,7 @@ var q3 = function (callback){
 	
 	callback(q5);
    }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
    });
 
@@ -1803,6 +1832,7 @@ var q2 = function (callback){
 	streamTotals = ret;	
 	callback(q4);
    }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
    });
 
@@ -1862,6 +1892,7 @@ var q1 = function (callback){
 	retObj.navbar = ret;
 	callback(q3);
   }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 
@@ -1920,6 +1951,7 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 	}
 	callback();
    }, function (error){
+	excpEscES(res,error);
         console.trace(error.message);
   });
 }//end q
@@ -1927,6 +1959,18 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 q(sendResult);
 });//end callback
 
+//initial configuration callback (edit values in config.json)
+app.get('/node-f3mon/api/getConfig', function (req, res) {
+  console.log('received getConfig request');
+
+  var cb = req.query.callback;
+
+  //loading configuration file
+  var retObj = require (JSONPath+'config.json');
+  res.set('Content-Type', 'text/javascript');
+  res.send(cb +' ('+JSON.stringify(retObj)+')');
+
+});
 
 //idx refresh for one index
 app.get('/node-f3mon/api/idx-refr', function (req, res) {
@@ -1942,14 +1986,13 @@ client.indices.refresh({
 	res.set('Content-Type', 'text/javascript');
         res.send('('+JSON.stringify(body)+')');
   }, function (error){
-	res.set('Content-Type', 'text/javascript');
-	res.send('Error! Check console for trace...');
+	excpEscES(res,error);
         console.trace(error.message);
   });
 });//end idx-refr
 
 //percColor function
-var percColor = function percColor (percent){
+var percColor = function (percent){
 		//console.log('called percColor with arg='+percent);
 		var color = '';
 		if (percent >= 100){
@@ -1962,30 +2005,45 @@ var percColor = function percColor (percent){
 		return color;
 }
 
+//escapes client hanging upon an ES request error by sending http 500
+var excpEscES = function (res, error){
+	//message can be augmented with info from error
+        res.status(500).send('Internal Server Error (Elasticsearch query error)');
+}
+
+//escapes client hanging upon a nodejs code exception/error by sending http 500
+var excpEscJS = function (res, error){
+	//message can be augmented with info from error
+        res.status(500).send('Internal Server Error (Nodejs error)');
+}
+
 //tester
 app.get('/node-f3mon/api/testf', function (req, res) {
 var finput = 'undef';
 //col = percColor(req.query.c);
-
+/*
 var s = req.query.c;
 if ((!(s.substr(0,3)==='DQM')&&(s!=='Error'))||(s==='DQMHistograms')){
                         res.send('passed');
                 }else{res.send('failed');}
-
-//res.send(finput);
+*/
+res.send(finput);
 });//end tester
 
 //sets server listening for connections at port 3000
-var server = app.listen(3000, function () {
+//var server = app.listen(3000);
+//var server = app.listen(3000, function () {
+var server = app.listen(3000,function () {
 
  // test elasticsearch connection (test)
  client.ping();
  //client.cat.aliases({name: 'runindex*cdaq*'},function (error, response) { console.log(JSON.stringify(response.split('\n')));});
  
- var host = server.address().address;
+ //var host = server.address().address;
+ //var host = '10.176.17.46';
+
  var port = server.address().port;
- 
- console.log('Server listening at http://%s:%s', host, port);
+ console.log('Server listening at port %s', port);
+ //console.log('Server listening at http://%s:%s', host, port);
  
  });
-
