@@ -1,6 +1,16 @@
 'use strict'; //all variables must be explicitly declared, be careful with 'this'
 var express = require('express');
 var app = express();
+var php = require('node-php');
+
+//old web
+app.use("/sctest",php.cgi("web/ecd/sctest"));
+app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
+app.use("/ecd",php.cgi("web/ecd/ecd"));
+app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
+app.use("/f3mon",php.cgi("web/ecd/f3mon"));
+app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
+
 app.use(express.static('web'));
 
 var elasticsearch = require('elasticsearch');
@@ -2056,7 +2066,7 @@ res.send(finput);
 //sets server listening for connections at port 3000
 //var server = app.listen(3000);
 //var server = app.listen(3000, function () {
-var server = app.listen(3000,function () {
+var server = app.listen(80, function () {
 
  // test elasticsearch connection (test)
  client.ping();
