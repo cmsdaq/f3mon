@@ -176,21 +176,21 @@
                     total: false,
                     used: false,
                     percent: function() {
-                        return this.used!==false && this.total!==false ? (this.used / this.total) : false
+                        return this.used && this.total ? (this.used / this.total) : false
                     }
                 },
                 buOutDisk: {
                     total: false,
                     used: false,
                     percent: function() {
-                        return this.used!==false && this.total!==false ? (this.used / this.total) : false
+                        return this.used && this.total ? (this.used / this.total) : false
                     }
                 },
                 fuOutDisk: {
                     total: false,
                     used: false,
                     percent: function() {
-                        return this.used!==false && this.total!==false ? (this.used / this.total) : false
+                        return this.used && this.total ? (this.used / this.total) : false
                     }
                 },
             }
@@ -214,11 +214,11 @@
                     //                    console.log(data.outputused);
                     var d = service.data;
                     d.fuOutDisk.total = data.data.value ? data.data.value : d.fuOutDisk.total;
-                    d.fuOutDisk.used = data.dataused.value !== false ? data.dataused.value : d.fuOutDisk.used;
+                    d.fuOutDisk.used = data.dataused.value  ? data.dataused.value : d.fuOutDisk.used;
                     d.buOutDisk.total = data.output.value ? data.output.value : d.buOutDisk.total;
-                    d.buOutDisk.used = data.outputused.value !== false ? data.outputused.value : d.buOutDisk.used;
+                    d.buOutDisk.used = data.outputused.value  ? data.outputused.value : d.buOutDisk.used;
                     d.buRamDisk.total = data.ramdisk.value ? data.ramdisk.value : d.buRamDisk.total;
-                    d.buRamDisk.used = data.ramdiskused.value !== false ? data.ramdiskused.value : d.buRamDisk.used;
+                    d.buRamDisk.used = data.ramdiskused.value  ? data.ramdiskused.value : d.buRamDisk.used;
                     //                    console.log(service.data);
                 });
             } else {
