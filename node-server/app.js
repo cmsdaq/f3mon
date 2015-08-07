@@ -130,7 +130,7 @@ if (qparam_runNumber == null){qparam_runNumber = 36;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 //add necessary params to the query
-//queryJSON.query.wildcard.activeRuns.value =  qparam_runNumber; //ignore runNumber parameter for now...
+queryJSON.query.wildcard.activeRuns.value = '*'+ qparam_runNumber+'*';
 
 //submits query to the ES and returns formatted response to the app client
 client.search({
