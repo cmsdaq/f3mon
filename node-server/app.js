@@ -9,8 +9,31 @@ var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES ser
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
-  log: 'debug'
+  //log: 'debug'
+  log : [{
+	type : 'file', //outputs ES logging to a file in the app's directory
+	levels : ['debug'] //can put more logging levels here
+	}]
 });
+
+//redirecting console log to a file
+var fs = require('fs');
+var util = require('util');
+var log_file = fs.createWriteStream('./console.log', {flags : 'a'});
+var log_stdout = process.stdout;
+
+var initLogFile = function(){
+	log_file.write(util.format('*new server run starts here*')+'\n');
+        log_stdout.write(util.format('*new server run starts here*')+'\n'); //uncomment to also output to the console
+}
+
+initLogFile(); //nodejs logger
+
+console.log = function (msg){
+	log_file.write(util.format(msg)+'\n');
+	log_stdout.write(util.format(msg)+'\n'); //uncomment to also output to the console
+};
+
 
 //callback 1 (test)
 app.get('/', function (req, res) {
@@ -28,7 +51,7 @@ app.get('/test', function (req, res) {
 
 //callback 3
 app.get('/node-f3mon/api/serverStatus', function (req, res) {
-    console.log("received serverStatus request!");
+    console.log("received serverStatus request");
 
     var cb = req.query.callback;
     //console.log(cb);
@@ -52,7 +75,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
 
 //callback 4
 app.get('/node-f3mon/api/getIndices', function (req, res) {
-    console.log("received getIndices request!");
+    console.log("received getIndices request");
 
     var cb = req.query.callback;
     client.cat.aliases({
@@ -93,7 +116,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
 
 //callback 5
 app.get('/node-f3mon/api/getDisksStatus', function (req, res) {
-console.log('received getDisksStatus request!');
+console.log('received getDisksStatus request');
 
 var cb = req.query.callback;
 
@@ -2043,7 +2066,7 @@ var server = app.listen(3000,function () {
  //var host = '10.176.17.46';
 
  var port = server.address().port;
- console.log('Server listening at port %s', port);
+ console.log('Server listening at port:'+port);
  //console.log('Server listening at http://%s:%s', host, port);
  
  });
