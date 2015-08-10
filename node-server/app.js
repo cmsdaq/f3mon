@@ -2,6 +2,8 @@
 var express = require('express');
 var app = express();
 var php = require('node-php');
+var http = require('http');
+http.globalAgent.maxSockets=Infinity;
 
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
