@@ -1,6 +1,16 @@
 'use strict'; //all variables must be explicitly declared, be careful with 'this'
 var express = require('express');
 var app = express();
+var php = require('node-php');
+
+//old web
+app.use("/sctest",php.cgi("web/ecd/sctest"));
+app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
+app.use("/ecd",php.cgi("web/ecd/ecd"));
+app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
+app.use("/f3mon",php.cgi("web/ecd/f3mon"));
+app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
+
 app.use(express.static('web'));
 
 var elasticsearch = require('elasticsearch');
@@ -9,22 +19,29 @@ var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES ser
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
- // log: 'debug'
+  //log: 'debug'
   log : [{
-        type : 'file', //outputs ES logging to a file in the app's directory
-        levels : ['debug'] //can put more logging levels here
-        }]
+	type : 'file', //outputs ES logging to a file in the app's directory
+	levels : ['debug'] //can put more logging levels here
+	}]
 });
 
-//redirects console log to a file
+//redirecting console log to a file
 var fs = require('fs');
 var util = require('util');
 var log_file = fs.createWriteStream('./console.log', {flags : 'a'});
 var log_stdout = process.stdout;
 
+var initLogFile = function(){
+	log_file.write(util.format('*new server run starts here*')+'\n');
+        log_stdout.write(util.format('*new server run starts here*')+'\n'); //uncomment to also output to the console
+}
+
+initLogFile(); //nodejs logger
+
 console.log = function (msg){
-        log_file.write(util.format(msg)+'\n');
-        log_stdout.write(util.format(msg)+'\n'); //uncomment to also output to the console
+	log_file.write(util.format(msg)+'\n');
+	log_stdout.write(util.format(msg)+'\n'); //uncomment to also output to the console
 };
 
 
@@ -82,7 +99,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
         //console.log(alias_infos);
         for(var alias_info in alias_infos) {
           if (!alias_infos[alias_info].length) continue;
-          //console.log(alias_infos[alias_infos]);
+          //console.log(alias_infos[alias_info]);
           var info = alias_infos[alias_info].split(' ');
           var mySubsys = info[0].split("_")[1];
           var myAlias = info[0];
@@ -123,7 +140,7 @@ if (qparam_runNumber == null){qparam_runNumber = 36;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 //add necessary params to the query
-//queryJSON.query.wildcard.activeRuns.value =  qparam_runNumber; //ignore runNumber parameter for now...
+queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
 
 //submits query to the ES and returns formatted response to the app client
 client.search({
@@ -539,7 +556,6 @@ var q2 = function (callback, typeList, list){
     	for (var index=0;index<list.length;index++){
 	   var stat = [];
            var itemName = list[index].name;
-		//impl. array_diff functionality
 		for (var j=0;j<results.length;j++){
 			if (results[j]._type == itemName){
 				stat.push(results[j]);
@@ -1074,15 +1090,25 @@ var q2 = function(callback){
 		//discovering array keys
 		var properties = [];
 		for (var pName in retObj.data){
+			if (retObj.data.hasOwnProperty(pName)){
 				properties.push(pName);
+			}
 		}
 
-		Array.prototype.diff = function(a) {
-  		  return this.filter(function(i) {return a.indexOf(i) < 0;});
-		};
-		var diff = properties.diff(entriesList);
+		//implementing array diff (properties minus entriesList)
+		var diff = [];
+		var helperMap = {};
+		for (var h=0;h<entriesList.length;h++){
+			helperMap[entriesList[h]] = true;
+		}
+		for (var m=0;m<properties.length;m++){
+			if (!helperMap.hasOwnProperty(properties[m])){
+				diff.push(properties[m]);
+			}
+		}
 
-		//var diff = properties.not(entriesList).get(); //this impl. needs jQuery
+		//var diff = properties.not(entriesList).get(); //diff impl. with jQuery
+
 		for (var k=0;k<diff.length;k++){
 			var arr = [timestamp,null];
 			//data[diff[k]].push(arr); //Id1: data array format
@@ -2049,7 +2075,7 @@ res.send(finput);
 //sets server listening for connections at port 3000
 //var server = app.listen(3000);
 //var server = app.listen(3000, function () {
-var server = app.listen(3000,function () {
+var server = app.listen(3000, function () {
 
  // test elasticsearch connection (test)
  client.ping();

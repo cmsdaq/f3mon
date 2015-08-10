@@ -99,7 +99,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
         //console.log(alias_infos);
         for(var alias_info in alias_infos) {
           if (!alias_infos[alias_info].length) continue;
-          //console.log(alias_infos[alias_infos]);
+          //console.log(alias_infos[alias_info]);
           var info = alias_infos[alias_info].split(' ');
           var mySubsys = info[0].split("_")[1];
           var myAlias = info[0];
@@ -140,7 +140,7 @@ if (qparam_runNumber == null){qparam_runNumber = 36;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 //add necessary params to the query
-queryJSON.query.wildcard.activeRuns.value = '*'+qparam_runNumber+'*';
+queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
 
 //submits query to the ES and returns formatted response to the app client
 client.search({
@@ -556,7 +556,6 @@ var q2 = function (callback, typeList, list){
     	for (var index=0;index<list.length;index++){
 	   var stat = [];
            var itemName = list[index].name;
-		//impl. array_diff functionality
 		for (var j=0;j<results.length;j++){
 			if (results[j]._type == itemName){
 				stat.push(results[j]);
@@ -1091,15 +1090,25 @@ var q2 = function(callback){
 		//discovering array keys
 		var properties = [];
 		for (var pName in retObj.data){
+			if (retObj.data.hasOwnProperty(pName)){
 				properties.push(pName);
+			}
 		}
 
-		Array.prototype.diff = function(a) {
-  		  return this.filter(function(i) {return a.indexOf(i) < 0;});
-		};
-		var diff = properties.diff(entriesList);
+		//implementing array diff (properties minus entriesList)
+		var diff = [];
+		var helperMap = {};
+		for (var h=0;h<entriesList.length;h++){
+			helperMap[entriesList[h]] = true;
+		}
+		for (var m=0;m<properties.length;m++){
+			if (!helperMap.hasOwnProperty(properties[m])){
+				diff.push(properties[m]);
+			}
+		}
 
-		//var diff = properties.not(entriesList).get(); //this impl. needs jQuery
+		//var diff = properties.not(entriesList).get(); //diff impl. with jQuery
+
 		for (var k=0;k<diff.length;k++){
 			var arr = [timestamp,null];
 			//data[diff[k]].push(arr); //Id1: data array format
