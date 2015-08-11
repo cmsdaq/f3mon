@@ -274,8 +274,11 @@ if (searcher){
 	qsubmitted["filter"] = {"query":
 				{"query_string":
 				 {"query": '*'+qparam_search+'*'}}};
+else{
+        delete qsubmitted["filter"];
 }
-//console.log("test\n"+JSON.stringify(queryJSON));
+//console.log(JSON.stringify(qsubmitted));}
+
 //search ES
 client.search({
 index:'runindex_'+qparam_sysName+'_read',
