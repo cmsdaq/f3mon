@@ -2,6 +2,8 @@
 var express = require('express');
 var app = express();
 var php = require('node-php');
+var http = require('http');
+http.globalAgent.maxSockets=Infinity;
 
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
@@ -272,8 +274,11 @@ if (searcher){
 	qsubmitted["filter"] = {"query":
 				{"query_string":
 				 {"query": '*'+qparam_search+'*'}}};
+else{
+        delete qsubmitted["filter"];
 }
-//console.log("test\n"+JSON.stringify(queryJSON));
+//console.log(JSON.stringify(qsubmitted));}
+
 //search ES
 client.search({
 index:'runindex_'+qparam_sysName+'_read',
@@ -2075,7 +2080,7 @@ res.send(finput);
 //sets server listening for connections at port 3000
 //var server = app.listen(3000);
 //var server = app.listen(3000, function () {
-var server = app.listen(3000, function () {
+var server = app.listen(80, function () {
 
  // test elasticsearch connection (test)
  client.ping();
