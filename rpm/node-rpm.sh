@@ -21,7 +21,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fff-node-scripts.spec <<EOF
 Name: $PACKAGENAME
-Version: 0.91
+Version: 1.0.0
 Release: 0
 Summary: node.js f3mon scripts
 License: gpl
@@ -33,6 +33,7 @@ BuildArch: $BUILD_ARCH
 AutoReqProv: no
 Requires: npm 
 
+Provides:/opt/node/
 Provides:/opt/node/prod/
 Provides:/opt/node/test/
 Provides:/etc/init.d/fff-node-server
@@ -79,20 +80,23 @@ cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 
 %post
 #echo "post install trigger"
-/etc/init.d/fff-node-server stop || true
-/etc/init.d/test-fff-node-server stop >& /dev/null || true
-unlink /opt/node/prod/app.js || true
-unlink /opt/node/prod/node_modules || true
-unlink /opt/node/prod/web || true
+unlink /opt/node/prod/app.js >& /dev/null || true
+unlink /opt/node/prod/node_modules >& /dev/null || true
+unlink /opt/node/prod/web >& /dev/null || true
 
 ln -s /cmsnfses-web/es-web/prod/app.js /opt/node/prod/app.js
 ln -s /cmsnfses-web/es-web/prod/node_modules /opt/node/prod/node_modules
 ln -s /cmsnfses-web/es-web/prod/web /opt/node/prod/web
 
+unlink /opt/node/node_modules >& /dev/null || true
+ln -s /opt/node/prod/node_modules /opt/node/node_modules
 
-unlink /opt/node/test/app.js || true
-unlink /opt/node/test/node_modules || true
-unlink /opt/node/test/web || true
+/etc/init.d/fff-node-server stop || true
+/etc/init.d/test-fff-node-server stop >& /dev/null || true
+
+unlink /opt/node/test/app.js >& /dev/null || true
+unlink /opt/node/test/node_modules >& /dev/null || true
+unlink /opt/node/test/web >& /dev/null || true
 
 ln -s /cmsnfses-web/es-web/test/app.js /opt/node/test/app.js
 ln -s /cmsnfses-web/es-web/test/node_modules /opt/node/test/node_modules
@@ -118,13 +122,18 @@ if [ \$1 == 0 ]; then
   #rm -rf /var/lock/subsys/fff-node-server
   /usr/sbin/userdel es-cdaq-runtime || true
 
-  unlink /opt/node/prod/app.js || true
-  unlink /opt/node/prod/node_modules || true
-  unlink /opt/node/prod/web || true
+  unlink /opt/node/prod/app.js >& /dev/null || true
+  unlink /opt/node/prod/node_modules >& /dev/null || true
+  unlink /opt/node/prod/web >& /dev/null || true
 
-  unlink /opt/node/test/app.js || true
-  unlink /opt/node/test/node_modules || true
-  unlink /opt/node/test/web || true
+  unlink /opt/node/test/app.js >& /dev/null || true
+  unlink /opt/node/test/node_modules >& /dev/null || true
+  unlink /opt/node/test/web >& /dev/null || true
+
+  unlink /opt/node/node_modules >& /dev/null || true
+
+  rm -rf /opt/node/prod/*.log
+  rm -rf /opt/node/test/*.log
 
 fi
 
