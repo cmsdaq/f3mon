@@ -1,3 +1,5 @@
+var tic = new Date().getTime();
+
 'use strict'; //all variables must be explicitly declared, be careful with 'this'
 var express = require('express');
 var app = express();
@@ -16,6 +18,15 @@ app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
 app.use(express.static('web'));
 
 var elasticsearch = require('elasticsearch');
+
+//server listening port passes as an argument, otherwise it is by default 3000
+var serverPort = 3000;
+
+if (process.argv[2]!=null){
+	serverPort = process.argv[2];
+}
+var owner=process.argv[3];
+
 var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
 var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
@@ -47,6 +58,31 @@ console.log = function (msg){
 };
 
 
+//map of queries in JSON format
+//this map is loaded with all queries (structure in JSON) at startup, then callbacks use these queries instead of launching independent I/Os in the json directory
+var loadedJSONs = {};
+
+//loads queries
+var initializeQueries = function (){
+	var namesArray = fs.readdirSync(JSONPath); //lists file name in json dir
+	//console.log (JSON.stringify(namesArray));
+	for (var i=0;i<namesArray.length;i++){
+		var localObj = require (JSONPath+namesArray[i]);
+		loadedJSONs[namesArray[i]] = localObj;
+	}
+	//console.log(JSON.stringify(loadedJSONs["teols.json"]));
+}
+
+//used by callbacks to retrieve queries stored in memory
+var getQuery = function (name){
+	return loadedJSONs[name];
+}
+
+initializeQueries();
+
+var toc = new Date().getTime();
+console.log('application startup time: '+(toc-tic)+' millis');
+
 //callback 1 (test)
 app.get('/', function (req, res) {
   res.send('Hello World!');
@@ -63,7 +99,7 @@ app.get('/test', function (req, res) {
 
 //callback 3
 app.get('/node-f3mon/api/serverStatus', function (req, res) {
-    console.log("received serverStatus request");
+    console.log("serverStatus request");
 
     var cb = req.query.callback;
     //console.log(cb);
@@ -87,7 +123,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
 
 //callback 4
 app.get('/node-f3mon/api/getIndices', function (req, res) {
-    console.log("received getIndices request");
+    console.log("getIndices request");
 
     var cb = req.query.callback;
     client.cat.aliases({
@@ -128,12 +164,13 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
 
 //callback 5
 app.get('/node-f3mon/api/getDisksStatus', function (req, res) {
-console.log('received getDisksStatus request');
+console.log('getDisksStatus request');
 
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'disks.json');
+//var queryJSON = require (JSONPath+'disks.json');
+var queryJSON = getQuery("disks.json");
 
 //GET query string params (needed to parameterize the query)
 var qparam_runNumber = req.query.runNumber;
@@ -163,12 +200,13 @@ body : JSON.stringify(queryJSON)
 
 //callback 6
 app.get('/node-f3mon/api/runList', function (req, res){
-console.log('received runList request');
+console.log('runList request');
 
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'runlist.json');
+//var queryJSON = require (JSONPath+'runlist.json');
+var queryJSON = getQuery("runlist.json");
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -221,12 +259,13 @@ body: JSON.stringify(queryJSON)
 
 //callback 7
 app.get('/node-f3mon/api/runListTable', function (req, res) {
-console.log('received runListTable request');
+console.log('runListTable request');
 
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'rltable.json');
+//var queryJSON = require (JSONPath+'rltable.json');
+var queryJSON = getQuery("rltable.json");
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -270,12 +309,22 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
 }
 
 var qsubmitted = queryJSON;
+
 if (searcher){
+	var searchText = '';
+	if (qparam_search.indexOf("*") === -1){
+		searchText = '*'+qparam_search+'*';
+	}else{
+		searchText = qparam_search;
+	}
 	qsubmitted["filter"] = {"query":
 				{"query_string":
-				 {"query": '*'+qparam_search+'*'}}};
+				 {"query": searchText}}};
+}else{
+	delete qsubmitted["filter"];
 }
-//console.log("test\n"+JSON.stringify(queryJSON));
+//console.log(JSON.stringify(qsubmitted));
+
 //search ES
 client.search({
 index:'runindex_'+qparam_sysName+'_read',
@@ -307,7 +356,7 @@ body: JSON.stringify(qsubmitted)
 
 //callback 8
 app.get('/node-f3mon/api/riverStatus', function (req, res) {
-console.log('received riverStatus request');
+console.log('riverStatus request');
 
 var cb = req.query.callback;
 
@@ -318,8 +367,8 @@ if (qparam_size == null){qparam_size = 100;}
 if (qparam_query == null){qparam_query = 'riverstatus';}
 
 //loads query definition from file
-var queryJSON = require (JSONPath+qparam_query+'.json');
-
+//var queryJSON = require (JSONPath+qparam_query+'.json');
+var queryJSON = getQuery(qparam_query+".json");
 //parameterize query fields 
 queryJSON.size = qparam_size;
 
@@ -481,7 +530,7 @@ q1(q2);
 
 //callback 9
 app.get('/node-f3mon/api/runRiverListTable', function (req, res) {
-console.log('received runRiverListTable request');
+console.log('runRiverListTable request');
 
 var cb = req.query.callback;
 
@@ -544,8 +593,8 @@ var checkResult = function (err, domains){
 //search ES - Q2 (check status)
 var q2 = function (callback, typeList, list){
 
-  var queryJSON = require (JSONPath+'runrivertable-status.json');
-
+  //var queryJSON = require (JSONPath+'runrivertable-status.json');
+  var queryJSON = getQuery("runrivertable-status.json");
   //set query parameter
   queryJSON.query.bool.must[1].terms._type = typeList;
 
@@ -593,9 +642,9 @@ var q2 = function (callback, typeList, list){
 //search ES - Q1 (get meta)
 var q1 = function (callback){
 
-  var queryJSON = require (JSONPath+'runrivertable-meta.json');
+  //var queryJSON = require (JSONPath+'runrivertable-meta.json');
+  var queryJSON = getQuery("runrivertable-meta.json");
 
-  //set query parameters
   queryJSON.size = qparam_size;
   queryJSON.from = qparam_from;
   queryJSON.query.term._id.value = "_meta";
@@ -646,7 +695,7 @@ q1(q2);
 
 //callback 10
 app.get('/node-f3mon/api/closeRun', function (req, res) {
-console.log('received closeRun request');
+console.log('closeRun request');
 
 var cb = req.query.callback;
 var retObj = {
@@ -703,7 +752,8 @@ var put = function (callback, ret){
 
 var q1= function(callback){
  //loads query definition from file
- var queryJSON = require (JSONPath+qparam_query+'.json');
+ //var queryJSON = require (JSONPath+qparam_query+'.json');
+ var queryJSON = getQuery(qparam_query+".json");
  queryJSON.filter.term._id = qparam_runNumber;
  client.search({
    index: 'runindex_'+qparam_sysName+'_write',
@@ -732,7 +782,7 @@ q1(put);
 
 //callback 11
 app.get('/node-f3mon/api/logtable', function (req, res) {
-console.log('received logtable request');
+console.log('logtable request');
 
 var cb = req.query.callback;
 
@@ -756,7 +806,8 @@ if (qparam_endTime == null || qparam_endTime == 'false'){qparam_endTime = 'now';
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'logmessages.json');
+//var queryJSON = require (JSONPath+'logmessages.json');
+var queryJSON = getQuery("logmessages.json");
 
 //parameterize query
 queryJSON.size = qparam_size;
@@ -821,7 +872,7 @@ client.search({
 
 //callback 12
 app.get('/node-f3mon/api/startCollector', function (req, res) {
-console.log('received startCollector request');
+console.log('startCollector request');
 
 var cb = req.query.callback;
 var retObj = {
@@ -959,7 +1010,7 @@ q1(q2);
 
 //callback 13
 app.get('/node-f3mon/api/nstates-summary', function (req, res) {
-console.log('received nstates-summary request');
+console.log('nstates-summary request');
 
 var cb = req.query.callback;
 
@@ -989,8 +1040,8 @@ var legend = {};
 //Get legend
 var q1 = function(callback){
   //loads query definition from file
-  var queryJSON = require (JSONPath+'ulegenda.json');
-  
+  //var queryJSON = require (JSONPath+'ulegenda.json');
+  var queryJSON = getQuery("ulegenda.json");
   queryJSON.query.filtered.query.term._parent = qparam_runNumber;
 
   client.search({
@@ -1044,8 +1095,8 @@ var q2 = function(callback){
 //console.log(JSON.stringify(data));
 
   //loads query definition from file
-  var queryJSON = require (JSONPath+'nstates.json');
-
+  //var queryJSON = require (JSONPath+'nstates.json');
+  var queryJSON = getQuery("nstates.json");
   queryJSON.query.bool.must[1].range._timestamp.from = 'now-'+qparam_timeRange+'s';
   queryJSON.query.bool.must[0].term._parent = qparam_runNumber;
 
@@ -1139,7 +1190,7 @@ q1(q2); //call q1 with q2 as its callback
 
 //callback 14
 app.get('/node-f3mon/api/runInfo', function (req, res) {
-console.log('received runInfo request');
+console.log('runInfo request');
 
 var cb = req.query.callback;
 
@@ -1160,8 +1211,8 @@ var sendResult = function(){
 //last LS number
 var q3 = function (callback){
 
-var queryJSON = require (JSONPath+'lastls.json');
-
+//var queryJSON = require (JSONPath+'lastls.json');
+var queryJSON = getQuery("lastls.json");
   queryJSON.query.term._parent = qparam_runNumber;
 
   client.search({
@@ -1186,8 +1237,8 @@ var queryJSON = require (JSONPath+'lastls.json');
 var q2 = function (callback){
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
-
+//var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
+var queryJSON = getQuery("streamsinrun.json");
   queryJSON.query.term._parent = qparam_runNumber;
 
   client.search({
@@ -1216,8 +1267,8 @@ var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to th
 var q1 = function (callback){
 
  //loads query definition from file
- var queryJSON = require (JSONPath+'runinfo.json');
-
+ //var queryJSON = require (JSONPath+'runinfo.json');
+  var queryJSON = getQuery("runinfo.json");
   queryJSON.filter.term._id = qparam_runNumber;
 
   client.search({
@@ -1241,7 +1292,7 @@ q1(q2)
 
 //callback 15
 app.get('/node-f3mon/api/minimacroperstream', function (req, res) {
-console.log('received minimacroperstream request');
+console.log('minimacroperstream request');
 
 var cb = req.query.callback;
 
@@ -1277,7 +1328,8 @@ var sendResult = function(){
 var q2 = function(callback, total_q1){
   
    //loads query definition from file 
-   var queryJSON = require (JSONPath+'minimacroperstream.json');
+   //var queryJSON = require (JSONPath+'minimacroperstream.json');
+   var queryJSON = getQuery("minimacroperstream.json");
 
    queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
    queryJSON.query.bool.must[0].range.ls.from = qparam_from;
@@ -1349,8 +1401,8 @@ var q1 = function(callback){
   streamListArray = qparam_streamList.split(',');
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teolsperstream.json');
- 
+  //var queryJSON = require (JSONPath+'teolsperstream.json');
+  var queryJSON = getQuery("teolsperstream.json");
   queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
   queryJSON.query.filtered.query.range.ls.to = qparam_to;
@@ -1377,7 +1429,7 @@ q1(q2);
 
 //callback 16
 app.get('/node-f3mon/api/minimacroperbu', function (req, res) {
-console.log('received minimacroperbu request');
+console.log('minimacroperbu request');
 
 var cb = req.query.callback;
 
@@ -1415,8 +1467,8 @@ var sendResult = function(){
 var q2 = function (callback,totals_q1){
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'minimacroperbu.json');
-
+  //var queryJSON = require (JSONPath+'minimacroperbu.json');
+  var queryJSON = getQuery("minimacroperbu.json");
   queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.bool.must[0].range.ls.from = qparam_from;
   queryJSON.query.bool.must[0].range.ls.to = qparam_to;
@@ -1488,8 +1540,9 @@ var q1 = function (callback){
   streamListArray = qparam_streamList.split(',');
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teolsperbu.json');
-  
+ // var queryJSON = require (JSONPath+'teolsperbu.json');
+  var queryJSON = getQuery("teolsperbu.json");
+
   queryJSON.size = 2000000;
   queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
@@ -1527,7 +1580,7 @@ q1(q2);
 
 //callback 17
 app.get('/node-f3mon/api/streamhist', function (req, res) {
-console.log('received streamhist request');
+console.log('streamhist request');
 
 var cb = req.query.callback;
 
@@ -1592,7 +1645,8 @@ var sendResult = function(){
 //Get macromerge
 var q5 = function (callback){
 	//loads query definition from file
-        var queryJSON = require (JSONPath+'minimacromerge.json');
+        //var queryJSON = require (JSONPath+'minimacromerge.json');
+	var queryJSON = getQuery("minimacromerge.json");
 
 	queryJSON.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
 	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
@@ -1661,7 +1715,8 @@ var q5 = function (callback){
 //Get minimerge
 var q4 = function (callback){
 	//loads query definition from file
-        var queryJSON = require (JSONPath+'minimacromerge.json');
+       // var queryJSON = require (JSONPath+'minimacromerge.json');
+	var queryJSON = getQuery("minimacromerge.json");
 
 	queryJSON.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
 	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
@@ -1729,7 +1784,8 @@ var q4 = function (callback){
 //Get stream out
 var q3 = function (callback){
 	//loads query definition from file
-	var queryJSON = require (JSONPath+'outls.json');
+	//var queryJSON = require (JSONPath+'outls.json');
+	var queryJSON = getQuery("outls.json");
 
 	queryJSON.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
 	queryJSON.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
@@ -1833,7 +1889,8 @@ var q3 = function (callback){
 //Get totals
 var q2 = function (callback){
   //loads query definition from file
-  var queryJSON = require (JSONPath+'teols.json');
+  //var queryJSON = require (JSONPath+'teols.json');
+  var queryJSON = getQuery("teols.json");
 
   queryJSON.aggregations.ls.histogram.interval = parseInt(interval);
   queryJSON.aggregations.ls.histogram.extended_bounds.min = qparam_from;
@@ -1864,7 +1921,7 @@ var q2 = function (callback){
 
 	took += body.took;
 	for (var i=0;i<buckets.length;i++){
-		var ls = buckets[i].key;
+		var ls = buckets[i].key + postOffSt;
                 var events = buckets[i].events.value;
 		var doc_count = buckets[i].doc_count;
 		ret.events[ls] = events;
@@ -1889,8 +1946,9 @@ var q1 = function (callback){
   if (navInterval == 0){navInterval = 1;}
   
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teols.json');
-  
+  //var queryJSON = require (JSONPath+'teols.json');
+  var queryJSON = getQuery("teols.json");  
+
   queryJSON.aggregations.ls.histogram.interval = parseInt(navInterval);
   queryJSON.aggregations.ls.histogram.extended_bounds.min = 1;
   queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_lastLs;
@@ -1950,7 +2008,7 @@ q1(q2);
 //queries runindex_cdaq/stream_label and populates a list with all stream names for a run
 //(further filtering by ls interval is also possible to implement)
 app.get('/node-f3mon/api/getstreamlist', function (req, res) {
-console.log('received getstreamlist request');
+console.log('getstreamlist request');
 
 var cb = req.query.callback;
 
@@ -1974,8 +2032,9 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
         res.send(cb +' ('+JSON.stringify(retObj)+')');
        }
   var q = function(callback){
-   var queryJSON = require (JSONPath+'streamlabel.json');
-
+   //var queryJSON = require (JSONPath+'streamlabel.json');
+   var queryJSON = getQuery("streamlabel.json");
+   
     queryJSON.query.bool.must[0].prefix._id = 'run'+qparam_runNumber;
     //queryJSON.query.filtered.query.range.ls.from = qparam_from;
     //queryJSON.query.filtered.query.range.ls.to = qparam_to;
@@ -2010,7 +2069,9 @@ app.get('/node-f3mon/api/getConfig', function (req, res) {
   var cb = req.query.callback;
 
   //loading configuration file
-  var retObj = require (JSONPath+'config.json');
+  //var retObj = require (JSONPath+'config.json');
+  var retObj = getQuery("config.json");
+
   res.set('Content-Type', 'text/javascript');
   res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -2018,7 +2079,7 @@ app.get('/node-f3mon/api/getConfig', function (req, res) {
 
 //idx refresh for one index
 app.get('/node-f3mon/api/idx-refr', function (req, res) {
-console.log('received idx-refr request');
+console.log('idx-refr request');
 
 //GET query string params
 var qparam_indexAlias = req.query.indexAlias;
@@ -2077,7 +2138,7 @@ res.send(finput);
 //sets server listening for connections at port 3000
 //var server = app.listen(3000);
 //var server = app.listen(3000, function () {
-var server = app.listen(80, function () {
+var server = app.listen(serverPort, function () {
 
  // test elasticsearch connection (test)
  client.ping();
@@ -2090,4 +2151,15 @@ var server = app.listen(80, function () {
  console.log('Server listening at port:'+port);
  //console.log('Server listening at http://%s:%s', host, port);
  
+//dropping priviledges if server was started by root
+ if (process.getuid()==0){
+        console.log('current owner:'+process.getuid()+' (root)');   
+        console.log('dropping to owner:'+owner);
+        process.setgid('es-cdaq');
+        process.setuid(owner);
+        console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
+ }else{
+        console.log('current owner:'+process.getuid()+'\n(no drop needed)');
+ }
+
  });
