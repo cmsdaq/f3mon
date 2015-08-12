@@ -1,0 +1,24 @@
+/var/log/node/*log {
+        copytruncate
+        dateext
+        missingok
+        size 100M
+        rotate 10
+        maxage 7
+}
+/var/log/node/*err {
+        copytruncate
+        dateext
+        missingok
+        size 100M
+        rotate 10
+        maxage 7
+}
+/var/log/prod/*log {
+        copytruncate
+        dateext
+        missingok
+        size 100M
+        rotate 10
+        maxage 7
+}

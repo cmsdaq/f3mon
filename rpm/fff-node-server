@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+# fff-node-server        Startup script for the Node.js FFF monitor servlet
+#
+# chkconfig: - 81 19
+# description: Node.js FFF monitor servlet
+# processname: node
+# pidfile: /var/run/fff-node-server.pid
+#
+### BEGIN INIT INFO
+# Provides: httpd
+# Required-Start: $local_fs $remote_fs $network $named
+# Required-Stop: $local_fs $remote_fs $network
+# Short-Description: start and stop Node3.js FFF monitor servlet
+# Description: Node.js FFF monitor servlet 
+### END INIT INFO
+
+
+
+#### BEGIN INIT INFO
+## Provides:          node-service
+## Required-Start:    $local_fs $remote_fs $network
+## Required-Stop:     $local_fs $remote_fs $network
+## Default-Start:     2 3 4 5
+## Default-Stop:      0 1 6
+## Short-Description: Start/stop node-service
+#### END INIT INFO
+
+. /etc/rc.d/init.d/functions
+
+INITLOG_ARGS=""
+NODE=/usr/bin/node
+NODE_JS=/opt/node/prod/node-wrapper.sh
+NODE_PORT="80"
+RUNUSER="es-cdaq-runtime"
+NODE_ARGS="$NODE_PORT $RUNUSER"
+PIDFILE=/var/run/fff-node-server.pid
+LOCKFILE=/var/lock/subsys/fff-node-server
+RETVAL=0
+STOP_TIMEOUT=${STOP_TIMEOUT-10}
+
+do_start()
+{
+    # To allow many connections
+    #ulimit -n 32767
+    
+    echo -n $"Starting $prog: "
+    LANG=$HTTPD_LANG daemon --pidfile=${pidfile} $NODE $NODE_JS $NODE_ARGS
+    RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && touch ${lockfile}
+    return $RETVAL
+}
+
+do_stop()
+{
+    echo -n $"Stopping $prog: "
+    killproc -p ${pidfile} -d ${STOP_TIMEOUT} $node
+    RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+        status -p ${pidfile} $httpd
+	RETVAL=$?
+	;;
+  restart)
+	stop
+	start
+	;;
+  condrestart|try-restart)
+	if status -p ${pidfile} $httpd >&/dev/null; then
+		stop
+		start
+	fi
+	;;
+  force-reload|reload)
+        reload
+	;;
+  graceful|help|configtest|fullstatus)
+	$apachectl $@
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|reload|status|fullstatus|graceful|help|configtest}"
+	RETVAL=2
+esac
+
+exit $RETVAL
