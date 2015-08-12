@@ -21,10 +21,11 @@ var elasticsearch = require('elasticsearch');
 
 //server listening port passes as an argument, otherwise it is by default 3000
 var serverPort = 3000;
+
 if (process.argv[2]!=null){
 	serverPort = process.argv[2];
 }
-var owner = process.argv[3];
+var owner=process.argv[3];
 
 var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
 var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
@@ -1920,7 +1921,7 @@ var q2 = function (callback){
 
 	took += body.took;
 	for (var i=0;i<buckets.length;i++){
-		var ls = buckets[i].key;
+		var ls = buckets[i].key + postOffSt;
                 var events = buckets[i].events.value;
 		var doc_count = buckets[i].doc_count;
 		ret.events[ls] = events;
@@ -2150,15 +2151,15 @@ var server = app.listen(serverPort, function () {
  console.log('Server listening at port:'+port);
  //console.log('Server listening at http://%s:%s', host, port);
  
- //dropping priviledges if server was started by root
+//dropping priviledges if server was started by root
  if (process.getuid()==0){
-	console.log('current owner:'+process.getuid()+' (root)');
-	console.log('drop to owner:'+owner);
-	process.setgid('es-cdaq');
-	process.setuid(owner);
-	console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
+        console.log('current owner:'+process.getuid()+' (root)');   
+        console.log('dropping to owner:'+owner);
+        process.setgid('es-cdaq');
+        process.setuid(owner);
+        console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
  }else{
-	console.log('current owner:'+process.getuid()+'\n(no drop needed)');
+        console.log('current owner:'+process.getuid()+'\n(no drop needed)');
  }
- 
-});
+
+ });
