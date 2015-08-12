@@ -22,3 +22,11 @@
         rotate 10
         maxage 7
 }
+/var/log/test/*log {
+        copytruncate
+        dateext
+        missingok
+        size 100M
+        rotate 10
+        maxage 7
+}
