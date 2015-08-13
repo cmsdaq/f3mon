@@ -28,7 +28,7 @@ if (process.argv[2]!=null){
 var owner=process.argv[3];
 
 var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
-var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
+var ESServer = 'localhost';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
