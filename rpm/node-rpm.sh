@@ -22,7 +22,7 @@ cd $TOPDIR
 cat > fff-node-scripts.spec <<EOF
 Name: $PACKAGENAME
 Version: 1.0.0
-Release: 0
+Release: 1
 Summary: node.js f3mon scripts
 License: gpl
 Group: DAQ
@@ -108,7 +108,6 @@ ln -s /cmsnfses-web/es-web/test/web /opt/node/test/web
 #chown es-cdaq-runtime:es-cdaq -R /opt/node/*.log || true
 #chown es-cdaq-runtime:es-cdaq -R /var/log/node/*.log || true
  
-chown es-cdaq-runtime:es-cdaq -R /var/run/
 /etc/init.d/fff-node-server start
 chkconfig --add fff-node-server
 

@@ -5,6 +5,7 @@
         size 100M
         rotate 10
         maxage 7
+        compress
 }
 /var/log/node/*err {
         copytruncate
@@ -13,20 +14,23 @@
         size 100M
         rotate 10
         maxage 7
+        compress
 }
-/var/log/prod/*log {
+/opt/node/prod/*log {
         copytruncate
         dateext
         missingok
         size 100M
         rotate 10
         maxage 7
+        compress
 }
-/var/log/test/*log {
+/opt/node/test/*log {
         copytruncate
         dateext
         missingok
         size 100M
         rotate 10
         maxage 7
+        compress
 }
