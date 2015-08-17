@@ -28,7 +28,7 @@ if (process.argv[2]!=null){
 var owner=process.argv[3];
 
 var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
-var ESServer = 'localhost';  //set in each deployment, if using a different ES service
+var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
@@ -99,7 +99,7 @@ app.get('/test', function (req, res) {
 
 //callback 3
 app.get('/node-f3mon/api/serverStatus', function (req, res) {
-    console.log("serverStatus request");
+    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"serverStatus request");
 
     var cb = req.query.callback;
     //console.log(cb);
@@ -123,7 +123,7 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
 
 //callback 4
 app.get('/node-f3mon/api/getIndices', function (req, res) {
-    console.log("getIndices request");
+    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"getIndices request");
 
     var cb = req.query.callback;
     client.cat.aliases({
@@ -164,7 +164,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
 
 //callback 5
 app.get('/node-f3mon/api/getDisksStatus', function (req, res) {
-console.log('getDisksStatus request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getDisksStatus request');
 
 var cb = req.query.callback;
 
@@ -200,7 +200,7 @@ body : JSON.stringify(queryJSON)
 
 //callback 6
 app.get('/node-f3mon/api/runList', function (req, res){
-console.log('runList request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runList request');
 
 var cb = req.query.callback;
 
@@ -259,7 +259,7 @@ body: JSON.stringify(queryJSON)
 
 //callback 7
 app.get('/node-f3mon/api/runListTable', function (req, res) {
-console.log('runListTable request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runListTable request');
 
 var cb = req.query.callback;
 
@@ -356,7 +356,7 @@ body: JSON.stringify(qsubmitted)
 
 //callback 8
 app.get('/node-f3mon/api/riverStatus', function (req, res) {
-console.log('riverStatus request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'riverStatus request');
 
 var cb = req.query.callback;
 
@@ -530,7 +530,7 @@ q1(q2);
 
 //callback 9
 app.get('/node-f3mon/api/runRiverListTable', function (req, res) {
-console.log('runRiverListTable request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runRiverListTable request');
 
 var cb = req.query.callback;
 
@@ -695,7 +695,7 @@ q1(q2);
 
 //callback 10
 app.get('/node-f3mon/api/closeRun', function (req, res) {
-console.log('closeRun request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'closeRun request');
 
 var cb = req.query.callback;
 var retObj = {
@@ -782,7 +782,7 @@ q1(put);
 
 //callback 11
 app.get('/node-f3mon/api/logtable', function (req, res) {
-console.log('logtable request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'logtable request');
 
 var cb = req.query.callback;
 
@@ -872,7 +872,7 @@ client.search({
 
 //callback 12
 app.get('/node-f3mon/api/startCollector', function (req, res) {
-console.log('startCollector request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'startCollector request');
 
 var cb = req.query.callback;
 var retObj = {
@@ -1010,7 +1010,7 @@ q1(q2);
 
 //callback 13
 app.get('/node-f3mon/api/nstates-summary', function (req, res) {
-console.log('nstates-summary request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'nstates-summary request');
 
 var cb = req.query.callback;
 
@@ -1190,7 +1190,7 @@ q1(q2); //call q1 with q2 as its callback
 
 //callback 14
 app.get('/node-f3mon/api/runInfo', function (req, res) {
-console.log('runInfo request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
 
 var cb = req.query.callback;
 
@@ -1292,7 +1292,7 @@ q1(q2)
 
 //callback 15
 app.get('/node-f3mon/api/minimacroperstream', function (req, res) {
-console.log('minimacroperstream request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'minimacroperstream request');
 
 var cb = req.query.callback;
 
@@ -1311,7 +1311,6 @@ if (qparam_to == null){qparam_to = 2000;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
 if (qparam_type == null){qparam_type = 'minimerge';}
-if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
 var streamListArray;
 var inner = [];
@@ -1429,7 +1428,7 @@ q1(q2);
 
 //callback 16
 app.get('/node-f3mon/api/minimacroperbu', function (req, res) {
-console.log('minimacroperbu request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'minimacroperbu request');
 
 var cb = req.query.callback;
 
@@ -1580,7 +1579,7 @@ q1(q2);
 
 //callback 17
 app.get('/node-f3mon/api/streamhist', function (req, res) {
-console.log('streamhist request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'streamhist request');
 
 var cb = req.query.callback;
 
@@ -2008,7 +2007,7 @@ q1(q2);
 //queries runindex_cdaq/stream_label and populates a list with all stream names for a run
 //(further filtering by ls interval is also possible to implement)
 app.get('/node-f3mon/api/getstreamlist', function (req, res) {
-console.log('getstreamlist request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getstreamlist request');
 
 var cb = req.query.callback;
 
@@ -2064,7 +2063,7 @@ q(sendResult);
 
 //initial configuration callback (edit values in config.json)
 app.get('/node-f3mon/api/getConfig', function (req, res) {
-  console.log('received getConfig request');
+  console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'received getConfig request');
 
   var cb = req.query.callback;
 
@@ -2079,7 +2078,7 @@ app.get('/node-f3mon/api/getConfig', function (req, res) {
 
 //idx refresh for one index
 app.get('/node-f3mon/api/idx-refr', function (req, res) {
-console.log('idx-refr request');
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'idx-refr request');
 
 //GET query string params
 var qparam_indexAlias = req.query.indexAlias;
