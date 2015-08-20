@@ -28,7 +28,7 @@ if (process.argv[2]!=null){
 var owner=process.argv[3];
 
 var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
-var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
+var ESServer = 'localhost';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
@@ -78,10 +78,38 @@ var getQuery = function (name){
 	return loadedJSONs[name];
 }
 
-initializeQueries();
+initializeQueries(); //load query declarations in memory for faster access
+
+//*Server Cache*
+//each ES query response will be cached under a key of the form: requestName+"?"+first_arg_name+"="+first_arg_val+"&"+second_arg_name+"="+second_arg_val+...
+//if args missing from the requesting url, then default arg values will be used (key is thus defined under the initial if statements of each callback)
+//cache get(key) will return 'undefined' for missing or expired entry (expiration is determined by each callback's ttl, defined in ttls array) as of version 3.0.0 of node-cache
+//if get(key) does not return 'undefined', then it returns the cached response
+//any response, either cached or fresh, should be sent back including the *current* request's cb code (so NEVER cache the cb variable) 
+
+//cache init
+var NodeCache = require('node-cache');
+var f3MonCache = new NodeCache(); //global cache container
+
+//ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
+var ttls = {	"serverStatus":5,
+		"getIndices":5,
+		"getDisksStatus":5,
+		"runList":5,
+		"runListTable":5,
+		"riverStatus":5,
+		"runRiverListTable":5,
+		"logtable":5,
+		"nstatesSummary":5,
+		"runInfo":5,
+		"minimacroperstream":5,
+		"minimacroperbu":5,
+		"streamhist":5,
+		"getstreamlist":5
+};
 
 var toc = new Date().getTime();
-console.log('application startup time: '+(toc-tic)+' millis');
+console.log('application startup time: '+(toc-tic)+' ms');
 
 //callback 1 (test)
 app.get('/', function (req, res) {
@@ -100,23 +128,37 @@ app.get('/test', function (req, res) {
 //callback 3
 app.get('/node-f3mon/api/serverStatus', function (req, res) {
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"serverStatus request");
-
+    var eTime = new Date().getTime();
     var cb = req.query.callback;
     //console.log(cb);
 
-    //query elasticsearch health and bind return function to reply to the server
-    client.cluster.health().then(
-      function(body) {
-        //console.log(body['status']);
-        res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify({'status':body['status']})+')');
+    var requestKey = 'serverStatus';
+    var requestValue = f3MonCache.get(requestKey);
+    var ttl = ttls.serverStatus; //cached ES response ttl (in seconds) 
 
-      }, function (err) {
-	excpEscES(res,err);
+    if (requestValue == undefined) {
+
+      //query elasticsearch health and bind return function to reply to the server
+      client.cluster.health().then(
+       function(body) {
+        //console.log(body['status']);
+        var retObj = {'status':body['status']};
+        f3MonCache.set(requestKey, retObj, ttl);
+        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(retObj)+')');
+
+       }, function (err) {
+        excpEscES(res,err);
         console.log(err.message);
-        //res.send();
-      }
-    );
+       // res.send();
+       }
+      );
+   }else{
+        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+   }
 
 
 });//end callback
@@ -124,11 +166,18 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
 //callback 4
 app.get('/node-f3mon/api/getIndices', function (req, res) {
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"getIndices request");
-
+    var eTime = new Date().getTime();
     var cb = req.query.callback;
-    client.cat.aliases({
-      name: 'runindex*read'}
-    ).then(
+
+    var requestKey = 'getIndices';
+    var requestValue = f3MonCache.get(requestKey);
+    var ttl = ttls.getIndices; //cached ES response ttl (in seconds) 
+
+    if (requestValue == undefined) {
+
+      client.cat.aliases({
+       name: 'runindex*read'}
+      ).then(
       function (body) {
         //console.log('received response from ES :\n'+body+'\nend-response');
         var aliasList = [];
@@ -144,14 +193,21 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
         //console.log('sending '+aliasList);
+        var retObj = {'list':aliasList};
+        f3MonCache.set(requestKey, retObj, ttl);
+        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify({'list':aliasList})+')');
+        res.send(cb + ' (' + JSON.stringify(retObj)+')');
       },
       function(error) {
 	excpEscES(res,error);
       console.log(error)
     });
-
+   }else{
+        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+   }
 /*
     var cb = req.query.callback;
     client.search( {
@@ -165,7 +221,7 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
 //callback 5
 app.get('/node-f3mon/api/getDisksStatus', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getDisksStatus request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //loads query definition from file
@@ -178,30 +234,44 @@ var qparam_sysName = req.query.sysName;
 if (qparam_runNumber == null){qparam_runNumber = 36;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//add necessary params to the query
-queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
+var requestKey = 'getDisksStatus?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.getDisksStatus; //cached ES response ttl (in seconds) 
 
-//submits query to the ES and returns formatted response to the app client
-client.search({
-index: 'boxinfo_'+qparam_sysName+'_read',
-type: 'boxinfo',
-body : JSON.stringify(queryJSON)
+if (requestValue == undefined) {
+
+ //add necessary params to the query
+ queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
+
+ //submits query to the ES and returns formatted response to the app client
+ client.search({
+  index: 'boxinfo_'+qparam_sysName+'_read',
+  type: 'boxinfo',
+  body : JSON.stringify(queryJSON)
 	}).then(function (body){
 	//do something with these results (eg. format) and send a response
 	var retObj = body.aggregations;
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 	res.set('Content-Type', 'text/javascript');
 	res.send(cb +  ' (' +JSON.stringify(retObj)+')');
 	 }, function (error){
 	excpEscES(res,error);
 	console.trace(error.message);
 	});//end  client.search(...)
+}else{
+        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
+
 });//end callback
 
 
 //callback 6
 app.get('/node-f3mon/api/runList', function (req, res){
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runList request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //loads query definition from file
@@ -218,22 +288,30 @@ if (qparam_to == null){qparam_to = 'now';}
 if (qparam_size == null){qparam_size = 1000;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//parameterize query fields
-queryJSON.size = qparam_size;
-queryJSON.query.range._timestamp.from = qparam_from;
-queryJSON.query.range._timestamp.to = qparam_to;
+var requestKey = 'runList?from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runList; //cached ES response ttl (in seconds)
 
-//search ES
-client.search({
-index: 'runindex_'+qparam_sysName+'_read',
-type: 'run',
-body: JSON.stringify(queryJSON)
+if (requestValue == undefined) {
+
+  //parameterize query fields
+  queryJSON.size = qparam_size;
+  queryJSON.query.range._timestamp.from = qparam_from;
+  queryJSON.query.range._timestamp.to = qparam_to;
+
+  //search ES
+  client.search({
+  index: 'runindex_'+qparam_sysName+'_read',
+  type: 'run',
+  body: JSON.stringify(queryJSON)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query
 
 	//format response content from query results, then send it
 	if (results.length==0){
 		//send empty response if hits list is empty
+		f3MonCache.set(requestKey, "empty", ttl);
+                console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 		res.send();
 	}else{
 		var lasttime = results[0].fields._timestamp;
@@ -246,6 +324,8 @@ body: JSON.stringify(queryJSON)
 			"lasttime" : lasttime,
 			"runlist" : arr
 		};
+		f3MonCache.set(requestKey, retObj, ttl);
+        	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 		res.set('Content-Type', 'text/javascript');
 		res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -254,13 +334,25 @@ body: JSON.stringify(queryJSON)
 	excpEscES(res,error);
         console.trace(error.message);
 	});
+
+}else{
+     	console.log('runList (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	if (requestValue === "empty"){
+      		res.send();
+	}else{
+		res.set('Content-Type', 'text/javascript');
+                res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+	}
+}
+
+
 });//end callback
 
 
 //callback 7
 app.get('/node-f3mon/api/runListTable', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runListTable request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //loads query definition from file
@@ -282,22 +374,29 @@ if (qparam_sortOrder == null){qparam_sortOrder = '';}
 if (qparam_search == null){qparam_search = '';}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//console.log(qparam_sortBy);
-//parameterize query fields
-queryJSON.size =  qparam_size;
-queryJSON.from = qparam_from;
+var requestKey = 'runListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runListTable; //cached ES response ttl (in seconds)
 
-var searcher = false;
-if (qparam_search != ''){
+if (requestValue == undefined) {
+
+
+  //console.log(qparam_sortBy);
+  //parameterize query fields
+  queryJSON.size =  qparam_size;
+  queryJSON.from = qparam_from;
+
+  var searcher = false;
+  if (qparam_search != ''){
 	searcher = true;
-}
+  }
 
-var missing = '_last';
-if (qparam_sortOrder == 'desc'){
+  var missing = '_last';
+  if (qparam_sortOrder == 'desc'){
 	missing = '_first';
-}
+  }
 
-if (qparam_sortBy != '' && qparam_sortOrder != ''){
+  if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	var inner = {
 		"order" : qparam_sortOrder,
 		"missing" : missing
@@ -306,11 +405,11 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	temp[qparam_sortBy] = inner;
 	var outer = [temp]; //follows rltable.json format for sort
 	queryJSON.sort = outer;
-}
+  }
 
-var qsubmitted = queryJSON;
+  var qsubmitted = queryJSON;
 
-if (searcher){
+  if (searcher){
 	var searchText = '';
 	if (qparam_search.indexOf("*") === -1){
 		searchText = '*'+qparam_search+'*';
@@ -320,16 +419,16 @@ if (searcher){
 	qsubmitted["filter"] = {"query":
 				{"query_string":
 				 {"query": searchText}}};
-}else{
+  }else{
 	delete qsubmitted["filter"];
-}
-//console.log(JSON.stringify(qsubmitted));
+  }
+  //console.log(JSON.stringify(qsubmitted));
 
-//search ES
-client.search({
-index:'runindex_'+qparam_sysName+'_read',
-type: 'run',
-body: JSON.stringify(qsubmitted)
+  //search ES
+  client.search({
+  index:'runindex_'+qparam_sysName+'_read',
+  type: 'run',
+  body: JSON.stringify(qsubmitted)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query
 	//format response content here
@@ -345,6 +444,8 @@ body: JSON.stringify(qsubmitted)
 		"iTotalDisplayRecords" : filteredTotal,
 		"aaData" : arr
         };
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}, function (error){
@@ -352,12 +453,20 @@ body: JSON.stringify(qsubmitted)
 	console.trace(error.message);
 	});
 
+}else{
+        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
+
+
+
 });//end callback
 
 //callback 8
 app.get('/node-f3mon/api/riverStatus', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'riverStatus request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -365,6 +474,10 @@ var qparam_size = req.query.size;
 var qparam_query = req.query.query;
 if (qparam_size == null){qparam_size = 100;}
 if (qparam_query == null){qparam_query = 'riverstatus';}
+
+var requestKey = 'riverStatus?size='+qparam_size+'&query='+qparam_query;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.riverStatus; //cached ES response ttl (in seconds)
 
 //loads query definition from file
 //var queryJSON = require (JSONPath+qparam_query+'.json');
@@ -509,7 +622,8 @@ var q2 = function (statusList){
 		"systems" : systemsArray,
 		"runs" : runsArray
 	  };
-
+	  f3MonCache.set(requestKey, retObj, ttl);
+	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 	  res.set('Content-Type', 'text/javascript');
           res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}
@@ -522,16 +636,21 @@ var q2 = function (statusList){
   });
 }//end q2
 
-//chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
-//q1 is executed and then passes to its callback, q2
-q1(q2);
-
+if (requestValue == undefined) {
+  //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
+  //q1 is executed and then passes to its callback, q2
+  q1(q2);
+}else{
+	console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 });//end callback
 
 //callback 9
 app.get('/node-f3mon/api/runRiverListTable', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runRiverListTable request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 var retObj = {
@@ -551,7 +670,14 @@ if (qparam_size == null){qparam_size = 100;}
 if (qparam_sortBy == null){qparam_sortBy = '';}
 if (qparam_sortOrder == null){qparam_sortOrder = '';}
 
+var requestKey = 'runRiverListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runRiverListTable; //cached ES response ttl (in seconds)
+
+
 var sendResult = function(){
+   f3MonCache.set(requestKey, retObj, ttl);
+   console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
    res.set('Content-Type', 'text/javascript');
    res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -688,7 +814,15 @@ var q1 = function (callback){
   });
 }//end q1
 
-q1(q2);
+if (requestValue == undefined) {
+  //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
+  //q1 is executed and then passes to its callback, q2
+  q1(q2);
+}else{
+	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 
 });//end callback
 
@@ -783,7 +917,7 @@ q1(put);
 //callback 11
 app.get('/node-f3mon/api/logtable', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'logtable request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -805,26 +939,32 @@ if (qparam_startTime == null || qparam_startTime == 'false'){qparam_startTime = 
 if (qparam_endTime == null || qparam_endTime == 'false'){qparam_endTime = 'now';}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//loads query definition from file
-//var queryJSON = require (JSONPath+'logmessages.json');
-var queryJSON = getQuery("logmessages.json");
+var requestKey = 'logtable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='+qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.logtable; //cached ES response ttl (in seconds)
 
-//parameterize query
-queryJSON.size = qparam_size;
-queryJSON.from = qparam_from;
-queryJSON.query.filtered.filter.and[0].range._timestamp.from = qparam_startTime;
-queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
+if (requestValue == undefined) {
 
-if (qparam_search != ''){
+  //loads query definition from file
+  //var queryJSON = require (JSONPath+'logmessages.json');
+  var queryJSON = getQuery("logmessages.json");
+
+  //parameterize query
+  queryJSON.size = qparam_size;
+  queryJSON.from = qparam_from;
+  queryJSON.query.filtered.filter.and[0].range._timestamp.from = qparam_startTime;
+  queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
+
+  if (qparam_search != ''){
 	queryJSON.query.filtered.query.bool.should[0].query_string.query = qparam_search;
-}
+  }
 
-var missing = '_last';
-if (qparam_sortOrder == 'desc'){
+  var missing = '_last';
+  if (qparam_sortOrder == 'desc'){
         missing = '_first';
-}
+  }
 
-if (qparam_sortBy != '' && qparam_sortOrder != ''){
+  if (qparam_sortBy != '' && qparam_sortOrder != ''){
         var inner = {
                 "order" : qparam_sortOrder,
                 "missing" : missing
@@ -833,12 +973,12 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
         temp[qparam_sortBy] = inner;
         var outer = temp;
         queryJSON.sort = outer;
-}
+  }
 
-client.search({
-  index: 'hltdlogs_'+qparam_sysName,
-  type: 'hltdlog',
-  body: JSON.stringify(queryJSON)
+  client.search({
+   index: 'hltdlogs_'+qparam_sysName,
+   type: 'hltdlog',
+   body: JSON.stringify(queryJSON)
         }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (body.hits.length==0){
@@ -856,6 +996,9 @@ client.search({
 			"aaData" : ret,
 			"lastTime" : body.aggregations.lastTime.value
 		};
+
+		f3MonCache.set(requestKey, retObj, ttl);
+   		console.log('logtable (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 		res.set('Content-Type', 'text/javascript');
 		res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -865,7 +1008,11 @@ client.search({
         console.trace(error.message);
   });
 
-
+}else{
+        console.log('logtable (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 
 });//end callback
 
@@ -1011,7 +1158,7 @@ q1(q2);
 //callback 13
 app.get('/node-f3mon/api/nstates-summary', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'nstates-summary request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1023,6 +1170,11 @@ if (qparam_runNumber == null){qparam_runNumber = 10;}
 if (qparam_timeRange == null){qparam_timeRange = 60;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var requestKey = 'nstates-summary?runNumber='+qparam_runNumber+'&timeRange='+qparam_timeRange+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.nstatesSummary; //cached ES response ttl (in seconds)
+
+
 var retObj = {
                 "lastTime" : null,
                 "timeList" : null,
@@ -1030,6 +1182,8 @@ var retObj = {
         };
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1183,7 +1337,16 @@ var q2 = function(callback){
 
 }//end q2
 
-q1(q2); //call q1 with q2 as its callback
+if (requestValue == undefined) {
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
+
 
 });//end callback
 
@@ -1191,7 +1354,7 @@ q1(q2); //call q1 with q2 as its callback
 //callback 14
 app.get('/node-f3mon/api/runInfo', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1201,9 +1364,16 @@ var qparam_sysName = req.query.sysName;
 if (qparam_runNumber == null){qparam_runNumber = 700032;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var requestKey = 'runInfo?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runInfo; //cached ES response ttl (in seconds)
+
+
 var retObj = {};
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1237,7 +1407,7 @@ var queryJSON = getQuery("lastls.json");
 var q2 = function (callback){
 
 //loads query definition from file
-//var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
+//var queryJSON = require (JSONPath+'streamsinrun.json'); //changed the Apache/PHP version, now implements aggregation instead of faceting
 var queryJSON = getQuery("streamsinrun.json");
   queryJSON.query.term._parent = qparam_runNumber;
 
@@ -1286,14 +1456,22 @@ var q1 = function (callback){
 
 }//end q1
 
-q1(q2)
+if (requestValue == undefined) {
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 
 });//end callback
 
 //callback 15
 app.get('/node-f3mon/api/minimacroperstream', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'minimacroperstream request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1312,6 +1490,11 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
 if (qparam_type == null){qparam_type = 'minimerge';}
 
+var requestKey = 'minimacroperstream?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&type='+qparam_type;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.minimacroperstream; //cached ES response ttl (in seconds)
+
+
 var streamListArray;
 var inner = [];
 var retObj = {
@@ -1319,6 +1502,8 @@ var retObj = {
 };
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1422,14 +1607,22 @@ var q1 = function(callback){
 
 };//end q1
 
-q1(q2);
+if (requestValue == undefined) {
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 
 });//end callback
 
 //callback 16
 app.get('/node-f3mon/api/minimacroperbu', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'minimacroperbu request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1449,7 +1642,11 @@ if (qparam_stream == null){qparam_stream = 'A';}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
 if (qparam_type == null){qparam_type = 'minimerge';}
-if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var requestKey = 'minimacroperbu?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&stream='+qparam_stream+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&type='+qparam_type;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.minimacroperbu; //cached ES response ttl (in seconds)
+
 
 var streamListArray;
 var inner = [];
@@ -1458,6 +1655,8 @@ var retObj = {
 };
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1573,14 +1772,22 @@ var q1 = function (callback){
 
 }//end q1
 
-q1(q2);
+if (requestValue == undefined) {
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 
 });//end callback
 
 //callback 17
 app.get('/node-f3mon/api/streamhist', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'streamhist request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1612,6 +1819,10 @@ var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNu
 var interval = Math.round(x); 
 if (interval == 0){interval = 1;}
 
+var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&lastLs='+qparam_lastLs+'&intervalNum='+qparam_intervalNum+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&timePerLs='+qparam_timePerLs+'&useDivisor='+qparam_useDivisor;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.streamhist; //cached ES response ttl (in seconds)
+
 //helper variables with cb-wide scope
 var lastTimes = [];
 var streamTotals;
@@ -1637,6 +1848,8 @@ var sendResult = function(){
 	//console.log(JSON.stringify(lastTimes));
 	retObj.interval = interval;
 
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1999,7 +2212,15 @@ var q1 = function (callback){
 
 }//end q1
 
-q1(q2);
+if (requestValue == undefined) {
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
 
 });//end callback
 
@@ -2008,7 +2229,7 @@ q1(q2);
 //(further filtering by ls interval is also possible to implement)
 app.get('/node-f3mon/api/getstreamlist', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getstreamlist request');
-
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -2022,11 +2243,17 @@ if (qparam_runNumber == null){qparam_runNumber = 124029;}
 //if (qparam_to == null){qparam_to = 1;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var requestKey = 'getstreamlist?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
+
   var retObj = {
         "streamList" : []
   };
 
   var sendResult = function(){
+	f3MonCache.set(requestKey, retObj, ttl);
+        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
        }
@@ -2058,13 +2285,21 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
   });
 }//end q
 
-q(sendResult);
+if (requestValue == undefined) {
+ 	 q(sendResult);
+}else{
+        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+}
+
 });//end callback
 
 //initial configuration callback (edit values in config.json)
+//if the configuration is loaded from Elasticsearch, this callback can also be changed into a cacheable callback in the same fashion as the previous ones
 app.get('/node-f3mon/api/getConfig', function (req, res) {
   console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'received getConfig request');
-
+ // var eTime = new Date().getTime();
   var cb = req.query.callback;
 
   //loading configuration file
@@ -2094,6 +2329,46 @@ client.indices.refresh({
         console.trace(error.message);
   });
 });//end idx-refr
+
+//get server cache usage statistics
+app.get('/node-f3mon/api/getcachestats', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getcachestats request');
+var cb = req.query.callback;
+
+var qparam_token = req.query.token;
+var acceptToken = 'randomPlainTextKey';
+
+if (qparam_token == acceptToken){
+  var retObj = {"server_cache_statistics":f3MonCache.getStats()};
+  //retObj["keys"] = f3MonCache.keys(); //appends list of keys in the response
+  //retObj["pairs"] = f3MonCache.mget(f3MonCache.keys()); //appends full cache pairs
+  res.set('Content-Type', 'text/javascript');
+  res.send(cb +' ('+JSON.stringify(retObj)+')');
+}else{
+  res.send('not allowed request');
+}
+
+});//end getcachestats
+
+//flush server cache
+app.get('/node-f3mon/api/freesomespace', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'freesomespace request');
+var cb = req.query.callback;
+var qparam_token = req.query.token;
+var acceptToken = 'anotherRandomPlainTextKey';
+
+if (qparam_token == acceptToken){
+  var retObj = {"current stats":f3MonCache.getStats()};
+  f3MonCache.flushAll();
+  retObj["new stats"] = f3MonCache.getStats();
+  res.set('Content-Type', 'text/javascript');
+  res.send(cb +' ('+JSON.stringify(retObj)+')');
+}else{
+  res.send('not allowed request');
+}
+
+});//end getcachestats
+
 
 //percColor function
 var percColor = function (percent){
@@ -2154,7 +2429,7 @@ var server = app.listen(serverPort, function () {
  if (process.getuid()==0){
         console.log('current owner:'+process.getuid()+' (root)');   
         console.log('dropping to owner:'+owner);
-        process.setgid('es-cdaq');
+        process.setgid('bufu');
         process.setuid(owner);
         console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
  }else{
@@ -2162,3 +2437,6 @@ var server = app.listen(serverPort, function () {
  }
 
  });
+
+ //var monitor = require('monitor');
+ //monitor.start();
