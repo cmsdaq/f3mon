@@ -2429,7 +2429,7 @@ var server = app.listen(serverPort, function () {
  if (process.getuid()==0){
         console.log('current owner:'+process.getuid()+' (root)');   
         console.log('dropping to owner:'+owner);
-        process.setgid('bufu');
+        process.setgid('es-cdaq');
         process.setuid(owner);
         console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
  }else{
