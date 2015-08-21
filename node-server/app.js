@@ -144,7 +144,9 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
         //console.log(body['status']);
         var retObj = {'status':body['status']};
         f3MonCache.set(requestKey, retObj, ttl);
-        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+	totalTimes.queried += srvTime;
+        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(retObj)+')');
 
@@ -155,7 +157,9 @@ app.get('/node-f3mon/api/serverStatus', function (req, res) {
        }
       );
    }else{
-        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+	totalTimes.cached += srvTime;
+        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
    }
@@ -195,7 +199,9 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
         //console.log('sending '+aliasList);
         var retObj = {'list':aliasList};
         f3MonCache.set(requestKey, retObj, ttl);
-        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(retObj)+')');
       },
@@ -204,7 +210,9 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
       console.log(error)
     });
    }else{
-        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
    }
@@ -252,7 +260,9 @@ if (requestValue == undefined) {
 	//do something with these results (eg. format) and send a response
 	var retObj = body.aggregations;
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
 	res.send(cb +  ' (' +JSON.stringify(retObj)+')');
 	 }, function (error){
@@ -260,7 +270,9 @@ if (requestValue == undefined) {
 	console.trace(error.message);
 	});//end  client.search(...)
 }else{
-        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -311,7 +323,9 @@ if (requestValue == undefined) {
 	if (results.length==0){
 		//send empty response if hits list is empty
 		f3MonCache.set(requestKey, "empty", ttl);
-                console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+		var srvTime = (new Date().getTime())-eTime;
+        	totalTimes.queried += srvTime;
+                console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 		res.send();
 	}else{
 		var lasttime = results[0].fields._timestamp;
@@ -325,7 +339,9 @@ if (requestValue == undefined) {
 			"runlist" : arr
 		};
 		f3MonCache.set(requestKey, retObj, ttl);
-        	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+                var srvTime = (new Date().getTime())-eTime;
+                totalTimes.queried += srvTime;
+        	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 		res.set('Content-Type', 'text/javascript');
 		res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -335,8 +351,10 @@ if (requestValue == undefined) {
         console.trace(error.message);
 	});
 
-}else{
-     	console.log('runList (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+}else{	
+        var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+     	console.log('runList (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
 	if (requestValue === "empty"){
       		res.send();
 	}else{
@@ -445,7 +463,9 @@ if (requestValue == undefined) {
 		"aaData" : arr
         };
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+        var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}, function (error){
@@ -454,7 +474,9 @@ if (requestValue == undefined) {
 	});
 
 }else{
-        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -623,7 +645,9 @@ var q2 = function (statusList){
 		"runs" : runsArray
 	  };
 	  f3MonCache.set(requestKey, retObj, ttl);
-	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	  var srvTime = (new Date().getTime())-eTime;
+          totalTimes.queried += srvTime;
+	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.set('Content-Type', 'text/javascript');
           res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}
@@ -641,7 +665,9 @@ if (requestValue == undefined) {
   //q1 is executed and then passes to its callback, q2
   q1(q2);
 }else{
-	console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+	console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -677,7 +703,9 @@ var ttl = ttls.runRiverListTable; //cached ES response ttl (in seconds)
 
 var sendResult = function(){
    f3MonCache.set(requestKey, retObj, ttl);
-   console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+   var srvTime = (new Date().getTime())-eTime;
+   totalTimes.queried += srvTime;
+   console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
    res.set('Content-Type', 'text/javascript');
    res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -819,7 +847,9 @@ if (requestValue == undefined) {
   //q1 is executed and then passes to its callback, q2
   q1(q2);
 }else{
-	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -996,9 +1026,10 @@ if (requestValue == undefined) {
 			"aaData" : ret,
 			"lastTime" : body.aggregations.lastTime.value
 		};
-
 		f3MonCache.set(requestKey, retObj, ttl);
-   		console.log('logtable (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+		var srvTime = (new Date().getTime())-eTime;
+                totalTimes.queried += srvTime;
+   		console.log('logtable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 		res.set('Content-Type', 'text/javascript');
 		res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -1009,7 +1040,9 @@ if (requestValue == undefined) {
   });
 
 }else{
-        console.log('logtable (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('logtable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -1183,7 +1216,9 @@ var retObj = {
 
 var sendResult = function(){
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1342,7 +1377,9 @@ if (requestValue == undefined) {
  q1(q2); //call q1 with q2 as its callback
 
 }else{
-        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -1373,7 +1410,9 @@ var retObj = {};
 
 var sendResult = function(){
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1461,7 +1500,9 @@ if (requestValue == undefined) {
  q1(q2); //call q1 with q2 as its callback
 
 }else{
-        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -1503,7 +1544,9 @@ var retObj = {
 
 var sendResult = function(){
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1612,7 +1655,9 @@ if (requestValue == undefined) {
  q1(q2); //call q1 with q2 as its callback
 
 }else{
-        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -1656,7 +1701,9 @@ var retObj = {
 
 var sendResult = function(){
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1777,7 +1824,9 @@ if (requestValue == undefined) {
  q1(q2); //call q1 with q2 as its callback
 
 }else{
-        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -1849,7 +1898,9 @@ var sendResult = function(){
 	retObj.interval = interval;
 
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -2217,7 +2268,9 @@ if (requestValue == undefined) {
  q1(q2); //call q1 with q2 as its callback
 
 }else{
-        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -2253,7 +2306,9 @@ var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
 
   var sendResult = function(){
 	f3MonCache.set(requestKey, retObj, ttl);
-        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from query (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
        }
@@ -2288,7 +2343,9 @@ var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
 if (requestValue == undefined) {
  	 q(sendResult);
 }else{
-        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from cache (time='+((new Date().getTime())-eTime)+'ms)');
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue)+')');
 }
@@ -2429,7 +2486,7 @@ var server = app.listen(serverPort, function () {
  if (process.getuid()==0){
         console.log('current owner:'+process.getuid()+' (root)');   
         console.log('dropping to owner:'+owner);
-        process.setgid('es-cdaq');
+        process.setgid('bufu');
         process.setuid(owner);
         console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
  }else{
@@ -2438,5 +2495,27 @@ var server = app.listen(serverPort, function () {
 
  });
 
+//cumulative time of requests serving in milliseconds
+var totalTimes = {
+	"queried" : 0,
+	"cached" : 0
+}
+
+//dev helper for cache statistics
+var cachestatslogger = function (){
+	var outObj = {
+		"time" : new Date().toUTCString(),
+		"stats" : f3MonCache.getStats()
+	};
+	var fs = require('fs');
+	var util = require('util');
+	var stats_file = fs.createWriteStream('./cache_statistics.txt', {flags : 'a'});
+	var times_file = fs.createWriteStream('./service_times.txt', {flags : 'a'});
+	stats_file.write(util.format(JSON.stringify(outObj)+'\n'));
+	times_file.write(util.format(JSON.stringify(totalTimes)+'\n'));
+	console.log('-Wrote out cache statistics');	
+}
+cachestatslogger(); //run once at the beggining
+setInterval(cachestatslogger, 30000); //async call: runs cachestatslogger every 30 seconds, providing a stats entry
  //var monitor = require('monitor');
  //monitor.start();
