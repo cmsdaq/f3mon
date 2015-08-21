@@ -12,7 +12,8 @@ app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
 app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
-app.use("/f3mon",php.cgi("web/ecd/f3mon"));
+//app.use("/f3mon",php.cgi("web/ecd/f3mon"));
+app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
 app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
 
 app.use(express.static('web'));
@@ -92,24 +93,29 @@ var NodeCache = require('node-cache');
 var f3MonCache = new NodeCache(); //global cache container
 
 //ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
-var ttls = {	"serverStatus":5,
-		"getIndices":5,
-		"getDisksStatus":5,
-		"runList":5,
-		"runListTable":5,
-		"riverStatus":5,
-		"runRiverListTable":5,
-		"logtable":5,
-		"nstatesSummary":5,
-		"runInfo":5,
-		"minimacroperstream":5,
-		"minimacroperbu":5,
-		"streamhist":5,
-		"getstreamlist":5
+var ttls = {	"serverStatus":2,
+		"getIndices":2,
+		"getDisksStatus":2,
+		"runList":2,
+		"runListTable":2,
+		"riverStatus":2,
+		"runRiverListTable":2,
+		"logtable":2,
+		"nstatesSummary":1,
+		"runInfo":2,
+		"minimacroperstream":1,
+		"minimacroperbu":1,
+		"streamhist":1,
+		"getstreamlist":2
 };
 
 var toc = new Date().getTime();
 console.log('application startup time: '+(toc-tic)+' ms');
+
+app.get('/f3mon', function (req, res) 
+{
+res.redirect('/node-f3mon');
+});
 
 //callback 1 (test)
 app.get('/', function (req, res) {
