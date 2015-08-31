@@ -93,8 +93,8 @@ var NodeCache = require('node-cache');
 var f3MonCache = new NodeCache(); //global cache container
 
 //ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
-//var ttls = getQuery("ttls.json");
-var ttls = {	"serverStatus":2,
+var ttls = getQuery("ttls.json").ttls;
+/*var ttls = {	"serverStatus":2,
 		"getIndices":2,
 		"getDisksStatus":2,
 		"runList":2,
@@ -108,7 +108,7 @@ var ttls = {	"serverStatus":2,
 		"minimacroperbu":1,
 		"streamhist":1,
 		"getstreamlist":2
-};
+};*/
 
 var toc = new Date().getTime();
 console.log('application startup time: '+(toc-tic)+' ms');
@@ -995,7 +995,7 @@ if (requestValue == undefined) {
   if (qparam_search != ''){
 	queryJSON.query.filtered.query.bool.should[0].query_string.query = qparam_search;
   }else{
-        queryJSON.query.filtered.query.bool.should[0].query_string.query = '*';
+	queryJSON.query.filtered.query.bool.should[0].query_string.query = '*';
   }
 
   var missing = '_last';
