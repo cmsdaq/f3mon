@@ -1,4 +1,4 @@
-config":{
+{"config":{
         "defaultSubSystem":"cdaq",
         "fastPollingDelay":3000,
         "slowPollingDelay":5000,

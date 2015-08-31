@@ -93,7 +93,8 @@ var NodeCache = require('node-cache');
 var f3MonCache = new NodeCache(); //global cache container
 
 //ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
-var ttls = {	"serverStatus":2,
+var ttls = getQuery("ttlsjson");
+/*var ttls = {	"serverStatus":2,
 		"getIndices":2,
 		"getDisksStatus":2,
 		"runList":2,
@@ -108,7 +109,7 @@ var ttls = {	"serverStatus":2,
 		"streamhist":1,
 		"getstreamlist":2
 };
-
+*/
 var toc = new Date().getTime();
 console.log('application startup time: '+(toc-tic)+' ms');
 
