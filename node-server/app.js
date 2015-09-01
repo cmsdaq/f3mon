@@ -993,7 +993,13 @@ if (requestValue == undefined) {
   queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
 
   if (qparam_search != ''){
-	queryJSON.query.filtered.query.bool.should[0].query_string.query = qparam_search;
+	var searchText = '';
+        if (qparam_search.indexOf("*") === -1){
+                searchText = '*'+qparam_search+'*';
+        }else{
+                searchText = qparam_search;
+        }
+        queryJSON.query.filtered.query.bool.should[0].query_string.query = searchText;
   }else{
 	queryJSON.query.filtered.query.bool.should[0].query_string.query = '*';
   }
