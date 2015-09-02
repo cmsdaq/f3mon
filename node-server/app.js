@@ -2491,10 +2491,10 @@ var percColor = function (percent){
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
 	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error)');
+        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the exceptions log)');
 }
 
-//escapes client hanging upon a nodejs code exception/error by sending http 500
+//escapes client hanging upon a nodejs code exception/error by sending http 500 (this method is not used in this ver., exceptions are pushed to the stderr)
 var excpEscJS = function (res, error){
 	//message can be augmented with info from error
         res.status(500).send('Internal Server Error (Nodejs error)');
