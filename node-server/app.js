@@ -58,6 +58,36 @@ console.log = function (msg){
 	log_stdout.write(util.format(msg)+'\n'); //uncomment to also output to the console
 };
 
+//hook stderr and print unhandled (main loop) exceptions into a file
+var stderrFS = fs.openSync('./stderr.log', 'a+');
+unhook_err = hook_writestream(process.stderr, function(string, encoding, fd) {
+                //fs.writeSync(stderrFS,string, encoding);
+                fs.writeSync(stderrFS,string);
+                });
+function hook_writestream(stream, callback) {
+        var old_write = stream.write;
+        stream.write = (function(write) {
+                        return function(string, encoding, fd) {
+                        write.apply(stream, arguments);
+                        callback(string, encoding, fd);
+                        };
+                        })(stream.write);
+        return function() {
+                stream.write = old_write;
+        };
+}
+var exceptionHandler = null;
+process.on('uncaughtException', exceptionHandler = function(err) {
+        var toc = new Date().toISOString();
+        console.error('Caught fatal exception! Time: '+toc);
+        console.error(err)
+        console.error('Stack: '+err.stack)
+        process.removeListener("uncaughtException", exceptionHandler);
+        unhook_err();
+        fs.closeSync(stderrFS);
+        throw err;
+        });
+
 
 //map of queries in JSON format
 //this map is loaded with all queries (structure in JSON) at startup, then callbacks use these queries instead of launching independent I/Os in the json directory
@@ -113,10 +143,12 @@ var ttls = getQuery("ttls.json").ttls;
 var toc = new Date().getTime();
 console.log('application startup time: '+(toc-tic)+' ms');
 
+/*
 app.get('/f3mon', function (req, res) 
 {
 res.redirect('/node-f3mon');
 });
+*/
 
 //callback 1 (test)
 app.get('/', function (req, res) {
