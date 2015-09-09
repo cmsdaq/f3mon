@@ -11,6 +11,7 @@
 		"minimacroperstream":1,
 		"minimacroperbu":1,
 		"streamhist":1,
-		"getstreamlist":2
+		"getstreamlist":2,
+		"sctransfer":60
 	}
 }
