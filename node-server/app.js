@@ -2414,6 +2414,7 @@ app.get('/f3mon/api/getConfig', function (req, res) {
 
 });
 
+/*
 //idx refresh for one index
 app.get('/f3mon/api/idx-refr', function (req, res) {
 console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'idx-refr request');
@@ -2470,8 +2471,8 @@ if (qparam_token == acceptToken){
   res.send('not allowed request');
 }
 
-});//end getcachestats
-
+});//end freesomespace
+*/
 
 //*SC CALLBACKS BELOW* (using Oracle DB)
 
