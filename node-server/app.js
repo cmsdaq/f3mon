@@ -131,7 +131,7 @@ var f3MonCacheSec = new NodeCache();
 
 f3MonCache.on("expired", function(key,obj){
 	if (obj!=="requestPending"){
-		f3MonCacheSec.set(key,[obj,0],obj[1]);
+		f3MonCacheSec.set(key,obj,obj[1]);
 	}
 });
 
@@ -170,19 +170,23 @@ app.get('/f3mon/api/serverStatus', function (req, res) {
     var eTime = new Date().getTime();
     var cb = req.query.callback;
     //console.log(cb);
-
     var requestKey = 'serverStatus';
     var requestValue = f3MonCache.get(requestKey);
     var ttl = ttls.serverStatus; //cached ES response ttl (in seconds) 
 
+    if (requestValue=="requestPending"){
+	requestValue = f3MonCacheSec.get(requestKey);
+    }
+
     if (requestValue == undefined) {
+      f3MonCache.set(requestKey, "requestPending", ttl);
 
       //query elasticsearch health and bind return function to reply to the server
       client.cluster.health().then(
        function(body) {
         //console.log(body['status']);
         var retObj = {'status':body['status']};
-        f3MonCache.set(requestKey, retObj, ttl);
+        f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
 	totalTimes.queried += srvTime;
         console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -200,7 +204,7 @@ app.get('/f3mon/api/serverStatus', function (req, res) {
 	totalTimes.cached += srvTime;
         console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
    }
 
 
@@ -216,7 +220,12 @@ app.get('/f3mon/api/getIndices', function (req, res) {
     var requestValue = f3MonCache.get(requestKey);
     var ttl = ttls.getIndices; //cached ES response ttl (in seconds) 
 
+    if (requestValue=="requestPending"){
+        requestValue = f3MonCacheSec.get(requestKey);
+    }
+
     if (requestValue == undefined) {
+      f3MonCache.set(requestKey, "requestPending", ttl);
 
       client.cat.aliases({
        name: 'runindex*read'}
@@ -237,7 +246,7 @@ app.get('/f3mon/api/getIndices', function (req, res) {
         }
         //console.log('sending '+aliasList);
         var retObj = {'list':aliasList};
-        f3MonCache.set(requestKey, retObj, ttl);
+        f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -253,7 +262,7 @@ app.get('/f3mon/api/getIndices', function (req, res) {
         totalTimes.cached += srvTime;
         console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
    }
 /*
     var cb = req.query.callback;
@@ -290,7 +299,12 @@ var requestKey = 'getDisksStatus?runNumber='+qparam_runNumber+'&sysName='+qparam
 var requestValue = f3MonCache.get(requestKey);
 var ttl = ttls.getDisksStatus; //cached ES response ttl (in seconds) 
 
+if (requestValue=="requestPending"){
+ requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
 
  //add necessary params to the query
  queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
@@ -303,7 +317,7 @@ if (requestValue == undefined) {
 	}).then(function (body){
 	//do something with these results (eg. format) and send a response
 	var retObj = body.aggregations;
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -318,7 +332,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -348,7 +362,13 @@ var requestKey = 'runList?from='+qparam_from+'&to='+qparam_to+'&size='+qparam_si
 var requestValue = f3MonCache.get(requestKey);
 var ttl = ttls.runList; //cached ES response ttl (in seconds)
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+
 if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
 
   //parameterize query fields
   queryJSON.size = qparam_size;
@@ -366,7 +386,7 @@ if (requestValue == undefined) {
 	//format response content from query results, then send it
 	if (results.length==0){
 		//send empty response if hits list is empty
-		f3MonCache.set(requestKey, "empty", ttl);
+		f3MonCache.set(requestKey, ["empty",ttl], ttl);
 		var srvTime = (new Date().getTime())-eTime;
         	totalTimes.queried += srvTime;
                 console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -382,7 +402,7 @@ if (requestValue == undefined) {
 			"lasttime" : lasttime,
 			"runlist" : arr
 		};
-		f3MonCache.set(requestKey, retObj, ttl);
+		f3MonCache.set(requestKey, [retObj,ttl], ttl);
                 var srvTime = (new Date().getTime())-eTime;
                 totalTimes.queried += srvTime;
         	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -399,11 +419,11 @@ if (requestValue == undefined) {
         var srvTime = (new Date().getTime())-eTime;
         totalTimes.cached += srvTime;
      	console.log('runList (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-	if (requestValue === "empty"){
+	if (requestValue[0] === "empty"){
       		res.send();
 	}else{
 		res.set('Content-Type', 'text/javascript');
-                res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+                res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 	}
 }
 
@@ -440,8 +460,13 @@ var requestKey = 'runListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy=
 var requestValue = f3MonCache.get(requestKey);
 var ttl = ttls.runListTable; //cached ES response ttl (in seconds)
 
-if (requestValue == undefined) {
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
 
   //console.log(qparam_sortBy);
   //parameterize query fields
@@ -500,7 +525,7 @@ if (requestValue == undefined) {
 		"iTotalDisplayRecords" : filteredTotal,
 		"aaData" : arr
         };
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
         var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -516,7 +541,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 
@@ -682,7 +707,7 @@ var q2 = function (statusList){
 		"systems" : systemsArray,
 		"runs" : runsArray
 	  };
-	  f3MonCache.set(requestKey, retObj, ttl);
+	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	  var srvTime = (new Date().getTime())-eTime;
           totalTimes.queried += srvTime;
 	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -698,7 +723,14 @@ var q2 = function (statusList){
   });
 }//end q2
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
+
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
   //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
   //q1 is executed and then passes to its callback, q2
   q1(q2);
@@ -707,7 +739,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
 	console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 });//end callback
 
@@ -740,7 +772,7 @@ var ttl = ttls.runRiverListTable; //cached ES response ttl (in seconds)
 
 
 var sendResult = function(){
-   f3MonCache.set(requestKey, retObj, ttl);
+   f3MonCache.set(requestKey, [retObj,ttl], ttl);
    var srvTime = (new Date().getTime())-eTime;
    totalTimes.queried += srvTime;
    console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -880,7 +912,13 @@ var q1 = function (callback){
   });
 }//end q1
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
   //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
   //q1 is executed and then passes to its callback, q2
   q1(q2);
@@ -889,7 +927,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
 	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -1011,7 +1049,13 @@ var requestKey = 'logtable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qp
 var requestValue = f3MonCache.get(requestKey);
 var ttl = ttls.logtable; //cached ES response ttl (in seconds)
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+
 if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
 
   //loads query definition from file
   //var queryJSON = require (JSONPath+'logmessages.json');
@@ -1072,7 +1116,7 @@ if (requestValue == undefined) {
 			"aaData" : ret,
 			"lastTime" : body.aggregations.lastTime.value
 		};
-		f3MonCache.set(requestKey, retObj, ttl);
+		f3MonCache.set(requestKey, [retObj,ttl], ttl);
 		var srvTime = (new Date().getTime())-eTime;
                 totalTimes.queried += srvTime;
    		console.log('logtable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -1090,7 +1134,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('logtable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -1261,7 +1305,7 @@ var retObj = {
         };
 
 var sendResult = function(){
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -1418,7 +1462,12 @@ var q2 = function(callback){
 
 }//end q2
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
 
  q1(q2); //call q1 with q2 as its callback
 
@@ -1427,7 +1476,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 
@@ -1455,7 +1504,7 @@ var ttl = ttls.runInfo; //cached ES response ttl (in seconds)
 var retObj = {};
 
 var sendResult = function(){
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -1541,7 +1590,12 @@ var q1 = function (callback){
 
 }//end q1
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
 
  q1(q2); //call q1 with q2 as its callback
 
@@ -1550,7 +1604,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -1589,7 +1643,7 @@ var retObj = {
 };
 
 var sendResult = function(){
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -1696,8 +1750,13 @@ var q1 = function(callback){
 
 };//end q1
 
-if (requestValue == undefined) {
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
 
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+ 
  q1(q2); //call q1 with q2 as its callback
 
 }else{
@@ -1705,7 +1764,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -1746,7 +1805,7 @@ var retObj = {
 };
 
 var sendResult = function(){
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -1865,8 +1924,13 @@ var q1 = function (callback){
 
 }//end q1
 
-if (requestValue == undefined) {
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
 
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+ 
  q1(q2); //call q1 with q2 as its callback
 
 }else{
@@ -1874,7 +1938,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -1943,7 +2007,7 @@ var sendResult = function(){
 	//console.log(JSON.stringify(lastTimes));
 	retObj.interval = interval;
 
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -2309,7 +2373,12 @@ var q1 = function (callback){
 
 }//end q1
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl); 
 
  q1(q2); //call q1 with q2 as its callback
 
@@ -2318,7 +2387,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -2351,7 +2420,7 @@ var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
   };
 
   var sendResult = function(){
-	f3MonCache.set(requestKey, retObj, ttl);
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -2386,14 +2455,20 @@ var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
   });
 }//end q
 
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
 if (requestValue == undefined) {
- 	 q(sendResult);
+	f3MonCache.set(requestKey, "requestPending", ttl);
+
+ 	q(sendResult);
 }else{
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.cached += srvTime;
         console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue)+')');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 
 });//end callback
@@ -2497,7 +2572,7 @@ console.log(run); //dbg
  var getFromDB = function(){ 
   var retObj; //request formatted response
   var sendResult = function(){
-     f3MonCache.set(requestKey, retObj, ttl);
+     f3MonCache.set(requestKey, [retObj,ttl], ttl);
      var srvTime = (new Date().getTime())-eTime;
      totalTimes.queried += srvTime;
      console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -2661,8 +2736,12 @@ console.log(run); //dbg
 
  }//end getFromDB
 
+  if (requestValue=="requestPending"){
+  	requestValue = f3MonCacheSec.get(requestKey);
+  }
 
   if (requestValue == undefined){
+	f3MonCache.set(requestKey, "requestPending", ttl);
 	getFromDB();	
   }else{
         var srvTime = (new Date().getTime())-eTime;
@@ -2670,7 +2749,7 @@ console.log(run); //dbg
         console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         //res.send(cb + ' (' + JSON.stringify(requestValue)+')');  //f3mon format
-	res.send(JSON.stringify(requestValue));
+	res.send(JSON.stringify(requestValue[0]));
   }
 
 });//end calback
