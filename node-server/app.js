@@ -2555,15 +2555,15 @@ if (qparam_token == acceptToken){
 app.get('/sc/api/transfer', function (req, res) {
  var eTime = new Date().getTime();
  //params definition
+ var fill=0;
  var cb = req.query.callback;
  var run = req.query.run;
- run = (run==undefined) ? 0 : run;
-console.log(run); //dbg
  var stream = req.query.stream;
  var xaxis = req.query.xaxis;
  var formatchart = req.query.chart;
  var formatstrip = req.query.strip;
- 
+ var formatbinary = req.query.binary; 
+
  var requestKey = 'sc_transfer?run='+run+'&stream='+stream+'&xaxis='+xaxis+'&formatchart='+formatchart+'&formatstrip='+formatstrip;
  var requestValue = f3MonCache.get(requestKey);
  var ttl = ttls.sctransfer; //cached db response ttl (in seconds)
@@ -2592,8 +2592,8 @@ console.log(run); //dbg
     //connection and query to Oracle DB
     oracledb.getConnection(
     {
-       user          : "", //should be provided in a secure way on deployment
-       password      : "", //should be provided in a secure way on deployment
+       user          : "",	//should be provided in a secure way on deployment
+       password      : "",	//should be provided in a secure way on deployment
        connectString : "cmsonr1-v.cms:10121/cms_rcms.cern.ch"
     },
     function(err, connection)
@@ -2697,6 +2697,14 @@ console.log(run); //dbg
 						o[tuples[i].STREAM] = {};
 						stat.push(o);
 				}
+				if (formatbinary!=null){
+					if (tuples[i].COPYTIME!=null){
+						stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = 1;
+					}else{
+						stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = 0;
+					}
+				}
+				
 				if (tuples[i].INJTIME != null){
 					stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "INJECTED";
 				}
@@ -2727,12 +2735,37 @@ console.log(run); //dbg
     }); //end oracle access
   }//end exec
 
-  if (run!=0){
+  if (run!=undefined){
         exec();
   }else{
-	console.log('SC transfer request was missing run number and the Oracle query could not be built');
-	res.status(500).send('Internal Server Error (Request was missing run number and the Oracle query could not be built)');
+	//run ES query and then call exec() in its callback
+	var queryJSON = {
+	"size":1,
+	"sort":{"startTime":"desc"}
+	};
+    client.search({
+     index: 'runindex_cdaq_read',
+     type: 'run',
+     body : JSON.stringify(queryJSON)
+     }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	var resp = {};
+	resp["started"] = results[0]["_source"]["startTime"];
+	if (results[0]["_source"].hasOwnProperty("endTime")){
+		resp["ended"] = results[0]["_source"]["endTime"];
+	}else{
+		resp["ended"] = "";
 	}
+	resp["number"] = results[0]["_source"]["runNumber"];
+	run = (run==undefined) ? resp["number"] : run;
+	
+	exec();
+   }, function (error){
+	excpEscES(res,error);
+        console.trace(error.message);
+  });
+	
+  }
 
  }//end getFromDB
 
