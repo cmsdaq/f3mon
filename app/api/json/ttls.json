@@ -1,0 +1,17 @@
+{"ttls" : {	"serverStatus":2,
+		"getIndices":2,
+		"getDisksStatus":2,
+		"runList":2,
+		"runListTable":2,
+		"riverStatus":2,
+		"runRiverListTable":2,
+		"logtable":2,
+		"nstatesSummary":1,
+		"runInfo":2,
+		"minimacroperstream":1,
+		"minimacroperbu":1,
+		"streamhist":1,
+		"getstreamlist":2,
+		"sctransfer":60
+	}
+}

@@ -1,7 +1,11 @@
+var tic = new Date().getTime();
+
 'use strict'; //all variables must be explicitly declared, be careful with 'this'
 var express = require('express');
 var app = express();
 var php = require('node-php');
+var oracledb = require('oracledb'); //module that enables db access
+oracledb.outFormat = oracledb.OBJECT //returns query result-set row as a JS object (equiv. to OCI_ASSOC param in php oci_fetch_array call)
 var http = require('http');
 http.globalAgent.maxSockets=Infinity;
 
@@ -10,14 +14,24 @@ app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
 app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
-app.use("/f3mon",php.cgi("web/ecd/f3mon"));
+//app.use("/f3mon",php.cgi("web/ecd/f3mon"));
+app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
 app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
 
 app.use(express.static('web'));
 
 var elasticsearch = require('elasticsearch');
-var JSONPath = './web/node-f3mon/api/json/'; //set in each deployment
-var ESServer = 'es-cdaq';  //set in each deployment, if using a different ES service
+
+//server listening port passes as an argument, otherwise it is by default 3000
+var serverPort = 3000;
+
+if (process.argv[2]!=null){
+	serverPort = process.argv[2];
+}
+var owner=process.argv[3];
+
+var JSONPath = './web/f3mon/api/json/'; //set in each deployment
+var ESServer = 'localhost';  //set in each deployment, if using a different ES service
 var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
@@ -47,6 +61,95 @@ console.log = function (msg){
 };
 
 
+//hook stderr and print unhandled (main loop) exceptions into a file
+var stderrFS = fs.openSync('./stderr.log', 'a+');
+unhook_err = hook_writestream(process.stderr, function(string, encoding, fd) {
+		//fs.writeSync(stderrFS,string, encoding);
+		fs.writeSync(stderrFS,string);
+		});
+function hook_writestream(stream, callback) {
+	var old_write = stream.write;
+
+	stream.write = (function(write) {
+			return function(string, encoding, fd) {
+			write.apply(stream, arguments);
+			callback(string, encoding, fd);
+			};
+			})(stream.write);
+
+	return function() {
+		stream.write = old_write;
+	};
+}
+var exceptionHandler = null;
+process.on('uncaughtException', exceptionHandler = function(err) {
+        var toc = new Date().toISOString();
+	console.error('Caught fatal exception! Time: '+toc);
+	console.error(err)
+	console.error('Stack: '+err.stack)
+        process.removeListener("uncaughtException", exceptionHandler);
+	unhook_err();
+	fs.closeSync(stderrFS);
+        throw err;
+	});
+
+//map of queries in JSON format
+//this map is loaded with all queries (structure in JSON) at startup, then callbacks use these queries instead of launching independent I/Os in the json directory
+var loadedJSONs = {};
+
+//loads queries
+var initializeQueries = function (){
+	var namesArray = fs.readdirSync(JSONPath); //lists file name in json dir
+	//console.log (JSON.stringify(namesArray));
+	for (var i=0;i<namesArray.length;i++){
+		var localObj = require (JSONPath+namesArray[i]);
+		loadedJSONs[namesArray[i]] = localObj;
+	}
+	//console.log(JSON.stringify(loadedJSONs["teols.json"]));
+}
+
+//used by callbacks to retrieve queries stored in memory
+var getQuery = function (name){
+	return loadedJSONs[name];
+}
+
+initializeQueries(); //load query declarations in memory for faster access
+
+//*Server Cache*
+//each ES query response will be cached under a key of the form: requestName+"?"+first_arg_name+"="+first_arg_val+"&"+second_arg_name+"="+second_arg_val+...
+//if args missing from the requesting url, then default arg values will be used (key is thus defined under the initial if statements of each callback)
+//cache get(key) will return 'undefined' for missing or expired entry (expiration is determined by each callback's ttl, defined in ttls array) as of version 3.0.0 of node-cache
+//if get(key) does not return 'undefined', then it returns the cached response
+//any response, either cached or fresh, should be sent back including the *current* request's cb code (so NEVER cache the cb variable) 
+
+//cache init
+var NodeCache = require('node-cache');
+var f3MonCache = new NodeCache(); //global cache container
+
+//secondary cache holds expired objects with the same ttl while server executes queries
+var f3MonCacheSec = new NodeCache();
+
+f3MonCache.on("expired", function(key,obj){
+	if (obj!=="requestPending"){
+		f3MonCacheSec.set(key,obj,obj[1]);
+	}
+});
+
+//ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
+var ttls = getQuery("ttls.json").ttls;
+
+var toc = new Date().getTime();
+console.log('application startup time: '+(toc-tic)+' ms');
+
+
+
+//*F3MON CALLBACKS BELOW* (using Elasticsearch)
+
+app.get('/node-f3mon', function (req, res) 
+{
+  res.redirect('/f3mon');
+});
+
 //callback 1 (test)
 app.get('/', function (req, res) {
   res.send('Hello World!');
@@ -62,37 +165,71 @@ app.get('/test', function (req, res) {
 });
 
 //callback 3
-app.get('/node-f3mon/api/serverStatus', function (req, res) {
-    console.log("received serverStatus request");
-
+app.get('/f3mon/api/serverStatus', function (req, res) {
+    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"serverStatus request");
+    var eTime = new Date().getTime();
     var cb = req.query.callback;
     //console.log(cb);
+    var requestKey = 'serverStatus';
+    var requestValue = f3MonCache.get(requestKey);
+    var ttl = ttls.serverStatus; //cached ES response ttl (in seconds) 
 
-    //query elasticsearch health and bind return function to reply to the server
-    client.cluster.health().then(
-      function(body) {
+    if (requestValue=="requestPending"){
+	requestValue = f3MonCacheSec.get(requestKey);
+    }
+
+    if (requestValue == undefined) {
+      f3MonCache.set(requestKey, "requestPending", ttl);
+
+      //query elasticsearch health and bind return function to reply to the server
+      client.cluster.health().then(
+       function(body) {
         //console.log(body['status']);
+        var retObj = {'status':body['status']};
+        f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+	totalTimes.queried += srvTime;
+        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify({'status':body['status']})+')');
+        res.send(cb + ' (' + JSON.stringify(retObj)+')');
 
-      }, function (err) {
-	excpEscES(res,err);
+       }, function (err) {
+        excpEscES(res,err);
         console.log(err.message);
-        //res.send();
-      }
-    );
+       // res.send();
+       }
+      );
+   }else{
+	var srvTime = (new Date().getTime())-eTime;
+	totalTimes.cached += srvTime;
+        console.log('serverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+   }
 
 
 });//end callback
 
 //callback 4
-app.get('/node-f3mon/api/getIndices', function (req, res) {
-    console.log("received getIndices request");
-
+app.get('/f3mon/api/getIndices', function (req, res) {
+    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"getIndices request");
+    var eTime = new Date().getTime();
     var cb = req.query.callback;
-    client.cat.aliases({
-      name: 'runindex*read'}
-    ).then(
+
+    var requestKey = 'getIndices';
+    var requestValue = f3MonCache.get(requestKey);
+    var ttl = ttls.getIndices; //cached ES response ttl (in seconds) 
+
+    if (requestValue=="requestPending"){
+        requestValue = f3MonCacheSec.get(requestKey);
+    }
+
+    if (requestValue == undefined) {
+      f3MonCache.set(requestKey, "requestPending", ttl);
+
+      client.cat.aliases({
+       name: 'runindex*read'}
+      ).then(
       function (body) {
         //console.log('received response from ES :\n'+body+'\nend-response');
         var aliasList = [];
@@ -108,14 +245,25 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
         //console.log('sending '+aliasList);
+        var retObj = {'list':aliasList};
+        f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify({'list':aliasList})+')');
+        res.send(cb + ' (' + JSON.stringify(retObj)+')');
       },
       function(error) {
 	excpEscES(res,error);
       console.log(error)
     });
-
+   }else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('getIndices (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+   }
 /*
     var cb = req.query.callback;
     client.search( {
@@ -127,48 +275,78 @@ app.get('/node-f3mon/api/getIndices', function (req, res) {
 });//end callback
 
 //callback 5
-app.get('/node-f3mon/api/getDisksStatus', function (req, res) {
-console.log('received getDisksStatus request');
-
+app.get('/f3mon/api/getDisksStatus', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getDisksStatus request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'disks.json');
+//var queryJSON = require (JSONPath+'disks.json');
+var queryJSON = getQuery("disks.json");
 
 //GET query string params (needed to parameterize the query)
 var qparam_runNumber = req.query.runNumber;
 var qparam_sysName = req.query.sysName;
+
+//Setting default values for non-set request arguments
+//the following check must not check types because non-set URL arguments are in fact undefined, rather than null valued
+//therefore (nonset_arg == null) evaluates to Boolean TRUE, but (nonset_arg === null) is FALSE, which means that unset args DO NOT have null value (this pattern is used in most callbacks below)
 if (qparam_runNumber == null){qparam_runNumber = 36;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//add necessary params to the query
-queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
 
-//submits query to the ES and returns formatted response to the app client
-client.search({
-index: 'boxinfo_'+qparam_sysName+'_read',
-type: 'boxinfo',
-body : JSON.stringify(queryJSON)
+var requestKey = 'getDisksStatus?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.getDisksStatus; //cached ES response ttl (in seconds) 
+
+if (requestValue=="requestPending"){
+ requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+
+ //add necessary params to the query
+ queryJSON.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
+
+ //submits query to the ES and returns formatted response to the app client
+ client.search({
+  index: 'boxinfo_'+qparam_sysName+'_read',
+  type: 'boxinfo',
+  body : JSON.stringify(queryJSON)
 	}).then(function (body){
 	//do something with these results (eg. format) and send a response
 	var retObj = body.aggregations;
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
 	res.send(cb +  ' (' +JSON.stringify(retObj)+')');
 	 }, function (error){
 	excpEscES(res,error);
 	console.trace(error.message);
 	});//end  client.search(...)
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
+
 });//end callback
 
 
 //callback 6
-app.get('/node-f3mon/api/runList', function (req, res){
-console.log('received runList request');
-
+app.get('/f3mon/api/runList', function (req, res){
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runList request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'runlist.json');
+//var queryJSON = require (JSONPath+'runlist.json');
+var queryJSON = getQuery("runlist.json");
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -180,22 +358,38 @@ if (qparam_to == null){qparam_to = 'now';}
 if (qparam_size == null){qparam_size = 1000;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//parameterize query fields
-queryJSON.size = qparam_size;
-queryJSON.query.range._timestamp.from = qparam_from;
-queryJSON.query.range._timestamp.to = qparam_to;
+var requestKey = 'runList?from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runList; //cached ES response ttl (in seconds)
 
-//search ES
-client.search({
-index: 'runindex_'+qparam_sysName+'_read',
-type: 'run',
-body: JSON.stringify(queryJSON)
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+
+if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
+  //parameterize query fields
+  queryJSON.size = qparam_size;
+  queryJSON.query.range._timestamp.from = qparam_from;
+  queryJSON.query.range._timestamp.to = qparam_to;
+
+  //search ES
+  client.search({
+  index: 'runindex_'+qparam_sysName+'_read',
+  type: 'run',
+  body: JSON.stringify(queryJSON)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query
 
 	//format response content from query results, then send it
 	if (results.length==0){
 		//send empty response if hits list is empty
+		f3MonCache.set(requestKey, ["empty",ttl], ttl);
+		var srvTime = (new Date().getTime())-eTime;
+        	totalTimes.queried += srvTime;
+                console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 		res.send();
 	}else{
 		var lasttime = results[0].fields._timestamp;
@@ -208,6 +402,10 @@ body: JSON.stringify(queryJSON)
 			"lasttime" : lasttime,
 			"runlist" : arr
 		};
+		f3MonCache.set(requestKey, [retObj,ttl], ttl);
+                var srvTime = (new Date().getTime())-eTime;
+                totalTimes.queried += srvTime;
+        	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 		res.set('Content-Type', 'text/javascript');
 		res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -216,17 +414,32 @@ body: JSON.stringify(queryJSON)
 	excpEscES(res,error);
         console.trace(error.message);
 	});
+
+}else{	
+        var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+     	console.log('runList (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+	if (requestValue[0] === "empty"){
+      		res.send();
+	}else{
+		res.set('Content-Type', 'text/javascript');
+                res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+	}
+}
+
+
 });//end callback
 
 
 //callback 7
-app.get('/node-f3mon/api/runListTable', function (req, res) {
-console.log('received runListTable request');
-
+app.get('/f3mon/api/runListTable', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runListTable request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'rltable.json');
+//var queryJSON = require (JSONPath+'rltable.json');
+var queryJSON = getQuery("rltable.json");
 
 //GET query string params
 var qparam_from = req.query.from;
@@ -243,22 +456,29 @@ if (qparam_sortOrder == null){qparam_sortOrder = '';}
 if (qparam_search == null){qparam_search = '';}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-//console.log(qparam_sortBy);
-//parameterize query fields
-queryJSON.size =  qparam_size;
-queryJSON.from = qparam_from;
+var requestKey = 'runListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runListTable; //cached ES response ttl (in seconds)
 
-var searcher = false;
-if (qparam_search != ''){
-	searcher = true;
+
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
 }
 
-var missing = '_last';
-if (qparam_sortOrder == 'desc'){
+if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
+  //console.log(qparam_sortBy);
+  //parameterize query fields
+  queryJSON.size =  qparam_size;
+  queryJSON.from = qparam_from;
+
+  var missing = '_last';
+  if (qparam_sortOrder == 'desc'){
 	missing = '_first';
-}
+  }
 
-if (qparam_sortBy != '' && qparam_sortOrder != ''){
+  if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	var inner = {
 		"order" : qparam_sortOrder,
 		"missing" : missing
@@ -267,35 +487,48 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	temp[qparam_sortBy] = inner;
 	var outer = [temp]; //follows rltable.json format for sort
 	queryJSON.sort = outer;
-}
+  }
 
-var qsubmitted = queryJSON;
-if (searcher){
+  var qsubmitted = queryJSON;
+
+  if (qparam_search != ''){
+	var searchText = qparam_search;
+	if (qparam_search.indexOf("*") === -1){
+		searchText = '*'+qparam_search+'*';
+	}
 	qsubmitted["filter"] = {"query":
 				{"query_string":
-				 {"query": '*'+qparam_search+'*'}}};
-}
-//console.log("test\n"+JSON.stringify(queryJSON));
-//search ES
-client.search({
-index:'runindex_'+qparam_sysName+'_read',
-type: 'run',
-body: JSON.stringify(qsubmitted)
+				 {"query": searchText}}};
+  }else{
+	delete qsubmitted["filter"];
+  }
+  //console.log(JSON.stringify(qsubmitted));
+ 
+  //search ES
+  client.search({
+  index:'runindex_'+qparam_sysName+'_read',
+  type: 'run',
+  body: JSON.stringify(qsubmitted)
 	}).then (function(body){
 	var results = body.hits.hits; //hits for query
+
 	//format response content here
 	var total = body.aggregations.total.value;
 	var filteredTotal = body.hits.total;
+
 	var arr = [];
         for (var index = 0 ; index < results.length; index++){
         	arr[index] = results[index]._source;
         }
-
 	var retObj = {
 		"iTotalRecords" : total,
 		"iTotalDisplayRecords" : filteredTotal,
 		"aaData" : arr
         };
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+        var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}, function (error){
@@ -303,12 +536,22 @@ body: JSON.stringify(qsubmitted)
 	console.trace(error.message);
 	});
 
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
+
+
+
 });//end callback
 
 //callback 8
-app.get('/node-f3mon/api/riverStatus', function (req, res) {
-console.log('received riverStatus request');
-
+app.get('/f3mon/api/riverStatus', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'riverStatus request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -317,9 +560,13 @@ var qparam_query = req.query.query;
 if (qparam_size == null){qparam_size = 100;}
 if (qparam_query == null){qparam_query = 'riverstatus';}
 
-//loads query definition from file
-var queryJSON = require (JSONPath+qparam_query+'.json');
+var requestKey = 'riverStatus?size='+qparam_size+'&query='+qparam_query;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.riverStatus; //cached ES response ttl (in seconds)
 
+//loads query definition from file
+//var queryJSON = require (JSONPath+qparam_query+'.json');
+var queryJSON = getQuery(qparam_query+".json");
 //parameterize query fields 
 queryJSON.size = qparam_size;
 
@@ -460,7 +707,10 @@ var q2 = function (statusList){
 		"systems" : systemsArray,
 		"runs" : runsArray
 	  };
-
+	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	  var srvTime = (new Date().getTime())-eTime;
+          totalTimes.queried += srvTime;
+	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.set('Content-Type', 'text/javascript');
           res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}
@@ -473,16 +723,30 @@ var q2 = function (statusList){
   });
 }//end q2
 
-//chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
-//q1 is executed and then passes to its callback, q2
-q1(q2);
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
 
+if (requestValue == undefined) {
+
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
+  //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
+  //q1 is executed and then passes to its callback, q2
+  q1(q2);
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+	console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 });//end callback
 
 //callback 9
-app.get('/node-f3mon/api/runRiverListTable', function (req, res) {
-console.log('received runRiverListTable request');
-
+app.get('/f3mon/api/runRiverListTable', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runRiverListTable request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 var retObj = {
@@ -502,7 +766,16 @@ if (qparam_size == null){qparam_size = 100;}
 if (qparam_sortBy == null){qparam_sortBy = '';}
 if (qparam_sortOrder == null){qparam_sortOrder = '';}
 
+var requestKey = 'runRiverListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runRiverListTable; //cached ES response ttl (in seconds)
+
+
 var sendResult = function(){
+   f3MonCache.set(requestKey, [retObj,ttl], ttl);
+   var srvTime = (new Date().getTime())-eTime;
+   totalTimes.queried += srvTime;
+   console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
    res.set('Content-Type', 'text/javascript');
    res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -544,8 +817,8 @@ var checkResult = function (err, domains){
 //search ES - Q2 (check status)
 var q2 = function (callback, typeList, list){
 
-  var queryJSON = require (JSONPath+'runrivertable-status.json');
-
+  //var queryJSON = require (JSONPath+'runrivertable-status.json');
+  var queryJSON = getQuery("runrivertable-status.json");
   //set query parameter
   queryJSON.query.bool.must[1].terms._type = typeList;
 
@@ -593,9 +866,9 @@ var q2 = function (callback, typeList, list){
 //search ES - Q1 (get meta)
 var q1 = function (callback){
 
-  var queryJSON = require (JSONPath+'runrivertable-meta.json');
+  //var queryJSON = require (JSONPath+'runrivertable-meta.json');
+  var queryJSON = getQuery("runrivertable-meta.json");
 
-  //set query parameters
   queryJSON.size = qparam_size;
   queryJSON.from = qparam_from;
   queryJSON.query.term._id.value = "_meta";
@@ -639,14 +912,30 @@ var q1 = function (callback){
   });
 }//end q1
 
-q1(q2);
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
+  //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
+  //q1 is executed and then passes to its callback, q2
+  q1(q2);
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 
 });//end callback
 
 
 //callback 10
-app.get('/node-f3mon/api/closeRun', function (req, res) {
-console.log('received closeRun request');
+app.get('/f3mon/api/closeRun', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'closeRun request');
 
 var cb = req.query.callback;
 var retObj = {
@@ -703,7 +992,8 @@ var put = function (callback, ret){
 
 var q1= function(callback){
  //loads query definition from file
- var queryJSON = require (JSONPath+qparam_query+'.json');
+ //var queryJSON = require (JSONPath+qparam_query+'.json');
+ var queryJSON = getQuery(qparam_query+".json");
  queryJSON.filter.term._id = qparam_runNumber;
  client.search({
    index: 'runindex_'+qparam_sysName+'_write',
@@ -731,9 +1021,9 @@ q1(put);
 
 
 //callback 11
-app.get('/node-f3mon/api/logtable', function (req, res) {
-console.log('received logtable request');
-
+app.get('/f3mon/api/logtable', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'logtable request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -753,27 +1043,48 @@ if (qparam_sortOrder == null){qparam_sortOrder = '';}
 if (qparam_search == null){qparam_search = '*';}
 if (qparam_startTime == null || qparam_startTime == 'false'){qparam_startTime = 0;}
 if (qparam_endTime == null || qparam_endTime == 'false'){qparam_endTime = 'now';}
-if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+if (qparam_sysName == null || qparam_sysName == 'false'){qparam_sysName = 'cdaq';}
 
-//loads query definition from file
-var queryJSON = require (JSONPath+'logmessages.json');
+var requestKey = 'logtable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='+qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.logtable; //cached ES response ttl (in seconds)
 
-//parameterize query
-queryJSON.size = qparam_size;
-queryJSON.from = qparam_from;
-queryJSON.query.filtered.filter.and[0].range._timestamp.from = qparam_startTime;
-queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
-
-if (qparam_search != ''){
-	queryJSON.query.filtered.query.bool.should[0].query_string.query = qparam_search;
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
 }
 
-var missing = '_last';
-if (qparam_sortOrder == 'desc'){
+
+if (requestValue == undefined) {
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
+  //loads query definition from file
+  //var queryJSON = require (JSONPath+'logmessages.json');
+  var queryJSON = getQuery("logmessages.json");
+
+  //parameterize query
+  queryJSON.size = qparam_size;
+  queryJSON.from = qparam_from;
+  queryJSON.query.filtered.filter.and[0].range._timestamp.from = qparam_startTime;
+  queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
+
+  if (qparam_search != ''){
+	var searchText = '';
+	if (qparam_search.indexOf("*") === -1){
+                searchText = '*'+qparam_search+'*';
+        }else{
+                searchText = qparam_search;
+        }
+	queryJSON.query.filtered.query.bool.should[0].query_string.query = searchText;
+  }else{
+	queryJSON.query.filtered.query.bool.should[0].query_string.query = '*';
+  }
+
+  var missing = '_last';
+  if (qparam_sortOrder == 'desc'){
         missing = '_first';
-}
+  }
 
-if (qparam_sortBy != '' && qparam_sortOrder != ''){
+  if (qparam_sortBy != '' && qparam_sortOrder != ''){
         var inner = {
                 "order" : qparam_sortOrder,
                 "missing" : missing
@@ -782,12 +1093,12 @@ if (qparam_sortBy != '' && qparam_sortOrder != ''){
         temp[qparam_sortBy] = inner;
         var outer = temp;
         queryJSON.sort = outer;
-}
+  }
 
-client.search({
-  index: 'hltdlogs_'+qparam_sysName,
-  type: 'hltdlog',
-  body: JSON.stringify(queryJSON)
+  client.search({
+   index: 'hltdlogs_'+qparam_sysName,
+   type: 'hltdlog',
+   body: JSON.stringify(queryJSON)
         }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (body.hits.length==0){
@@ -805,6 +1116,10 @@ client.search({
 			"aaData" : ret,
 			"lastTime" : body.aggregations.lastTime.value
 		};
+		f3MonCache.set(requestKey, [retObj,ttl], ttl);
+		var srvTime = (new Date().getTime())-eTime;
+                totalTimes.queried += srvTime;
+   		console.log('logtable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 		res.set('Content-Type', 'text/javascript');
 		res.send(cb +' ('+JSON.stringify(retObj)+')');
 
@@ -814,14 +1129,20 @@ client.search({
         console.trace(error.message);
   });
 
-
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('logtable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 
 });//end callback
 
 
 //callback 12
-app.get('/node-f3mon/api/startCollector', function (req, res) {
-console.log('received startCollector request');
+app.get('/f3mon/api/startCollector', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'startCollector request');
 
 var cb = req.query.callback;
 var retObj = {
@@ -933,13 +1254,13 @@ var q1 = function (callback){
         }) }).then (function(body){
         var results = body.hits.hits; //hits for query
 	//console.log(results.length);
-        source = results[0]._source; //assigns value to callback-wide scope variable
-        if (!source){
+        source = results[0]._source; //throws cannot read property error if result list is empty (no hits found) because results[0] is undefined 
+        if (source == null || !source){
                 res.send();
         }else{
-                source.role = 'collector';
-                source.runNumber = qparam_runNumber;
-                source.startsBy = 'Web Interface';
+                source["role"] = 'collector';
+                source["runNumber"] = qparam_runNumber;
+                source["startsBy"] = 'Web Interface';
 		mapping["dynamic"] = true; //assigns value to callback-wide scope variable
 		callback(q3);
         }
@@ -958,9 +1279,9 @@ q1(q2);
 
 
 //callback 13
-app.get('/node-f3mon/api/nstates-summary', function (req, res) {
-console.log('received nstates-summary request');
-
+app.get('/f3mon/api/nstates-summary', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'nstates-summary request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -972,6 +1293,11 @@ if (qparam_runNumber == null){qparam_runNumber = 10;}
 if (qparam_timeRange == null){qparam_timeRange = 60;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var requestKey = 'nstates-summary?runNumber='+qparam_runNumber+'&timeRange='+qparam_timeRange+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.nstatesSummary; //cached ES response ttl (in seconds)
+
+
 var retObj = {
                 "lastTime" : null,
                 "timeList" : null,
@@ -979,6 +1305,10 @@ var retObj = {
         };
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -989,8 +1319,8 @@ var legend = {};
 //Get legend
 var q1 = function(callback){
   //loads query definition from file
-  var queryJSON = require (JSONPath+'ulegenda.json');
-  
+  //var queryJSON = require (JSONPath+'ulegenda.json');
+  var queryJSON = getQuery("ulegenda.json");
   queryJSON.query.filtered.query.term._parent = qparam_runNumber;
 
   client.search({
@@ -1044,8 +1374,8 @@ var q2 = function(callback){
 //console.log(JSON.stringify(data));
 
   //loads query definition from file
-  var queryJSON = require (JSONPath+'nstates.json');
-
+  //var queryJSON = require (JSONPath+'nstates.json');
+  var queryJSON = getQuery("nstates.json");
   queryJSON.query.bool.must[1].range._timestamp.from = 'now-'+qparam_timeRange+'s';
   queryJSON.query.bool.must[0].term._parent = qparam_runNumber;
 
@@ -1132,15 +1462,31 @@ var q2 = function(callback){
 
 }//end q2
 
-q1(q2); //call q1 with q2 as its callback
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
+
 
 });//end callback
 
 
 //callback 14
-app.get('/node-f3mon/api/runInfo', function (req, res) {
-console.log('received runInfo request');
-
+app.get('/f3mon/api/runInfo', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1150,9 +1496,18 @@ var qparam_sysName = req.query.sysName;
 if (qparam_runNumber == null){qparam_runNumber = 700032;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var requestKey = 'runInfo?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.runInfo; //cached ES response ttl (in seconds)
+
+
 var retObj = {};
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1160,8 +1515,8 @@ var sendResult = function(){
 //last LS number
 var q3 = function (callback){
 
-var queryJSON = require (JSONPath+'lastls.json');
-
+//var queryJSON = require (JSONPath+'lastls.json');
+var queryJSON = getQuery("lastls.json");
   queryJSON.query.term._parent = qparam_runNumber;
 
   client.search({
@@ -1186,8 +1541,8 @@ var queryJSON = require (JSONPath+'lastls.json');
 var q2 = function (callback){
 
 //loads query definition from file
-var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to the Apache/PHP version, now implements aggregation instead of faceting
-
+//var queryJSON = require (JSONPath+'streamsinrun.json'); //changed the Apache/PHP version, now implements aggregation instead of faceting
+var queryJSON = getQuery("streamsinrun.json");
   queryJSON.query.term._parent = qparam_runNumber;
 
   client.search({
@@ -1216,8 +1571,8 @@ var queryJSON = require (JSONPath+'streamsinrun.json'); //changed compared to th
 var q1 = function (callback){
 
  //loads query definition from file
- var queryJSON = require (JSONPath+'runinfo.json');
-
+ //var queryJSON = require (JSONPath+'runinfo.json');
+  var queryJSON = getQuery("runinfo.json");
   queryJSON.filter.term._id = qparam_runNumber;
 
   client.search({
@@ -1226,7 +1581,7 @@ var q1 = function (callback){
     body : JSON.stringify(queryJSON)
     }).then (function(body){
         var results = body.hits.hits; //hits for query
-	retObj = results[0]._source;
+	retObj = results[0]._source; 	//throws cannot read property error if result list is empty (no hits found) because results[0] is undefined
 	callback(q3);
   }, function (error){
 	excpEscES(res,error);
@@ -1235,14 +1590,29 @@ var q1 = function (callback){
 
 }//end q1
 
-q1(q2)
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 
 });//end callback
 
 //callback 15
-app.get('/node-f3mon/api/minimacroperstream', function (req, res) {
-console.log('received minimacroperstream request');
-
+app.get('/f3mon/api/minimacroperstream', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'minimacroperstream request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1260,7 +1630,11 @@ if (qparam_to == null){qparam_to = 2000;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
 if (qparam_type == null){qparam_type = 'minimerge';}
-if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var requestKey = 'minimacroperstream?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&type='+qparam_type;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.minimacroperstream; //cached ES response ttl (in seconds)
+
 
 var streamListArray;
 var inner = [];
@@ -1269,6 +1643,10 @@ var retObj = {
 };
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1277,7 +1655,8 @@ var sendResult = function(){
 var q2 = function(callback, total_q1){
   
    //loads query definition from file 
-   var queryJSON = require (JSONPath+'minimacroperstream.json');
+   //var queryJSON = require (JSONPath+'minimacroperstream.json');
+   var queryJSON = getQuery("minimacroperstream.json");
 
    queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
    queryJSON.query.bool.must[0].range.ls.from = qparam_from;
@@ -1349,8 +1728,8 @@ var q1 = function(callback){
   streamListArray = qparam_streamList.split(',');
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teolsperstream.json');
- 
+  //var queryJSON = require (JSONPath+'teolsperstream.json');
+  var queryJSON = getQuery("teolsperstream.json");
   queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
   queryJSON.query.filtered.query.range.ls.to = qparam_to;
@@ -1371,14 +1750,29 @@ var q1 = function(callback){
 
 };//end q1
 
-q1(q2);
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+ 
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('minimacroperstream (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 
 });//end callback
 
 //callback 16
-app.get('/node-f3mon/api/minimacroperbu', function (req, res) {
-console.log('received minimacroperbu request');
-
+app.get('/f3mon/api/minimacroperbu', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'minimacroperbu request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1398,7 +1792,11 @@ if (qparam_stream == null){qparam_stream = 'A';}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
 if (qparam_type == null){qparam_type = 'minimerge';}
-if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+
+var requestKey = 'minimacroperbu?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&stream='+qparam_stream+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&type='+qparam_type;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.minimacroperbu; //cached ES response ttl (in seconds)
+
 
 var streamListArray;
 var inner = [];
@@ -1407,6 +1805,10 @@ var retObj = {
 };
 
 var sendResult = function(){
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1415,8 +1817,8 @@ var sendResult = function(){
 var q2 = function (callback,totals_q1){
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'minimacroperbu.json');
-
+  //var queryJSON = require (JSONPath+'minimacroperbu.json');
+  var queryJSON = getQuery("minimacroperbu.json");
   queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.bool.must[0].range.ls.from = qparam_from;
   queryJSON.query.bool.must[0].range.ls.to = qparam_to;
@@ -1488,8 +1890,9 @@ var q1 = function (callback){
   streamListArray = qparam_streamList.split(',');
 
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teolsperbu.json');
-  
+ // var queryJSON = require (JSONPath+'teolsperbu.json');
+  var queryJSON = getQuery("teolsperbu.json");
+
   queryJSON.size = 2000000;
   queryJSON.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON.query.filtered.query.range.ls.from = qparam_from;
@@ -1521,14 +1924,29 @@ var q1 = function (callback){
 
 }//end q1
 
-q1(q2);
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl);
+ 
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('minimacroperbu (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 
 });//end callback
 
 //callback 17
-app.get('/node-f3mon/api/streamhist', function (req, res) {
-console.log('received streamhist request');
-
+app.get('/f3mon/api/streamhist', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'streamhist request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1560,6 +1978,10 @@ var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNu
 var interval = Math.round(x); 
 if (interval == 0){interval = 1;}
 
+var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&lastLs='+qparam_lastLs+'&intervalNum='+qparam_intervalNum+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&timePerLs='+qparam_timePerLs+'&useDivisor='+qparam_useDivisor;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.streamhist; //cached ES response ttl (in seconds)
+
 //helper variables with cb-wide scope
 var lastTimes = [];
 var streamTotals;
@@ -1585,6 +2007,10 @@ var sendResult = function(){
 	//console.log(JSON.stringify(lastTimes));
 	retObj.interval = interval;
 
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
@@ -1592,7 +2018,8 @@ var sendResult = function(){
 //Get macromerge
 var q5 = function (callback){
 	//loads query definition from file
-        var queryJSON = require (JSONPath+'minimacromerge.json');
+        //var queryJSON = require (JSONPath+'minimacromerge.json');
+	var queryJSON = getQuery("minimacromerge.json");
 
 	queryJSON.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
 	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
@@ -1661,7 +2088,8 @@ var q5 = function (callback){
 //Get minimerge
 var q4 = function (callback){
 	//loads query definition from file
-        var queryJSON = require (JSONPath+'minimacromerge.json');
+       // var queryJSON = require (JSONPath+'minimacromerge.json');
+	var queryJSON = getQuery("minimacromerge.json");
 
 	queryJSON.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
 	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
@@ -1729,7 +2157,8 @@ var q4 = function (callback){
 //Get stream out
 var q3 = function (callback){
 	//loads query definition from file
-	var queryJSON = require (JSONPath+'outls.json');
+	//var queryJSON = require (JSONPath+'outls.json');
+	var queryJSON = getQuery("outls.json");
 
 	queryJSON.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
 	queryJSON.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
@@ -1833,7 +2262,8 @@ var q3 = function (callback){
 //Get totals
 var q2 = function (callback){
   //loads query definition from file
-  var queryJSON = require (JSONPath+'teols.json');
+  //var queryJSON = require (JSONPath+'teols.json');
+  var queryJSON = getQuery("teols.json");
 
   queryJSON.aggregations.ls.histogram.interval = parseInt(interval);
   queryJSON.aggregations.ls.histogram.extended_bounds.min = qparam_from;
@@ -1864,7 +2294,7 @@ var q2 = function (callback){
 
 	took += body.took;
 	for (var i=0;i<buckets.length;i++){
-		var ls = buckets[i].key;
+		var ls = buckets[i].key + postOffSt;
                 var events = buckets[i].events.value;
 		var doc_count = buckets[i].doc_count;
 		ret.events[ls] = events;
@@ -1889,8 +2319,9 @@ var q1 = function (callback){
   if (navInterval == 0){navInterval = 1;}
   
   //loads query definition from file 
-  var queryJSON = require (JSONPath+'teols.json');
-  
+  //var queryJSON = require (JSONPath+'teols.json');
+  var queryJSON = getQuery("teols.json");  
+
   queryJSON.aggregations.ls.histogram.interval = parseInt(navInterval);
   queryJSON.aggregations.ls.histogram.extended_bounds.min = 1;
   queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_lastLs;
@@ -1942,16 +2373,31 @@ var q1 = function (callback){
 
 }//end q1
 
-q1(q2);
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+ f3MonCache.set(requestKey, "requestPending", ttl); 
+
+ q1(q2); //call q1 with q2 as its callback
+
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
 
 });//end callback
 
 //callback 18
 //queries runindex_cdaq/stream_label and populates a list with all stream names for a run
-//(further filtering by ls interval is also possible to implement)
-app.get('/node-f3mon/api/getstreamlist', function (req, res) {
-console.log('received getstreamlist request');
-
+//(further filtering by ls interval is also possible to implement by using the 'from' and 'to' arguments)
+app.get('/f3mon/api/getstreamlist', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getstreamlist request');
+var eTime = new Date().getTime();
 var cb = req.query.callback;
 
 //GET query string params
@@ -1965,17 +2411,26 @@ if (qparam_runNumber == null){qparam_runNumber = 124029;}
 //if (qparam_to == null){qparam_to = 1;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
+var requestKey = 'getstreamlist?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+var requestValue = f3MonCache.get(requestKey);
+var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
+
   var retObj = {
         "streamList" : []
   };
 
   var sendResult = function(){
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.queried += srvTime;
+        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
        }
   var q = function(callback){
-   var queryJSON = require (JSONPath+'streamlabel.json');
-
+   //var queryJSON = require (JSONPath+'streamlabel.json');
+   var queryJSON = getQuery("streamlabel.json");
+   
     queryJSON.query.bool.must[0].prefix._id = 'run'+qparam_runNumber;
     //queryJSON.query.filtered.query.range.ls.from = qparam_from;
     //queryJSON.query.filtered.query.range.ls.to = qparam_to;
@@ -2000,25 +2455,44 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
   });
 }//end q
 
-q(sendResult);
+if (requestValue=="requestPending"){
+  requestValue = f3MonCacheSec.get(requestKey);
+}
+
+if (requestValue == undefined) {
+	f3MonCache.set(requestKey, "requestPending", ttl);
+
+ 	q(sendResult);
+}else{
+	var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('getstreamlist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+}
+
 });//end callback
 
 //initial configuration callback (edit values in config.json)
-app.get('/node-f3mon/api/getConfig', function (req, res) {
-  console.log('received getConfig request');
-
+//if the configuration is loaded from Elasticsearch, this callback can also be changed into a cacheable callback in the same fashion as the previous ones
+app.get('/f3mon/api/getConfig', function (req, res) {
+  console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'received getConfig request');
+ // var eTime = new Date().getTime();
   var cb = req.query.callback;
 
   //loading configuration file
-  var retObj = require (JSONPath+'config.json');
+  //var retObj = require (JSONPath+'config.json');
+  var retObj = getQuery("config.json");
+
   res.set('Content-Type', 'text/javascript');
   res.send(cb +' ('+JSON.stringify(retObj)+')');
 
 });
 
+/*
 //idx refresh for one index
-app.get('/node-f3mon/api/idx-refr', function (req, res) {
-console.log('received idx-refr request');
+app.get('/f3mon/api/idx-refr', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'idx-refr request');
 
 //GET query string params
 var qparam_indexAlias = req.query.indexAlias;
@@ -2034,6 +2508,297 @@ client.indices.refresh({
         console.trace(error.message);
   });
 });//end idx-refr
+
+//get server cache usage statistics
+app.get('/f3mon/api/getcachestats', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getcachestats request');
+var cb = req.query.callback;
+
+var qparam_token = req.query.token;
+var acceptToken = 'randomPlainTextKey';
+
+if (qparam_token == acceptToken){
+  var retObj = {"server_cache_statistics":f3MonCache.getStats()};
+  //retObj["keys"] = f3MonCache.keys(); //appends list of keys in the response
+  //retObj["pairs"] = f3MonCache.mget(f3MonCache.keys()); //appends full cache pairs
+  res.set('Content-Type', 'text/javascript');
+  res.send(cb +' ('+JSON.stringify(retObj)+')');
+}else{
+  res.send('not allowed request');
+}
+
+});//end getcachestats
+
+//flush server cache
+app.get('/f3mon/api/freesomespace', function (req, res) {
+console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'freesomespace request');
+var cb = req.query.callback;
+var qparam_token = req.query.token;
+var acceptToken = 'anotherRandomPlainTextKey';
+
+if (qparam_token == acceptToken){
+  var retObj = {"current stats":f3MonCache.getStats()};
+  f3MonCache.flushAll();
+  retObj["new stats"] = f3MonCache.getStats();
+  res.set('Content-Type', 'text/javascript');
+  res.send(cb +' ('+JSON.stringify(retObj)+')');
+}else{
+  res.send('not allowed request');
+}
+
+});//end freesomespace
+*/
+
+//*SC CALLBACKS BELOW* (using Oracle DB)
+
+//callback 1: transfer
+app.get('/sc/api/transfer', function (req, res) {
+ var eTime = new Date().getTime();
+ //params definition
+ var fill=0;
+ var cb = req.query.callback;
+ var run = req.query.run;
+ var stream = req.query.stream;
+ var xaxis = req.query.xaxis;
+ var formatchart = req.query.chart;
+ var formatstrip = req.query.strip;
+ var formatbinary = req.query.binary; 
+
+ var requestKey = 'sc_transfer?run='+run+'&stream='+stream+'&xaxis='+xaxis+'&formatchart='+formatchart+'&formatstrip='+formatstrip;
+ var requestValue = f3MonCache.get(requestKey);
+ var ttl = ttls.sctransfer; //cached db response ttl (in seconds)
+  
+
+ var getFromDB = function(){ 
+  var retObj; //request formatted response
+  var sendResult = function(){
+     f3MonCache.set(requestKey, [retObj,ttl], ttl);
+     var srvTime = (new Date().getTime())-eTime;
+     totalTimes.queried += srvTime;
+     console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+     res.set('Content-Type', 'text/javascript');
+     //res.send(cb +' ('+JSON.stringify(retObj)+')'); //f3mon response format
+     res.send(JSON.stringify(retObj));
+  }
+
+  var suffix;
+  if (stream == null){
+    suffix = " ORDER BY STREAM ASC, LUMISECTION ASC";
+  }else{
+    suffix = " AND STREAM like '%"+stream+"%'";
+  }
+
+  var exec = function (){
+    //connection and query to Oracle DB
+    oracledb.getConnection(
+    {
+       user          : "",	//should be provided in a secure way on deployment
+       password      : "",	//should be provided in a secure way on deployment
+       connectString : "cmsonr1-v.cms:10121/cms_rcms.cern.ch"
+    },
+    function(err, connection)
+    {
+    	if (err) {
+        	console.error(err.message);
+		//equiv to (if (!$conn), err at oci_connect)
+		excpEscOracle(res,err);
+    		return;
+    	}
+
+    connection.execute(
+      "select LUMISECTION,STREAM,"+
+      "CTIME as CREATIME,"+
+       "inj.ITIME as INJTIME,"+
+       "inj.FILESIZE as FILESIZE,"+
+       "new.ITIME as NEWTIME,"+
+       "cop.ITIME as COPYTIME,"+
+       "chk.ITIME as CHKTIME,"+
+       "ins.ITIME as INSTIME,"+
+       "rep.ITIME as REPACKTIME,"+
+       "del.DTIME as DELTIME  "+
+       "FROM CMS_STOMGR.FILES_CREATED files                     "+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_INSERTED ins using (FILENAME)"+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_NEW new using (FILENAME)"+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_COPIED cop using (FILENAME)"+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_REPACKED rep using (FILENAME)"+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_CHECKED chk using (FILENAME)"+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_DELETED del using (FILENAME)"+
+       "LEFT OUTER JOIN CMS_STOMGR.FILES_INJECTED inj using (FILENAME)"+
+       "where files.RUNNUMBER=:runnumber"+suffix,
+       {'runnumber':run},
+     	function(err, result){
+    		if (err) {
+      		  console.error(err.message);
+		  //equiv to (if (!$r), err at oci_execute)
+		  excpEscOracle(res,err);
+      		  return;
+   		}
+    		//console.log(result.rows);
+
+		//assumes associative array rows (oracledb outformat set to OBJECT rather than ARRAY)
+		var tuples = result.rows;
+
+		//review? maybe conditions below if precisely mapped to the php code conditions
+		if (formatchart!=null){	
+			retObj = {
+				"params": null,
+				"serie1": null,
+				"serie2": null
+			};
+                        var transtimes = [];
+                        var bandwidth = [];
+			var strms = {};
+                        for (var i=0;i<tuples.length;i++){
+				var copytime = (Date.parse(tuples[i].COPYTIME)-Date.parse(tuples[i].INJTIME))/1000;
+				if (!strms.hasOwnProperty(tuples[i].STREAM)){
+                                                strms[tuples[i].STREAM] = true;
+						transtimes.push({"name":tuples[i].STREAM, "data":[]});
+						bandwidth.push({"name":tuples[i].STREAM, "data":[]});
+                                }
+				var t;
+				var b;
+				if (xaxis!='size'){
+					t = [parseInt(tuples[i].LUMISECTION),copytime];
+					b = [parseInt(tuples[i].LUMISECTION),tuples[i].FILESIZE/copytime/1024/1024];
+					transtimes[transtimes.length-1].data.push(t);
+					bandwidth[transtimes.length-1].data.push(b);
+				}else{
+					t = [parseInt(tuples[i].FILESIZE),copytime];
+                                        b = [parseInt(tuples[i].FILESIZE),tuples[i].FILESIZE/copytime/1024/1024];
+                                        transtimes[transtimes.length-1].data.push(t);
+                                        bandwidth[transtimes.length-1].data.push(b);
+				}
+			}
+			retObj.params = {"xaxis":(xaxis==undefined) ? null : xaxis}; //assigning a null value to a non-set arg, initially undefined
+                        retObj.serie1 = transtimes;
+                        retObj.serie2 = bandwidth;
+		}else if (formatstrip==null){
+			for (var i=0;i<tuples.length;i++){
+				var creatime = Date.parse(tuples[i].CREATIME);
+				tuples[i].CREATIME = (new Date(creatime)).toUTCString(); //friendlier format
+				tuples[i].INJTIME = (Date.parse(tuples[i].INJTIME)-creatime)/1000; //in seconds
+				tuples[i].NEWTIME = (Date.parse(tuples[i].NEWTIME)-creatime)/1000;
+				tuples[i].COPYTIME = (Date.parse(tuples[i].COPYTIME)-creatime)/1000;
+				tuples[i].CHKTIME = (Date.parse(tuples[i].CHKTIME)-creatime)/1000;
+				tuples[i].INSTIME = (Date.parse(tuples[i].INSTIME)-creatime)/1000;
+				tuples[i].REPACKTIME = (Date.parse(tuples[i].REPACKTIME)-creatime)/1000;
+				tuples[i].DELTIME = (Date.parse(tuples[i].DELTIME)-creatime)/1000;
+				tuples[i]["COPYBW"] = tuples[i].FILESIZE/(tuples[i].COPYTIME-tuples[i].INJTIME);
+			}
+			//send reformatted tuples as response
+                        retObj = tuples;
+		}else{
+			var stat = [];
+			var streams = {};
+			for (var i=0;i<tuples.length;i++){
+				if (!streams.hasOwnProperty(tuples[i].STREAM)){
+						streams[tuples[i].STREAM] = true;
+						var o = {};
+						o[tuples[i].STREAM] = {};
+						stat.push(o);
+				}
+				if (formatbinary!=null){
+					if (tuples[i].COPYTIME!=null){
+						stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = 1;
+					}else{
+						stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = 0;
+					}
+				}
+				
+				if (tuples[i].INJTIME != null){
+					stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "INJECTED";
+				}
+				if (tuples[i].NEWTIME != null){
+                                        stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "NEW";
+                                }
+				if (tuples[i].COPYTIME != null){
+                                        stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "COPIED";
+                                }
+				if (tuples[i].CHKTIME != null){
+                                        stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "CHECKED";
+                                }
+                                if (tuples[i].INSTIME != null){
+                                        stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "INSERTED";
+                                }
+                                if (tuples[i].REPACKTIME != null){
+                                        stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "REPACKED";
+                                }
+				if (tuples[i].DELTIME != null){
+                                        stat[stat.length-1][tuples[i].STREAM][tuples[i].LUMISECTION] = "DELETED";
+                                }		
+			}
+			retObj = stat;	
+		}
+		sendResult(); 
+	
+     });
+    }); //end oracle access
+  }//end exec
+
+  if (run!=undefined){
+        exec();
+  }else{
+	//run ES query and then call exec() in its callback
+	var queryJSON = {
+	"size":1,
+	"sort":{"startTime":"desc"}
+	};
+    client.search({
+     index: 'runindex_cdaq_read',
+     type: 'run',
+     body : JSON.stringify(queryJSON)
+     }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	var resp = {};
+	resp["started"] = results[0]["_source"]["startTime"];
+	if (results[0]["_source"].hasOwnProperty("endTime")){
+		resp["ended"] = results[0]["_source"]["endTime"];
+	}else{
+		resp["ended"] = "";
+	}
+	resp["number"] = results[0]["_source"]["runNumber"];
+	run = (run==undefined) ? resp["number"] : run;
+	
+	exec();
+   }, function (error){
+	excpEscES(res,error);
+        console.trace(error.message);
+  });
+	
+  }
+
+ }//end getFromDB
+
+  if (requestValue=="requestPending"){
+  	requestValue = f3MonCacheSec.get(requestKey);
+  }
+
+  if (requestValue == undefined){
+	f3MonCache.set(requestKey, "requestPending", ttl);
+	getFromDB();	
+  }else{
+        var srvTime = (new Date().getTime())-eTime;
+        totalTimes.cached += srvTime;
+        console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+        res.set('Content-Type', 'text/javascript');
+        //res.send(cb + ' (' + JSON.stringify(requestValue)+')');  //f3mon format
+	res.send(JSON.stringify(requestValue[0]));
+  }
+
+});//end calback
+
+
+
+
+
+
+
+
+
+
+
+//*HELPER FUNCTIONS BELOW* (used by app callbacks above and for the server settings)
+
 
 //percColor function
 var percColor = function (percent){
@@ -2052,7 +2817,13 @@ var percColor = function (percent){
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
 	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error)');
+        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
+}
+
+//escapes client hanging upon an Oracle DB request error by sending http 500
+var excpEscOracle = function (res, error){
+	//message can be augmented with info from error
+        res.status(500).send('Internal Server Error (Oracle DB query error during the request execution, an admin should seek further info in the logs)');
 }
 
 //escapes client hanging upon a nodejs code exception/error by sending http 500
@@ -2061,33 +2832,53 @@ var excpEscJS = function (res, error){
         res.status(500).send('Internal Server Error (Nodejs error)');
 }
 
-//tester
-app.get('/node-f3mon/api/testf', function (req, res) {
-var finput = 'undef';
-//col = percColor(req.query.c);
-/*
-var s = req.query.c;
-if ((!(s.substr(0,3)==='DQM')&&(s!=='Error'))||(s==='DQMHistograms')){
-                        res.send('passed');
-                }else{res.send('failed');}
-*/
-res.send(finput);
-});//end tester
-
 //sets server listening for connections at port 3000
 //var server = app.listen(3000);
 //var server = app.listen(3000, function () {
-var server = app.listen(80, function () {
+var server = app.listen(serverPort, function () {
 
  // test elasticsearch connection (test)
  client.ping();
  //client.cat.aliases({name: 'runindex*cdaq*'},function (error, response) { console.log(JSON.stringify(response.split('\n')));});
  
- //var host = server.address().address;
- //var host = '10.176.17.46';
+ //var host = server.address().address; //address can also be hardcoded 
 
  var port = server.address().port;
  console.log('Server listening at port:'+port);
  //console.log('Server listening at http://%s:%s', host, port);
  
+//dropping priviledges if server was started by root
+ if (process.getuid()==0){
+        console.log('current owner:'+process.getuid()+' (root)');   
+        console.log('dropping to owner:'+owner);
+        process.setgid('es-cdaq');
+        process.setuid(owner);
+        console.log('new owner:'+process.getuid()+' in group:'+process.getgid());
+ }else{
+        console.log('current owner:'+process.getuid()+'\n(no drop needed)');
+ }
+
  });
+
+//cumulative time of requests serving in milliseconds
+var totalTimes = {
+	"queried" : 0,
+	"cached" : 0
+}
+
+//dev helper for cache statistics
+var stats_file = fs.createWriteStream('./cache_statistics.txt', {flags : 'a'});
+var times_file = fs.createWriteStream('./service_times.txt', {flags : 'a'});
+
+var cachestatslogger = function (){
+	var outObj = {
+		"time" : new Date().toUTCString(),
+		"stats" : f3MonCache.getStats()
+	};
+	stats_file.write(util.format(JSON.stringify(outObj)+'\n'));
+	times_file.write(util.format(JSON.stringify(totalTimes)+'\n'));
+	console.log('-Wrote out cache statistics -------------------------------------------------------------------------------------------------');	
+}
+cachestatslogger(); //run once at the beggining
+setInterval(cachestatslogger, 30000); //async call: runs cachestatslogger every 30 seconds, writing out a statistics entry
+
