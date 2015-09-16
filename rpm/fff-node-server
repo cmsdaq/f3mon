@@ -28,18 +28,26 @@
 
 . /etc/rc.d/init.d/functions
 
+#ugly hack to detect if this host is in es-tribe DNS alias
+thisip=`hostname -I`
+is_tribe=`nslookup es-tribe | grep $thisip`
+if [ "$is_tribe" != "" ]; then
+  echo "FFF web service is disabled on es-tribe hosts"
+  if [ $1 == "start" ]; then
+    exit 0;
+  fi
+fi
+
 APPDIR=/opt/node/prod
 PROCNAME="app.js"
 NODE_PORT="80"
 PIDFILE=/var/run/fff-node-server.pid
 
-if [ -z "$2" ] then
-  if [ $2 == "test" ] then
+if [ "$2" == "test" ]; then
     APPDIR=/opt/node/test
     PROCNAME="app.js.test"
     NODE_PORT="4000"
-    PIDFILE=/var/run/test-fff-node-server.pid
-  fi
+    PIDFILE="/var/run/test-fff-node-server.pid"
 fi
 
 NODE_WRAPPER=/opt/node/node-daemon.js
