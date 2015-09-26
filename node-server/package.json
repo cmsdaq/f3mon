@@ -1,0 +1,14 @@
+{
+  "name": "fff-node",
+  "version": "0.1.1",
+  "dependencies": {
+    "express": "~4.13.3",
+    "elasticsearch": "~8.2.0",
+    "node-php": "0.0.1",
+    "node-cache": "~3.0.0",
+    "daemonize2": "~0.4.2"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  }
+}
