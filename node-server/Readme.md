@@ -10,7 +10,23 @@ npm install daemonize2 -save #needed for init script
 #sudo yum install oracle-instantclient-devel
 export OCI_LIB_DIR=/usr/lib64/oracle/*/client/lib64
 export OCI_INC_DIR=/usr/include/oracle/*/client
-npm install oracledb -save
+
+#npm install oracledb -save
+
+#Note:compilation of oracledb 1.2.0 is broken, so do this:
+cd node_modules
+rm -rf oracledb
+npm pack oracledb
+tar xzf oracledb*.tgz
+rm -rf oracledb*.tgz
+rm -rf package/binding.gyp
+cp ../binding.gyp package/
+mv package oracledb
+cd oracledb
+npm install nan
+node-gyp rebuild
+cd ../../
+
 
 
 This is base web server directory.
