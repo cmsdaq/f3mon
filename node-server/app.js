@@ -82,6 +82,7 @@ function hook_writestream(stream, callback) {
 	};
 }
 var exceptionHandler = null;
+var errCount=0;
 process.on('uncaughtException', exceptionHandler = function(err) {
         var toc = new Date().toISOString();
 	console.error('Caught fatal exception! Time: '+toc);
@@ -90,7 +91,8 @@ process.on('uncaughtException', exceptionHandler = function(err) {
         process.removeListener("uncaughtException", exceptionHandler);
 	unhook_err();
 	fs.closeSync(stderrFS);
-        throw err;
+        if (errCount<100) errCount=errCount+1;
+        else throw err;
 	});
 
 //map of queries in JSON format
@@ -2562,11 +2564,14 @@ app.get('/sc/api/transfer', function (req, res) {
  var xaxis = req.query.xaxis;
  var formatchart = req.query.chart;
  var formatstrip = req.query.strip;
- var formatbinary = req.query.binary; 
+ var formatbinary = req.query.binary;
+ var nonblocking = req.query.nonblocking;
+ var cb = req.query.callback;
 
  var requestKey = 'sc_transfer?run='+run+'&stream='+stream+'&xaxis='+xaxis+'&formatchart='+formatchart+'&formatstrip='+formatstrip;
  var requestValue = f3MonCache.get(requestKey);
  var ttl = ttls.sctransfer; //cached db response ttl (in seconds)
+ var reply=true;
   
 
  var getFromDB = function(){ 
@@ -2576,9 +2581,13 @@ app.get('/sc/api/transfer', function (req, res) {
      var srvTime = (new Date().getTime())-eTime;
      totalTimes.queried += srvTime;
      console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+     if (!reply) return;
      res.set('Content-Type', 'text/javascript');
      //res.send(cb +' ('+JSON.stringify(retObj)+')'); //f3mon response format
-     res.send(JSON.stringify(retObj));
+     if (cb === undefined)
+       res.send(JSON.stringify(retObj));
+     else
+       res.send(cb +' ('+JSON.stringify(retObj)+')');
   }
 
   var suffix;
@@ -2592,8 +2601,8 @@ app.get('/sc/api/transfer', function (req, res) {
     //connection and query to Oracle DB
     oracledb.getConnection(
     {
-       user          : "",	//should be provided in a secure way on deployment
-       password      : "",	//should be provided in a secure way on deployment
+       user          : "CMS_DAQ2_HW_CONF_R",
+       password      : "mickey2mouse",	//change this before any git push!
        connectString : "cmsonr1-v.cms:10121/cms_rcms.cern.ch"
     },
     function(err, connection)
@@ -2775,14 +2784,25 @@ app.get('/sc/api/transfer', function (req, res) {
 
   if (requestValue == undefined){
 	f3MonCache.set(requestKey, "requestPending", ttl);
-	getFromDB();	
+        if (nonblocking !== undefined) {
+          res.set('Content-Type', 'text/javascript');
+            if (cb === undefined)
+              res.send(JSON.stringify({}));
+            else
+              res.send(cb +' ('+JSON.stringify({})+')');
+           reply=false;
+        }
+	getFromDB();
   }else{
         var srvTime = (new Date().getTime())-eTime;
         totalTimes.cached += srvTime;
         console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         //res.send(cb + ' (' + JSON.stringify(requestValue)+')');  //f3mon format
-	res.send(JSON.stringify(requestValue[0]));
+        if (cb === undefined)
+	  res.send(JSON.stringify(requestValue[0]));
+        else
+          res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
   }
 
 });//end calback
