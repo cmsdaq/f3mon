@@ -386,7 +386,7 @@
             queryParams: {
                 runNumber: false,
                 sysName: false,
-                timeRange: 60,
+                timeRange: 300,
             },
             queryInfo: {
                 //legend: false,

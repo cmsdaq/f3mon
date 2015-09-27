@@ -1317,6 +1317,10 @@ var sendResult = function(){
 
 var resSummary = false;
 var legend = {};
+var reserved;
+var special;
+var output;
+var ustatetype = "state-hist";
 
 //Get legend
 var q1 = function(callback){
@@ -1335,15 +1339,19 @@ var q1 = function(callback){
 		sendResult();
 	}else{
 		retObj.data = {};
-        	var results = body.hits.hits; //hits for query
-		var shortened = results[0]._source.names;
-		if (shortened.indexOf('33=')>-1){
-			shortened = shortened.substr(0, shortened.indexOf('33='))+'33=Busy';	
+        	var result = body.hits.hits[0]; //hits for query
+                reserved = result._source.reserved;
+                special = result._source.special;
+                output = result._source.output;
+                if (reserved==undefined || special==undefined || output==undefined) {
+		  var shortened = result._source.names;
+		  if (shortened.indexOf('33=')>-1){
+			shortened = shortened.substr(0, shortened.indexOf('33='))+'33=Busy';
 			resSummary = true;
-		}
-		var rawLegend = shortened.trim().split(' ');
-		var name;
-		for (var i = 0; i<rawLegend.length;i++){
+		  }
+		  var rawLegend = shortened.trim().split(' ');
+		  var name;
+		  for (var i = 0; i<rawLegend.length;i++){
 			var kv = rawLegend[i].split('=');
 			if (kv[1]==''){
 				continue;
@@ -1356,7 +1364,20 @@ var q1 = function(callback){
 			//dEntry[name] = [];
 			//data.push(dEntry);
 			retObj.data[name] = [];
-		}
+		  }
+                }
+                else {
+                  var shortened = result._source.stateNames;
+                  for (var i = 0 ; i< special ; i++) {
+                    legend[i]=shortened[i];
+	            retObj.data[shortened[i]] = [];
+                  }
+		  legend[special]='hltOutput';
+	          retObj.data['hltOutput'] = [];
+                  legend[reserved]='Busy';
+	          retObj.data['Busy'] = [];
+                  ustatetype = "state-hist-summary";
+                }
 	//console.log(JSON.stringify(data));	
 	callback(sendResult);
 	}
@@ -1383,7 +1404,7 @@ var q2 = function(callback){
 
   client.search({
   index: 'runindex_'+qparam_sysName+'_read',
-  type: 'state-hist',
+  type: ustatetype,
   body : JSON.stringify(queryJSON)
 
   }).then (function(body){
@@ -1401,7 +1422,7 @@ var q2 = function(callback){
 			var key = entries[j].key;
 			var value = entries[j].count;
 			var name = legend[key];
-			if (key>32){
+			if (key>32 && resSummary === true){
 				busySum = busySum + value;
 			}else{
 				entriesList.push(name);
@@ -1412,7 +1433,7 @@ var q2 = function(callback){
 				retObj.data[name].push(arr);
 			}
 		}
-		if (resSummary == true){
+		if (resSummary === true){
 			entriesList.push('Busy');
 			var arr = [timestamp,busySum];
 			//var o = {};  //Id1: data array format
