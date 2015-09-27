@@ -2314,7 +2314,7 @@ var q3 = function (callback){
 			var p = 100*(processed+err)/total;
 			percent = Math.round(p*100)/100;
 		}
-		var color = percColor(percent);
+		var color = percColor2(percent,err>0);
 
 		var entry = {
 			"x" : ls,
@@ -2919,6 +2919,24 @@ var percColor = function (percent){
                 }
 		return color;
 }
+
+
+var percColor2 = function (percent,hasErrors){
+		//console.log('called percColor with arg='+percent);
+		var color = '';
+		if (percent >= 100){
+                        if (hasErrors)
+                            color = "lightgreen";
+                        else
+                            color = 'green';
+                }else if (percent >= 50){
+                        color = 'orange';
+                }else{
+                        color = 'red';
+                }
+		return color;
+}
+
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
