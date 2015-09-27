@@ -109,7 +109,7 @@
                         if (hideAllOthers) {
                             var series = this.chart.series;
                             series.forEach(function(serie) {
-                                if (['navigator', 'Navigator', 'minimerge', 'macromerge'].indexOf(serie.name) > -1) {
+                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge'].indexOf(serie.name) > -1) {
                                     return
                                 } else if (serie.name == selectedName || serie.name == selectedName + "_complete") {
                                     serie.setVisible(true, false)
@@ -158,7 +158,7 @@
                 })
 
                 var totalsRate = $.grep(items,function(item,index){
-                    return item.series.name.indexOf('_complete')<0 && $.inArray(item.series.name,['minimerge','macromerge']) <0;
+                    return item.series.name.indexOf('_complete')<0 && $.inArray(item.series.name,['micromerge', 'minimerge','macromerge']) <0;
                 })
 
                 var sumRate = 0;
@@ -183,7 +183,7 @@
 
                     //console.log('fs'+formatString);
                     //add percentage
-                    if ( $.inArray(name,['minimerge','macromerge']) == -1  ){
+                    if ( $.inArray(name,['micromerge','minimerge','macromerge']) == -1  ){
                         formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
                     }
                     else {
@@ -317,7 +317,7 @@
             minPadding: 0,
             maxPadding: 0,
             id: "rates",
-            height: "74%",
+            height: "67%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
@@ -335,7 +335,7 @@
             maxPadding: 0,
             max: 100,
             min: 0,
-            height: "74%",
+            height: "67%",
             id: "percent",
             lineWidth: 1,
             offset: 0,
@@ -350,38 +350,51 @@
             }
         }, {
             title: {
-                text: 'miniMerge %',
+                text: 'Micro %',
             },
             showLastLabel: true,
             max: 100,
             min: 0,
-            id: "minipercent",
-            height: "10%",
-            top: "78%",
+            id: "micropercent",
+            height: "8%",
+            top: "72%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
         }, {
             title: {
-                text: 'macroMerge %',
+                text: 'Mini %',
                 align: 'middle',
                 margin: 30,
+            },
+            showLastLabel: true,
+            max: 100,
+            min: 0,
+            id: "minipercent",
+            height: "8%",
+            top: "82%",
+            lineWidth: 1,
+            offset: 0,
+            opposite: true,
+            labels: {
+                align: 'center',
+            }
+        }, {
+            title: {
+                text: 'Macro %',
             },
             showLastLabel: true,
             minPadding: 0,
             maxPadding: 0,
             max: 100,
             min: 0,
-            height: "10%",
+            height: "8%",
             id: "macropercent",
-            top: "90%",
+            top: "92%",
             lineWidth: 1,
             offset: 0,
-            opposite: true,
-            labels: {
-                align: 'center',
+            opposite: false,
 
-            }
         }],
     })
 

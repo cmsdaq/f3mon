@@ -60,6 +60,11 @@
                                         "field": "in"
                                     }
                                 },
+                                "error": {
+                                    "sum": {
+                                        "field": "error"
+                                    }
+                                },
                                 "out": {
                                     "avg": {
                                         "field": "out"

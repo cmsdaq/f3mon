@@ -69,6 +69,7 @@
 
         var service = {
             data: {
+                micromerge: {},
                 minimerge: {},
                 macromerge: {},
                 streams: {},
@@ -77,7 +78,7 @@
                 lsList: false,
                 interval: false,
                 noData: function() {
-                    return _.isEmpty(this.streams) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge)
+                    return _.isEmpty(this.streams) && _.isEmpty(this.micromerge) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge)
                 },
             },
             queryParams: {
@@ -130,6 +131,7 @@
                         service.data.lsList = data.lsList;
                         service.data.interval = data.interval;
                         service.data.streams = data.streams;
+                        service.data.micromerge = data.micromerge;
                         service.data.minimerge = data.minimerge;
                         service.data.macromerge = data.macromerge;
                         service.data.navbar = data.navbar;

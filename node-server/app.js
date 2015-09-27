@@ -1995,6 +1995,7 @@ var retObj = {
 	"streams" : "",
 	"took" : "",
 	"lsList" : "",
+        "micromerge" : "",
         "minimerge" : "",
 	"macromerge" : "",
 	"navbar" : "",
@@ -2186,16 +2187,23 @@ var q3 = function (callback){
 		"streamList" : [],
 		"data" : []
 	};
-	
+
+        var totSumIn={};
+        var totSumError={};
+        var nStreamsMicro=0;
+
+
 	for (var i=0;i<streams.length;i++){
 		 if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
                         continue;
                 }
+                nStreamsMicro+=1;
 		var sout = {
 			"stream" : streams[i].key,
 			"dataOut" : [],
 			"fileSize" : [],
-			"percent" : []
+			"percent" : [],
+                        "pPErr": []
 		};
 		streamData.streamList.push(streams[i].key);
 		
@@ -2204,14 +2212,27 @@ var q3 = function (callback){
 			var ls = lsList[j].key+postOffSt;
 			var total = streamTotals.events[ls];
 			var doc_count = streamTotals.doc_counts[ls];
+
+                        if (totSumIn[ls]==null) {
+                          totSumIn[ls]=0;
+                          totSumError[ls] = 0;
+                        }
 			
 			//rounding with 2 dp precision
 			var inval = Math.round(100*lsList[j].in.value)/100;
 			var outval = Math.round(100*lsList[j].out.value)/100;
 			var fsval = Math.round(100*lsList[j].filesize.value)/100;
+			var errval =0;
+                        if (lsList[j].error!=undefined)
+                          errval = Math.round(100*lsList[j].error.value)/100;
+
+                        //for total %
+                        totSumIn[ls] += inval;
+                        totSumError[ls] += errval;
 
 			//calc stream percents
 			var percent;
+			var percentProc;
 			if (total == 0){
 				if (doc_count == 0){
 					percent = 0;
@@ -2219,28 +2240,74 @@ var q3 = function (callback){
 					percent = 100;
 				}
 			}else{
-				var p = 100*inval/total;
+				var p = 100*(inval+errval)/total;
                                 percent = Math.round(p*100)/100;
+				var pnoerr = 100*inval/total;
+                                percentProc = Math.round(pnoerr*100)/100;
 			}
 
 			//output
 			if (qparam_timePerLs>1){
 				outval = Math.round((outval/qparam_timePerLs)*100)/100;
 				fsval = Math.round((fsval/qparam_timePerLs)*100)/100;
-			}		
+			}
 			
 			var d = {"x":ls,"y":outval}; 
 			var f = {"x":ls,"y":fsval};
 			var p = {"x":ls,"y":percent};
+			var pproc = {"x":ls,"y":percentProc};
 			sout.dataOut.push(d);
 			sout.fileSize.push(f);
-			sout.percent.push(p);
+			sout.percent.push(pproc);
+			sout.pPErr.push(p);
 
 		}//end for j
 		streamData.data.push(sout);			
 	}//end for i
+
+        
+        var micromerge = {
+			"percents" : [],
+			"took" : body.took
+	};
+		
+	var lsList = streamTotals.lsList;
+		
+	for (var i=0;i<lsList.length;i++){
+		var ls = lsList[i] + postOffSt;
+		var processed = totSumIn[ls];
+                if (processed == undefined) processed=0;
+		var err = totSumError[ls];
+                if (err == undefined) err=0;
+		var total = streamTotals.events[ls]*nStreamsMicro;
+		var doc_count = streamTotals.doc_counts[ls];
+		//var mdoc_count = lsList[i].doc_count;
+
+		//calc minimerge percents
+		var percent;
+		if (total == 0){
+			if (doc_count == 0){
+				percent = 0;
+			}else{
+				percent = 100;
+			}
+		}else{
+			var p = 100*(processed+err)/total;
+			percent = Math.round(p*100)/100;
+		}
+		var color = percColor(percent);
+
+		var entry = {
+			"x" : ls,
+			"y" : percent,
+			"color" : color
+		};
+		micromerge.percents.push(entry);
+        }
+
 	retObj.streams = streamData;
 	retObj.took = took;
+	retObj.micromerge = micromerge;
 	retObj.lsList = streamTotals.lsList;
 	
 	//Filter DQM from streamlist

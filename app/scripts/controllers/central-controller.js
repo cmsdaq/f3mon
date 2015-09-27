@@ -163,7 +163,7 @@
 
         var data = streamRatesService.data;
         var chart = false;
-        var miniSerie, macroSerie, streams, chartConfig;
+        var microSerie, miniSerie, macroSerie, streams, chartConfig;
         var isDirty = true;
 
         var currentRangeMode="stream";
@@ -280,6 +280,7 @@
                 
             };
 
+            microSerie = false;
             miniSerie = false;
             macroSerie = false;
 
@@ -304,6 +305,24 @@
                 //type:area,
                 //id:'navigator',
             });
+
+            chart.addSeries({
+                borderWidth: 0.5,
+                type: 'column',
+                id: "micromerge",
+                name: "micromerge",
+                yAxis: "micropercent",
+                showInLegend: false,
+                //cursor: "pointer",
+                //minPointLength: 5,
+                //point: {
+                //    events: {
+                //        click: function(event) {
+                //            $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
+                //        }
+                //    }
+                //}
+            })
 
             chart.addSeries({
                 borderWidth: 0.5,
@@ -340,6 +359,7 @@
                 }
             })
 
+            microSerie = chart.get('micromerge');
             miniSerie = chart.get('minimerge');
             macroSerie = chart.get('macromerge');
                         
@@ -409,6 +429,7 @@
             var navSerie = chart.series[1];
             navSerie.setData(out, false, false);
 
+            microSerie.setData(data.micromerge.percents, false, false);
             miniSerie.setData(data.minimerge.percents, false, false);
             macroSerie.setData(data.macromerge.percents, false, false);
 
