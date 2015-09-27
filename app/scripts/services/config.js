@@ -144,7 +144,7 @@
                     s;
 
                 // build the header
-                s = ['<b> LS: ' + items[0].key + '</b> processed<br/>'];
+                s = ['<b> LS: ' + items[0].key + '</b> rate (processed %) <br/>'];
 
 
                 //get percents
@@ -316,7 +316,7 @@
             minPadding: 0,
             maxPadding: 0,
             id: "rates",
-            height: "67%",
+            height: "70%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
@@ -331,7 +331,7 @@
             min: 0,
             id: "micropercent",
             height: "8%",
-            top: "72%",
+            top: "74%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
@@ -346,7 +346,7 @@
             min: 0,
             id: "minipercent",
             height: "8%",
-            top: "82%",
+            top: "83%",
             lineWidth: 1,
             offset: 0,
             opposite: true,

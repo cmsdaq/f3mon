@@ -2293,7 +2293,7 @@ var q3 = function (callback){
 	var lsList = streamTotals.lsList;
 		
 	for (var i=0;i<lsList.length;i++){
-		var ls = lsList[i] + postOffSt;
+		var ls = lsList[i];
 		var processed = totSumIn[ls];
                 if (processed == undefined) processed=0;
 		var err = totSumError[ls];
