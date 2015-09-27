@@ -62,7 +62,7 @@
                                 },
                                 "error": {
                                     "sum": {
-                                        "field": "error"
+                                        "field": "err"
                                     }
                                 },
                                 "out": {
