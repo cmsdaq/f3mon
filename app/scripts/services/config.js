@@ -111,7 +111,7 @@
                             series.forEach(function(serie) {
                                 if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge'].indexOf(serie.name) > -1) {
                                     return
-                                } else if (serie.name == selectedName || serie.name == selectedName + "_complete") {
+                                } else if (serie.name == selectedName) {
                                     serie.setVisible(true, false)
 
                                 } else {
@@ -121,8 +121,9 @@
                             this.chart.redraw();
                             return false;
                         } else {
-                            var cSerie = this.chart.get(selectedName + "_complete");
-                            cSerie.setVisible(!this.visible, false);
+                            //?
+                            //var cSerie = this.chart.get(selectedName + "_complete");
+                            //cSerie.setVisible(!this.visible, false);
                         }
 
 
@@ -143,22 +144,21 @@
                     s;
 
                 // build the header
-                s = ['<b> LS: ' + items[0].key + '</b><br/>'];
+                s = ['<b> LS: ' + items[0].key + '</b> processed<br/>'];
 
 
                 //get percents
                 var totals = $.grep(items,function(item,index){
-                    return item.series.name.indexOf('_complete')>0
+                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge']) <0;
                 })
 
                 totals.forEach(function(item){
                     var name = item.series.name;
-                    var strIdx = name.indexOf('_complete');
-                    percents[name.substr(0,strIdx)] = item.point.y;                  
+                    percents[name] = item.point.p;
                 })
 
                 var totalsRate = $.grep(items,function(item,index){
-                    return item.series.name.indexOf('_complete')<0 && $.inArray(item.series.name,['micromerge', 'minimerge','macromerge']) <0;
+                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge']) <0;
                 })
 
                 var sumRate = 0;
@@ -175,7 +175,6 @@
                 // build the values
                 items.forEach(function(item) {
                     var name = item.series.name;
-                    if(name.indexOf('_complete')>0){return;}
 
                     series = item.series;
                     var formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
@@ -323,31 +322,6 @@
             opposite: false,
             minorGridLineWidth: 0.7,
             gridLineWidth:1
-        }, {
-
-            title: {
-                text: 'Completeness %',
-                align: 'middle',
-                //margin: 30,
-            },
-            showLastLabel: true,
-            minPadding: 0,
-            maxPadding: 0,
-            max: 100,
-            min: 0,
-            height: "67%",
-            id: "percent",
-            lineWidth: 1,
-            offset: 0,
-            opposite: true,
-            alignTicks: false,
-            gridLineWidth:0,
-            minorGridLineWidth:0,
-            gridLineColor:"#FFFFFF00",
-            minorGridLineColor:"#FFFFFF00",
-            labels: {
-                //align: 'right',
-            }
         }, {
             title: {
                 text: 'Micro %',

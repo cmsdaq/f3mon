@@ -2201,9 +2201,8 @@ var q3 = function (callback){
 		var sout = {
 			"stream" : streams[i].key,
 			"dataOut" : [],
-			"fileSize" : [],
-			"percent" : [],
-                        "pPErr": []
+			"fileSize" : []//,
+			//"pMicro" : [],
 		};
 		streamData.streamList.push(streams[i].key);
 		
@@ -2231,7 +2230,7 @@ var q3 = function (callback){
                         totSumError[ls] += errval;
 
 			//calc stream percents
-			var percent;
+			//var percent;
 			var percentProc;
 			if (total == 0){
 				if (doc_count == 0){
@@ -2240,8 +2239,8 @@ var q3 = function (callback){
 					percent = 100;
 				}
 			}else{
-				var p = 100*(inval+errval)/total;
-                                percent = Math.round(p*100)/100;
+				//var p = 100*(inval+errval)/total;
+                                //percent = Math.round(p*100)/100;
 				var pnoerr = 100*inval/total;
                                 percentProc = Math.round(pnoerr*100)/100;
 			}
@@ -2252,14 +2251,13 @@ var q3 = function (callback){
 				fsval = Math.round((fsval/qparam_timePerLs)*100)/100;
 			}
 			
-			var d = {"x":ls,"y":outval}; 
-			var f = {"x":ls,"y":fsval};
-			var p = {"x":ls,"y":percent};
-			var pproc = {"x":ls,"y":percentProc};
+			var d = {"x":ls,"y":outval, 'p':percentProc}; 
+			var f = {"x":ls,"y":fsval, 'p':percentProc};
+			//var p = {"x":ls,"y":percent};
+			//var pproc = {"x":ls,"y":percent};
 			sout.dataOut.push(d);
 			sout.fileSize.push(f);
-			sout.percent.push(pproc);
-			sout.pPErr.push(p);
+			//sout.pMicro.push(pproc);
 
 		}//end for j
 		streamData.data.push(sout);			

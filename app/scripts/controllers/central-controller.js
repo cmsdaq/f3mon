@@ -232,6 +232,7 @@
                 //var xRealValue = data.lsList[xRawValue - 1]; 
                 var xRealValue = Math.round(Math.abs(event.xAxis[0].value));
 
+                var y1RawValue = Math.ceil(event.yAxis[1].value);
                 var y2RawValue = Math.ceil(event.yAxis[2].value);
                 var y3RawValue = Math.ceil(event.yAxis[3].value);
 
@@ -401,23 +402,8 @@
                         chart.addSeries(newSerie, false, false);
                         streams[item.stream] = chart.get(item.stream);
 
-
-                        var serieName = item.stream + '_complete';
-                        newSerie = {
-                            type: 'spline',
-                            id: serieName,
-                            name: serieName,
-                            yAxis: "percent",
-                            color: newcolor,
-                            data: item.percent,
-                            showInLegend: false,
-                        }
-                        chart.addSeries(newSerie, false, false);
-                        streams[serieName] = chart.get(serieName);
-
                     } else { //update series if exists
                         streams[item.stream].setData(out, false, false);
-                        streams[item.stream + '_complete'].setData(item.percent, false, false);
                     }
                 })
                 //DO NOT CHANGE THE UPDATE ORDER
