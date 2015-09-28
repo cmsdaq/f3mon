@@ -2429,6 +2429,7 @@ var q3 = function (callback){
 			percent = Math.round(p*100)/100;
 		}
 		var color = percColor2(percent,err>0);
+                if (total==0) color = "palegreen";
 
 		var entry = {
 			"x" : ls,
@@ -3096,7 +3097,7 @@ var percColor2 = function (percent,hasErrors){
 		var color = '';
 		if (percent >= 100){
                         if (hasErrors)
-                            color = "lightgreen";
+                            color = "olivedrab";
                         else
                             color = 'green';
                 }else if (percent >= 50){
