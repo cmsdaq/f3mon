@@ -6,6 +6,7 @@ var app = express();
 var php = require('node-php');
 var oracledb = require('oracledb'); //module that enables db access
 oracledb.outFormat = oracledb.OBJECT //returns query result-set row as a JS object (equiv. to OCI_ASSOC param in php oci_fetch_array call)
+oracledb.maxRows = 50000; //approx 2000 lumis x 25 streams
 var http = require('http');
 http.globalAgent.maxSockets=Infinity;
 
@@ -1343,7 +1344,7 @@ var q1 = function(callback){
                 reserved = result._source.reserved;
                 special = result._source.special;
                 output = result._source.output;
-                if (reserved==undefined || special==undefined || output==undefined) {
+                if (reserved===undefined || special===undefined || output===undefined || result._source.stateNames===undefined) {
 		  var shortened = result._source.names;
 		  if (shortened.indexOf('33=')>-1){
 			shortened = shortened.substr(0, shortened.indexOf('33='))+'33=Busy';
@@ -2019,6 +2020,7 @@ var retObj = {
         "micromerge" : "",
         "minimerge" : "",
 	"macromerge" : "",
+	"transfer" : "",
 	"navbar" : "",
 	"interval" : "",
 	"lastTime" : ""
@@ -2037,6 +2039,114 @@ var sendResult = function(){
         console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
         res.send(cb +' ('+JSON.stringify(retObj)+')');
+}
+
+//Get transfer (from cache only)
+var q6 = function (callback) {
+
+  var lsList = streamTotals.lsList;
+  if( lsList.length==0) {callback();return;}
+
+  var trReqObj = {"run": qparam_runNumber, "binary":true , "aggregate":true}
+  var transferInfo = runTransferQuery(trReqObj,'internal-f3mon',null,false);
+  if (transferInfo===null) {
+    callback();
+    return;
+  }
+  //for (var i=0;i<transferInfo.length;i++) {console.log(transferInfo[i]);}
+  var transferInfoLen = transferInfo.length;
+
+  var lsIndex = 0;
+  var currentLs = lsList[lsIndex] - postOffSt;
+  var nextLs=null;
+  if( lsList.length>1)
+    var nextLs = lsList[lsIndex+1] - postOffSt;
+  if (currentLs<=0) {
+    callback();
+    return;
+  }
+  var beginIndex = currentLs-1;
+  var step = 1;
+  //search for beginning of the interval
+  while (beginIndex < transferInfoLen && transferInfo[beginIndex].ls > currentLs) {
+    beginIndex-=step;
+    step*=2;
+    if (beginIndex<=0) {beginIndex=0;break;}
+  }
+
+  transStatus = {"percents":[]};
+  
+  //lsobj = {"ls":tls,"cop":(copied!==null), "s":1, "c":0}
+  var tsObj = undefined;
+  var nC = undefined;
+  var nS = undefined;
+
+  for (var i=beginIndex;i<transferInfoLen;i++)
+  {
+        if (transferInfo[i].ls < currentLs) continue;
+        tInfo = transferInfo[i];
+        if (tInfo.ls == currentLs) {
+          //new bin
+          tsObj = {"x":currentLs,"y":0}
+          nC = tInfo.copy;
+          nS = tInfo.s;
+          //console.log( nC +' '+nS)
+        }
+        else if (lsIndex+1>=lsList.length) { //exceeded eols LS count
+          if (tsObj!==undefined) {
+            tsObj.y = nC / nS;
+            //console.log('pushingA '+tsObj.x +' ' + tsObj.y);
+            transStatus.percents.push(tsObj);
+            tsObj = undefined;
+          }
+          break;
+        }
+        //accumulate
+        else if (tInfo.ls<nextLs) {
+          if (tsObj===undefined) {
+            tsObj = {"x":currentLs,"y":0}
+            nC = tInfo.copy;
+            nS = tInfo.s;
+            //console.log('tsObj '+ tsObj.x);
+          } else {
+            nC += tINfo.copy;
+            nS += tINfo.s;
+          }
+        }
+        else { //exceeded of skipped over nextLs
+          if (tsObj!==undefined) {
+            tsObj.y = nC / nS;
+            //console.log('pushingB '+tsObj.x +' ' + tsObj.y);
+            transStatus.percents.push(tsObj);
+            tsObj = undefined;
+          }
+          while (nextLs && tInfo.ls>=nextLs) {
+              currentLs=nextLs;
+              lsIndex+=1;
+              if (lsIndex<lsList.length)
+                nextLs=lsList[lsIndex]-postOffSt;
+              else nextLs=null;
+          }
+          if (tInfo.ls==currentLs || (nextLs && tInfo.ls<nextLs)) {
+            tsObj = {"x":currentLs,"y":0}
+            nC = tInfo.copy;
+            nS = tInfo.s;
+          }
+        }
+        //exceeded either length
+        if (i === transferInfoLen-1 && tsObj!==undefined) {
+          tsObj.y = nC / nS;
+          //console.log('pushingC '+tsObj.x +' ' + tsObj.y);
+          transStatus.percents.push(tsObj);
+          tsObj = undefined;
+          break;
+        }
+  }
+  transStatus.took=0;
+
+  retObj.transfer=transStatus;
+  callback();
+
 }
 
 //Get macromerge
@@ -2100,7 +2210,9 @@ var q5 = function (callback){
 		}
 		retObj.macromerge = macromerge;
 		retObj.took = took;
-		callback();
+		callback(); //sendResult()
+                //uncomment instead of previous for transfer completeness strip (here and in q4)
+		//callback(sendResult); //q6(sendResult)
 	}, function (error){
 		excpEscES(res,error);
         	console.trace(error.message);
@@ -2169,7 +2281,9 @@ var q4 = function (callback){
                         minimerge.percents.push(entry);
 		}
 		retObj.minimerge = minimerge;
-		callback(sendResult);
+		callback(sendResult); // q5(sendResult)
+                //uncomment instead of previous for stream completeness info (here and in q5)
+		//callback(q6); //q5(q6)
 	}, function (error){
 		excpEscES(res,error);
         	console.trace(error.message);
@@ -2339,7 +2453,7 @@ var q3 = function (callback){
 	}
 	streamNum = mmStreamList.length;
 	
-	callback(q5);
+	callback(q5); //q4(q5)
    }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -2392,7 +2506,7 @@ var q2 = function (callback){
 		ret.lsList.push(ls);
 	}
 	streamTotals = ret;	
-	callback(q4);
+	callback(q4); //q3(q4)
    }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -2453,7 +2567,7 @@ var q1 = function (callback){
                 ret.files.push(arr_f);
 	}
 	retObj.navbar = ret;
-	callback(q3);
+	callback(q3); //q2(q3)
   }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -2641,32 +2755,38 @@ if (qparam_token == acceptToken){
 
 //callback 1: transfer
 app.get('/sc/api/transfer', function (req, res) {
- var eTime = new Date().getTime();
+  runTransferQuery(req.query,req.connection.remoteAddress,res,true);
+});
+
+var runTransferQuery = function (reqQuery, remoteAddr, res, reply) {
  //params definition
+ eTimeT = new Date().getTime();
  var fill=0;
- var cb = req.query.callback;
- var run = req.query.run;
- var stream = req.query.stream;
- var xaxis = req.query.xaxis;
- var formatchart = req.query.chart;
- var formatstrip = req.query.strip;
- var formatbinary = req.query.binary;
- var nonblocking = req.query.nonblocking;
- var cb = req.query.callback;
+ var cb = reqQuery.callback;
+ var run = reqQuery.run;
+ var stream = reqQuery.stream;
+ var xaxis = reqQuery.xaxis;
+ var formatchart = reqQuery.chart;
+ var formatstrip = reqQuery.strip;
+ var formatbinary = reqQuery.binary;
+ var nonblocking = reqQuery.nonblocking;
+ var aggregate = reqQuery.aggregate
+
+ if (aggregate!==null) stream = null;
 
  var requestKey = 'sc_transfer?run='+run+'&stream='+stream+'&xaxis='+xaxis+'&formatchart='+formatchart+'&formatstrip='+formatstrip;
  var requestValue = f3MonCache.get(requestKey);
  var ttl = ttls.sctransfer; //cached db response ttl (in seconds)
- var reply=true;
+ //var reply=doreply;
   
 
  var getFromDB = function(){ 
   var retObj; //request formatted response
   var sendResult = function(){
      f3MonCache.set(requestKey, [retObj,ttl], ttl);
-     var srvTime = (new Date().getTime())-eTime;
+     var srvTime = (new Date().getTime())-eTimeT;
      totalTimes.queried += srvTime;
-     console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+     console.log('sc_transfer (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
      if (!reply) return;
      res.set('Content-Type', 'text/javascript');
      //res.send(cb +' ('+JSON.stringify(retObj)+')'); //f3mon response format
@@ -2678,7 +2798,10 @@ app.get('/sc/api/transfer', function (req, res) {
 
   var suffix;
   if (stream == null){
-    suffix = " ORDER BY STREAM ASC, LUMISECTION ASC";
+    if (aggregate)
+      suffix = " ORDER BY LUMISECTION ASC, STREAM ASC";
+    else
+      suffix = " ORDER BY STREAM ASC, LUMISECTION ASC";
   }else{
     suffix = " AND STREAM like '%"+stream+"%'";
   }
@@ -2733,8 +2856,43 @@ app.get('/sc/api/transfer', function (req, res) {
 		//assumes associative array rows (oracledb outformat set to OBJECT rather than ARRAY)
 		var tuples = result.rows;
 
+			retObj = [
+			];
+
+		if (aggregate!=null){
+                        var ls = 0;
+                        var lsobj = undefined;
+                        for (var i=0;i<tuples.length;i++){
+                                var tls = tuples[i].LUMISECTION;
+				var copied = tuples[i].COPYTIME;
+
+                                //stream = tuples[i].STREAM;
+                                if (tls>ls) {
+                                  if (lsobj!==undefined) {
+                                    //normalized by number of streams
+                                    //retObj.comp = retObj.copy / retObj.s;
+                                    retObj.push(lsobj);
+                                    lsobj = undefined;
+                                  }
+                                  lsobj = {"ls":tls,"copy":(copied!==null), "s":1};// "comp":0}
+                                  ls=tls;
+                                }
+                                if (tls<ls) {
+                                  console.log('should not be here, rows unsorted by lumisection in reply from DB')
+                                }
+                                else {
+                                  lsobj.copy = lsobj.copy + (copied!==null);
+                                  lsobj.s++;
+                                  if (i===tuples.length-1) {
+                                    //retObj.comp = retObj.cop / retObj.s;
+                                    retObj.push(lsobj);
+                                    lsobj = undefined;
+                                  }
+                                }
+                        }
+                }
 		//review? maybe conditions below if precisely mapped to the php code conditions
-		if (formatchart!=null){	
+		else if (formatchart!=null){	
 			retObj = {
 				"params": null,
 				"serie1": null,
@@ -2870,28 +3028,40 @@ app.get('/sc/api/transfer', function (req, res) {
 
   if (requestValue == undefined){
 	f3MonCache.set(requestKey, "requestPending", ttl);
-        if (nonblocking !== undefined) {
-          res.set('Content-Type', 'text/javascript');
+        if (!reply) {
+	  getFromDB();
+          return null;
+        }
+        else {
+          if (nonblocking !== undefined) {
+            res.set('Content-Type', 'text/javascript');
             if (cb === undefined)
               res.send(JSON.stringify({}));
             else
               res.send(cb +' ('+JSON.stringify({})+')');
-           reply=false;
+         
+             reply=false;
+          }
         }
 	getFromDB();
   }else{
-        var srvTime = (new Date().getTime())-eTime;
-        totalTimes.cached += srvTime;
-        console.log('sc_transfer (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-        res.set('Content-Type', 'text/javascript');
-        //res.send(cb + ' (' + JSON.stringify(requestValue)+')');  //f3mon format
-        if (cb === undefined)
-	  res.send(JSON.stringify(requestValue[0]));
-        else
-          res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
+        if (!reply) {
+          return requestValue[0];
+        }
+        else {
+          var srvTime = (new Date().getTime())-eTimeT;
+          totalTimes.cached += srvTime;
+          console.log('sc_transfer (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
+          res.set('Content-Type', 'text/javascript');
+          //res.send(cb + ' (' + JSON.stringify(requestValue)+')');  //f3mon format
+          if (cb === undefined)
+	    res.send(JSON.stringify(requestValue[0]));
+          else
+            res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
+        }
   }
 
-});//end calback
+}//end calback
 
 
 
