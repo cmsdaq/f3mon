@@ -1099,7 +1099,7 @@ if (requestValue == undefined) {
   }
 
   client.search({
-   index: 'hltdlogs_'+qparam_sysName,
+   index: 'hltdlogs_'+qparam_sysName+'_read',
    type: 'hltdlog',
    body: JSON.stringify(queryJSON)
         }).then (function(body){
@@ -1867,38 +1867,45 @@ var q2 = function (callback,totals_q1){
                 totalProc[bu] += processed;
 	}
 
-	for (var buname in totals_q1){
-        	if (totals_q1.hasOwnProperty(buname)){
-                	var total = totals_q1[buname];
-			var proc = -1;
-			if (totalProc[buname] == null){
-				proc = 0;
-			}else{
-				proc = totalProc[buname];
-			}
+        mykeys = [];
+        for (var mykey in totals_q1) {
+          if (totals_q1.hasOwnProperty(mykey)) {
+            mykeys.push(mykey);
+          }
+        }
+        mykeys.sort();
+        var keylen = mykeys.length;
+        for (var i = 0; i < keylen; i++) {
+          var buname = mykeys[i];
+                var total = totals_q1[buname];
+		var proc = -1;
+		if (totalProc[buname] == null){
+			proc = 0;
+		}else{
+			proc = totalProc[buname];
+		}
 
-			//calc percents
-			var percent;
-			if (total == 0){
-				if (proc == 0){
-					percent = 0;
-				}else{
-					percent = 100;
-				}
+		//calc percents
+		var percent;
+		if (total == 0){
+			if (proc == 0){
+				percent = 0;
 			}else{
-				var p = 100*proc/total;
-                        	percent = Math.round(p*100)/100;
+				percent = 100;
 			}
-			var color = percColor(percent);
+		}else{
+			var p = 100*proc/total;
+                       	percent = Math.round(p*100)/100;
+		}
+		var color = percColor(percent);
 
-			var entry = {
-                        "name" : buname,
-                        "y" : percent,
-                        "color" : color,
-                        "drilldown" : false
-                	};
-                	retObj.percents.push(entry);
-                }
+		var entry = {
+                  "name" : buname,
+                  "y" : percent,
+                  "color" : color,
+                  "drilldown" : false
+                };
+                retObj.percents.push(entry);
 	}
 	callback();
 
