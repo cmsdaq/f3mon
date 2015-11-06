@@ -1100,7 +1100,7 @@ if (requestValue == undefined) {
 
   client.search({
    index: 'hltdlogs_'+qparam_sysName+'_read',
-   type: 'hltdlog',
+   type: 'hltdlog,cmsswlog',
    body: JSON.stringify(queryJSON)
         }).then (function(body){
         var results = body.hits.hits; //hits for query
