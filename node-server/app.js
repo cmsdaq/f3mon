@@ -2343,8 +2343,8 @@ var q3 = function (callback){
 		var sout = {
 			"stream" : streams[i].key,
 			"dataOut" : [],
-			"fileSize" : []//,
-			//"pMicro" : [],
+			"fileSize" : [],
+			"sizePerEvt" : []
 		};
 		streamData.streamList.push(streams[i].key);
 		
@@ -2392,13 +2392,18 @@ var q3 = function (callback){
 				outval = Math.round((outval/qparam_timePerLs)*100)/100;
 				fsval = Math.round((fsval/qparam_timePerLs)*100)/100;
 			}
-			
+		
+                        var seval = 0;
+                        if (outval>0) seval = Math.round(fsval/outval);
+
 			var d = {"x":ls,"y":outval, 'p':percentProc}; 
 			var f = {"x":ls,"y":fsval, 'p':percentProc};
+			var se = {"x":ls,"y":seval, 'p':percentProc};
 			//var p = {"x":ls,"y":percent};
 			//var pproc = {"x":ls,"y":percent};
 			sout.dataOut.push(d);
 			sout.fileSize.push(f);
+			sout.sizePerEvt.push(se);
 			//sout.pMicro.push(pproc);
 
 		}//end for j
@@ -2455,7 +2460,7 @@ var q3 = function (callback){
 	var mmStreamList = [];
 	for (var k=0;k<streamListArray.length;k++){
 		var s = streamListArray[k];
-		if ((!(s.substr(0,3)==='DQM')&&(s!=='Error'))||(s==='DQMHistograms')){
+		if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')){
 			mmStreamList.push(streamListArray[k]);
 		}
 	}
