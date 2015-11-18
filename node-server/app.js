@@ -229,7 +229,7 @@ app.get('/f3mon/api/runinfo', esRunInfo.query);
 
 //callback 15
 var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
-esMiniMacroPerStream.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
+esMiniMacroPerStream.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
 app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query); 
 
 //callback 16

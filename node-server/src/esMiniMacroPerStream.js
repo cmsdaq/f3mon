@@ -7,6 +7,7 @@ var client;
 var totalTimes;
 var queryJSON1;
 var queryJSON2;
+var queryJSON3;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -47,7 +48,7 @@ var percColor2 = function (percent,hasErrors){
 
 module.exports = {
 
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2) {
+  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2,queryJSN3) {
     f3MonCache = cache;
     f3MonCacheSec =  cacheSec;
     client=cl;
@@ -55,6 +56,7 @@ module.exports = {
     totalTimes = totTimes;
     queryJSON1 = queryJSN1;
     queryJSON2 = queryJSN2;
+    queryJSON3 = queryJSN3;
   },
 
   query : function (req, res) {
@@ -102,19 +104,24 @@ var sendResult = function(){
 
 //Get minimerge
 var q2 = function(callback, total_q1){
-  
-   //loads query definition from file 
-   //var queryJSON = require (JSONPath+'minimacroperstream.json');
-   var queryJSON1 = getQuery("minimacroperstream.json");
 
-   queryJSON1.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
-   queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
-   queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
+   var queryJSON;
+   if (qparam_type==='stream-hist') {
+     queryJSON = queryJSON1;
+     queryJSON.query.bool.must[1].prefix._id = qparam_runNumber;
+   }
+   else {
+     queryJSON = queryJSON2;
+     queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
+   }
+
+   queryJSON.query.bool.must[0].range.ls.from = qparam_from;
+   queryJSON.query.bool.must[0].range.ls.to = qparam_to;
 
    client.search({
     index: 'runindex_'+qparam_sysName+'_read',
     type: qparam_type,
-    body : JSON.stringify(queryJSON2)
+    body : JSON.stringify(queryJSON)
     }).then (function(body){
         //var results = body.hits.hits; //hits for query
         var streams = body.aggregations.stream.buckets;
@@ -138,16 +145,6 @@ var q2 = function(callback, total_q1){
 			var p = 100*processed/total_q1;
 			percent = Math.round(p*100)/100;
 		}
-		
-		/* //moved to function for reusability	
-		var color = '';
-		if (percent >= 100){
-			color = 'green';
-		}else if (percent >= 50){
-			color = 'orange';
-		}else{
-			color = 'red';
-		}*/
 		
 		var color = percColor(percent);	
 		
@@ -176,12 +173,9 @@ var q2 = function(callback, total_q1){
 var q1 = function(callback){
   streamListArray = qparam_streamList.split(',');
 
-  //loads query definition from file 
-  //var queryJSON = require (JSONPath+'teolsperstream.json');
-  var queryJSON2 = getQuery("teolsperstream.json");
-  queryJSON2.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-  queryJSON2.query.filtered.query.range.ls.from = qparam_from;
-  queryJSON2.query.filtered.query.range.ls.to = qparam_to;
+  queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON3.query.filtered.query.range.ls.from = qparam_from;
+  queryJSON3.query.filtered.query.range.ls.to = qparam_to;
 
   client.search({
     index: 'runindex_'+qparam_sysName+'_read',
