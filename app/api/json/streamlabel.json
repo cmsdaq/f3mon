@@ -10,16 +10,7 @@
                   }
                }
             }
-         ],
-         "must_not": [
-            {
-               "term": {
-                  "stream": {
-                     "value": "Error"
-                  }
-               }
-            }
-          ]
+         ]
       }
    },
      "sort":[ 

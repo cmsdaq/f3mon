@@ -13,14 +13,6 @@
 	  "filtered": {
 		  "query": {
 			  "bool": {
-				  "must_not": 
-				  {
-					  "term": {
-						  "stream": {
-							  "value": "Error"
-						  }
-					  }
-				  },
 				  "should" : [
 					  {"bool" : {
 						  "must_not" : {
