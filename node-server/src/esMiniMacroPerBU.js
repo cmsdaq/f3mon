@@ -129,7 +129,7 @@ var q2 = function (callback,totals_q1){
                 totalProc[bu] += processed;
 	}
 
-        mykeys = [];
+        var mykeys = [];
         for (var mykey in totals_q1) {
           if (totals_q1.hasOwnProperty(mykey)) {
             mykeys.push(mykey);

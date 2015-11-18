@@ -32,8 +32,9 @@
                         </button>
                         <!-- todo: understand why unit/Event names in first button are needed to have it selected on page load -->
                         <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'stream'" ng-change='selectorModeChanged()'>Stream</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'minimerge'" ng-change='selectorModeChanged()'>Mini</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'macromerge'" ng-change='selectorModeChanged()'>Macro</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'micro'" ng-change='selectorModeChanged()'>Micro</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'mini'" ng-change='selectorModeChanged()'>Mini</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'macro'" ng-change='selectorModeChanged()'>Macro</label>
                     </div>
 
                     <!--<div class="pull-right" style="width:170px;" id='sr-divisor'>

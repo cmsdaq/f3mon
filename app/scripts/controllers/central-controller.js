@@ -218,10 +218,13 @@
 
                   selectionRules(min, max);
                 }
-                else if (currentRangeMode==="minimerge") {
+                else if (currentRangeMode==="micro") {
+                   $scope.$parent.enableDrillDown('micromerge', min, range);
+                }
+                else if (currentRangeMode==="mini") {
                    $scope.$parent.enableDrillDown('minimerge', min, range);
                 }
-                else if (currentRangeMode==="macromerge") {
+                else if (currentRangeMode==="macro") {
                    $scope.$parent.enableDrillDown('macromerge', min, range);
                 }
             }
@@ -239,6 +242,8 @@
                 if (y3RawValue < 100) {
                     $scope.$parent.enableDrillDown('macromerge', xRealValue, data.interval)
                 } else if (y2RawValue < 100) {
+                    $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
+                } else if (y1RawValue < 100) {
                     $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
                 }
             }
@@ -314,15 +319,15 @@
                 name: "micromerge",
                 yAxis: "micropercent",
                 showInLegend: false,
-                //cursor: "pointer",
+                cursor: "pointer",
                 //minPointLength: 5,
-                //point: {
-                //    events: {
-                //        click: function(event) {
-                //            $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
-                //        }
-                //    }
-                //}
+                point: {
+                    events: {
+                        click: function(event) {
+                            $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
+                        }
+                    }
+                }
             })
 
             chart.addSeries({

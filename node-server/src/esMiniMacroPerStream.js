@@ -106,7 +106,8 @@ var sendResult = function(){
 var q2 = function(callback, total_q1){
 
    var queryJSON;
-   if (qparam_type==='stream-hist') {
+   if (qparam_type==='micromerge') {
+     qparam_type = 'stream-hist'
      queryJSON = queryJSON1;
      queryJSON.query.bool.must[1].prefix._id = qparam_runNumber;
    }
