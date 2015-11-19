@@ -162,11 +162,17 @@
 
 
         var data = streamRatesService.data;
+        var runInfoData = runInfoService.data;
         var chart = false;
         var microSerie, miniSerie, macroSerie, streams, chartConfig;
         var isDirty = true;
+        var axisSet = false;
 
         var currentRangeMode="stream";
+
+        $scope.updateMaskedStreams = function(maskedStreamList) {
+          runInfoService.updateMaskedStreams(maskedStreamList);
+        }
 
         $scope.unitChanged = function() {
             var axisTitle = $scope.unit;
@@ -244,7 +250,7 @@
                 } else if (y2RawValue < 100) {
                     $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
                 } else if (y1RawValue < 100) {
-                    $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
+                    $scope.$parent.enableDrillDown('micromerge', xRealValue, data.interval)
                 }
             }
         }
@@ -258,6 +264,10 @@
             }
             if (max === lastLs) {
                 $scope.queryInfo.isToSelected = false;
+                if ((max - min) < 0) { 
+                    console.log('warning: min>max! ' + max  + ' ' + min);
+                    //$scope.queryInfo.isFromSelected = false;
+                }
                 if ((max - min) < 20) {
                     $scope.queryInfo.isFromSelected = false;
                 } else {
@@ -295,6 +305,14 @@
             chart = new Highcharts.StockChart(chartConfig);
             chart.showLoading(config.chartWaitingMsg);
 
+            axisSet=false;
+            //var nav = chart.get('navigator');
+
+            //set masked stream callback
+            chart.setMaskedStreams = function(maskedStreamList) {
+              $scope.updateMaskedStreams(maskedStreamList);
+            }
+        
             streams = {};
             isDirty = false;
             $scope.unitChanged();
@@ -381,8 +399,15 @@
 
         $scope.$on('srChart.updated', function(event) {
 
+            if (!axisSet) {
+              var lastLS = runInfoService.data.lastLs;
+              if (lastLS>0) {
+                chart.xAxis[0].setExtremes(lastLS>20 ? lastLS-20 : 1,lastLS>20?lastLS:21);
+                axisSet=true;
+              }
+            }
             //stop chart if no stream label information is available
-            if (data.streams.streamList.length===0) {
+            if (runInfoData.streams.length===0) {
                 if (isDirty) stopChart();
                 return;
             }

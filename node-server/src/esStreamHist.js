@@ -81,16 +81,21 @@ var qparam_streamList = req.query.streamList;
 var qparam_timePerLs = req.query.timePerLs;
 var qparam_useDivisor = req.query.useDivisor;
 
-
 if (qparam_runNumber == null){qparam_runNumber = 124029;}
 if (qparam_from == null){qparam_from = 1;}
 if (qparam_to == null){qparam_to = 1;}
 if (qparam_lastLs == null){qparam_lastLs = 58;}
 if (qparam_intervalNum == null){qparam_intervalNum = 28;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
-if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';}
+if (qparam_streamList == null){qparam_streamList = '';}
 if (qparam_timePerLs == null){qparam_timePerLs = 23.4;}
 if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor = (req.query.useDivisor === 'true');}
+
+if (parseInt(qparam_from)>parseInt(qparam_to)) {
+  console.log('invalid range: from ' + qparam_from + " to " + qparam_to);
+  qparam_from=qparam_to;
+}
+
 
 var streamListArray = qparam_streamList.split(',');
 if (qparam_lastLs<21){qparam_lastLs = 21;}
@@ -98,6 +103,11 @@ if (!qparam_useDivisor){qparam_timePerLs = 1;}
 var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNum);
 var interval = Math.round(x); 
 if (interval == 0){interval = 1;}
+
+var allDQM=true;
+streamListArray.forEach(function(s) {
+  if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')) allDQM=false;
+});
 
 var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&lastLs='+qparam_lastLs+'&intervalNum='+qparam_intervalNum+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&timePerLs='+qparam_timePerLs+'&useDivisor='+qparam_useDivisor;
 var requestValue = f3MonCache.get(requestKey);
@@ -256,6 +266,12 @@ var q5 = function (callback){
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
 
+        queryJSON1.query.filtered.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
+        streamListArray.forEach(function(s) {
+         if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
+           queryJSON1.query.filtered.query.bool.should.push({"term":{"stream":{"value":s}}});
+        });
+
 	client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'macromerge',
@@ -294,6 +310,7 @@ var q5 = function (callback){
                                 percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
+                        if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
                         var entry = {
                         "x" : ls,
@@ -325,6 +342,12 @@ var q4 = function (callback){
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
 
+        //queryJSON1.query.filtered.query.bool.should = [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
+        queryJSON1.query.filtered.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
+        streamListArray.forEach(function(s) {
+         if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
+           queryJSON1.query.filtered.query.bool.should.push({"term":{"stream":{"value":s}}});
+        });
 	client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'minimerge',
@@ -363,6 +386,7 @@ var q4 = function (callback){
                                 percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
+                        if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
                         var entry = {
                         "x" : ls,
@@ -542,7 +566,7 @@ var q3 = function (callback){
 	var mmStreamList = [];
 	for (var k=0;k<streamListArray.length;k++){
 		var s = streamListArray[k];
-		if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')){
+		if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM){
 			mmStreamList.push(streamListArray[k]);
 		}
 	}

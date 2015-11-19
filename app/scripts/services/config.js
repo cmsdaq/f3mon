@@ -102,12 +102,11 @@
                 borderWidth: 0.01,
                 events: {
                     legendItemClick: function(event) {
-
                         var selectedName = this.name;
+                        var series = this.chart.series;
                         var hideAllOthers = event.browserEvent.ctrlKey || event.browserEvent.shiftKey;
 
                         if (hideAllOthers) {
-                            var series = this.chart.series;
                             series.forEach(function(serie) {
                                 if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge'].indexOf(serie.name) > -1) {
                                     return
@@ -119,17 +118,24 @@
                                 }
                             })
                             this.chart.redraw();
-                            return false;
                         } else {
-                            //?
-                            //var cSerie = this.chart.get(selectedName + "_complete");
-                            //cSerie.setVisible(!this.visible, false);
+                            series.forEach(function(serie) {
+                              if (serie.name == selectedName) {
+                                serie.setVisible(!serie.visible, false)
+                              }
+                            });
                         }
-
-
-
+                        //build list of invisible streams for next merge completion update
+                        maskedStreamList = []
+                        series.forEach(function(serie) {
+                              if (!serie.visible) {
+                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge'].indexOf(serie.name) <= -1)
+                                  maskedStreamList.push(serie.name);
+                              }
+                        });
+                        this.chart.setMaskedStreams(maskedStreamList);
+                        return false;
                     }
-
                 }
             }
         },

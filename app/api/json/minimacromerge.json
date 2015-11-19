@@ -14,23 +14,6 @@
 		  "query": {
 			  "bool": {
 				  "should" : [
-					  {"bool" : {
-						  "must_not" : {
-							  "prefix": {
-								  "stream": {
-									  "value": "DQM"
-								  }
-							  }
-						  }
-					  }},{"bool" : {
-						  "must" : { 
-							  "term": {
-								  "stream": {
-									  "value": "DQMHistograms"
-								  }
-							  }
-						  }
-					  }}
 				  ]
 			  }
 		  },

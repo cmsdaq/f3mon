@@ -121,7 +121,7 @@
                 });
                 mypoller.promise.then(null, null, function(data) {
                     //console.log('update sr data start');
-                    if (service.data.lastTime != data.lastTime) {
+                    //if (service.data.lastTime != data.lastTime) {
                         service.data.lastTime = data.lastTime;
                         if (service.queryInfo.noData) {
                             service.queryInfo.noData = false
@@ -136,11 +136,11 @@
                         service.data.macromerge = data.macromerge;
                         service.data.navbar = data.navbar;
                         broadcast('updated');
-                    } else {
-                        if (!runInfoService.data.isRunning()) {
-                            service.stop()
-                        }
-                    }
+                    //} else {
+                    //    if (!runInfoService.data.isRunning()) {
+                    //        service.stop()
+                    //    }
+                    //}
 
 
                     //console.log('update sr data stop');
@@ -181,9 +181,14 @@
             if (!info.isToSelected) {
                 q.to = runInfo.lastLs > 21 ? runInfo.lastLs : 21;
             }
+            if (q.from>q.to) {
+              console.log('from > to ! ' + q.from + ' ' + q.to);
+              q.from = q.to > 21 ? q.to-21 : 1;
+            }
 
             q.sysName = indexListService.selected.subSystem;
-            q.streamList = runInfo.streams.join();
+            //q.streamList = runInfo.streams.join();
+            q.streamList = runInfo.queryStreams.join();
             q.lastLs = runInfo.lastLs;
             service.start();
         });
@@ -239,9 +244,9 @@
                         service.data = data.percents;
                         service.broadcast('updated');
                     }
-                    if (!runInfoService.data.isRunning()) {
-                        mypoller.stop()
-                    }
+                    //if (!runInfoService.data.isRunning()) {
+                    //    mypoller.stop()
+                    //}
                 })
             } else {
                 mypoller = poller.get(resource, {
@@ -321,9 +326,9 @@
                         service.data = data.percents;
                         service.broadcast('updated');
                     }
-                    if (!runInfoService.data.isRunning()) {
-                        mypoller.stop()
-                    }
+                    //if (!runInfoService.data.isRunning()) {
+                    //    mypoller.stop()
+                    //}
                 })
             } else {
                 mypoller = poller.get(resource, {

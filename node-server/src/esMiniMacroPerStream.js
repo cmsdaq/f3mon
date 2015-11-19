@@ -107,7 +107,7 @@ var q2 = function(callback, total_q1){
 
    var queryJSON;
    if (qparam_type==='micromerge') {
-     qparam_type = 'stream-hist'
+     qparam_type='stream-hist';
      queryJSON = queryJSON1;
      queryJSON.query.bool.must[1].prefix._id = qparam_runNumber;
    }
@@ -178,10 +178,11 @@ var q1 = function(callback){
   queryJSON3.query.filtered.query.range.ls.from = qparam_from;
   queryJSON3.query.filtered.query.range.ls.to = qparam_to;
 
+
   client.search({
     index: 'runindex_'+qparam_sysName+'_read',
     type: 'eols',
-    body : JSON.stringify(queryJSON2)
+    body : JSON.stringify(queryJSON3)
     }).then (function(body){
        // var results = body.hits.hits; //hits for query
         var total = body.aggregations.events.value;

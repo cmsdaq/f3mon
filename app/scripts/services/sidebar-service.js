@@ -48,6 +48,8 @@
                 startTime: false,
                 endTime: false,
                 streams: [],
+                maskedStreams: [],
+                queryStreams: [],
                 lastLs: false,
                 streamsAsString: function() {
                     return this.streams.length != 0 ? this.streams.join(', ') : 'N/A';
@@ -67,6 +69,8 @@
             service.data.startTime = false;
             service.data.endTime = false;
             service.data.streams = [];
+            service.data.maskedStreams = [];
+            service.data.queryStreams = [];
             service.data.lastLs = false;
             cache = false;
 
@@ -123,6 +127,7 @@
                         service.data.startTime = data.startTime;
                         service.data.endTime = data.endTime ? data.endTime : false;
                         service.data.streams = data.streams;
+                        service.updateMaskedStreams(undefined);
                         service.data.lastLs = data.lastLs ? data.lastLs[0] : false;
                         service.broadcast('updated');
                     }
@@ -139,9 +144,25 @@
             }
         };
 
+        service.updateMaskedStreams = function(maskedStreamList)  {
+            if (maskedStreamList!==undefined)
+                service.data.maskedStreams = maskedStreamList;
+            service.data.queryStreams = [];
+            service.data.streams.forEach(function(stream) {
+                var masked=false;
+                service.data.maskedStreams.forEach(function(mstream) {
+                    if (mstream == stream) {
+                        masked=true;
+                    }
+                });
+                if (!masked)
+                    service.data.queryStreams.push(stream);
+            });
+            //console.log(service.data.queryStreams);
+            service.broadcast('updated');
+        }
 
         service.broadcast = function(msg) {
-
             $rootScope.$broadcast('runInfo.' + msg);
         };
 
