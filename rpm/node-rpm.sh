@@ -21,8 +21,8 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fff-node-scripts.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.0.0
-Release: 1
+Version: 1.0.1
+Release: 0
 Summary: node.js f3mon scripts
 License: gpl
 Group: DAQ
@@ -87,6 +87,7 @@ unlink /opt/node/prod/web >& /dev/null || true
 ln -s /cmsnfses-web/es-web/prod/app.js /opt/node/prod/app.js
 ln -s /cmsnfses-web/es-web/prod/node_modules /opt/node/prod/node_modules
 ln -s /cmsnfses-web/es-web/prod/web /opt/node/prod/web
+ln -s /cmsnfses-web/es-web/prod/src /opt/node/prod/src
 
 unlink /opt/node/node_modules >& /dev/null || true
 ln -s /opt/node/prod/node_modules /opt/node/node_modules
@@ -101,6 +102,7 @@ unlink /opt/node/test/web >& /dev/null || true
 ln -s /cmsnfses-web/es-web/test/app.js /opt/node/test/app.js
 ln -s /cmsnfses-web/es-web/test/node_modules /opt/node/test/node_modules
 ln -s /cmsnfses-web/es-web/test/web /opt/node/test/web
+ln -s /cmsnfses-web/es-web/test/src /opt/node/test/src
 
 
 #set user ownership
