@@ -1,6 +1,7 @@
 'use strict';
 
 var client;
+var JSONPath = '../web/f3mon/api/json/'; //set in each deployment
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -40,6 +41,7 @@ module.exports = {
       res.send(cb +' ('+JSON.stringify(retObj)+')');
     }
 
+    
     var del = function(callback){
       client.indices.deleteMapping({
         index: '_river',
@@ -72,8 +74,8 @@ module.exports = {
 
     var q1= function(callback){
       //loads query definition from file
-      //var queryJSON = require (JSONPath+qparam_query+'.json');
-      var queryJSON = getQuery(qparam_query+".json");
+      var queryJSON = require (JSONPath+qparam_query+'.json');
+      //var queryJSON = getQuery(qparam_query+".json");
       queryJSON.filter.term._id = qparam_runNumber;
       client.search({
         index: 'runindex_'+qparam_sysName+'_write',

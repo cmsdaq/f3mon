@@ -115,6 +115,7 @@ var ttl = ttls.streamhist; //cached ES response ttl (in seconds)
 
 //helper variables with cb-wide scope
 var lastTimes = [];
+var tsList = {};
 var streamTotals;
 var took = 0;
 var streamNum;
@@ -312,9 +313,13 @@ var q5 = function (callback){
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
+                        var eolts = undefined;
+                        if (tsList.hasOwnProperty(ls)) eolts=tsList[ls];
+
                         var entry = {
                         "x" : ls,
                         "y" : percent,
+                        "eolts" : eolts,
                         "color" : color
                         };
                         macromerge.percents.push(entry);
@@ -620,6 +625,7 @@ var q2 = function (callback){
 		//ret.events.push(ev_entry);	//old impl. using indxd array and intermediate obj for entry
 		//ret.doc_counts.push(dc_entry); //same as above
 		ret.lsList.push(ls);
+                tsList[ls] = buckets[i].time.value;
 	}
 	streamTotals = ret;	
 	callback(q4); //q3(q4)

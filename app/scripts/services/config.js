@@ -143,6 +143,10 @@
             
             formatter: function(tooltip) {
 
+                function padDigits(number, digits) {
+                    return Array(Math.max(digits - String(number).length + 1, 0)).join(0) + number;
+                }
+
                 var percents={};
 
                 var items = this.points || splat(this),
@@ -150,8 +154,33 @@
                     s;
 
                 // build the header
-                s = ['<b> LS: ' + items[0].key + '</b> rate (processed %) <br/>'];
+                var tiptype;
+                if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Events')=== 0)
+                  tiptype = 0;
+                else if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Bytes / Event')=== 0)
+                  tiptype = 2;
+                else if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Bytes')=== 0)
+                  tiptype = 1;
 
+                var timestr="";
+                items.forEach(function(itm){
+                    if (itm.series.name == 'macromerge') {
+                      if (itm.point.eolts!==undefined) {
+                        var mm;
+                        if (series.chart.getTimezoneCustom()=='utc')
+                          mm = moment(itm.point.eolts).utc();
+                        else
+                          mm = moment(itm.point.eolts).local();
+                        timestr = padDigits(mm.hours(),2)+':'+padDigits(mm.minutes(),2)+':'+padDigits(mm.seconds(),2);
+                      }
+                    }
+                });
+                if (tiptype==0)
+                  s = ['<b> LS: ' + items[0].key + ' rate </b> - '+ timestr +'<br/>'];
+                else if (tiptype==1)
+                  s = ['<b> LS: ' + items[0].key + ' throughput </b> - '+ timestr+'<br/>'];
+                else if (tiptype==2)
+                  s = ['<b> LS: ' + items[0].key + ' output event size </b> - '+ timestr+'<br/>'];
 
                 //get percents
                 var totals = $.grep(items,function(item,index){
@@ -168,7 +197,7 @@
                 })
 
                 var sumRate = 0;
-                if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Events')=== 0)
+                if (tiptype==0)
                   sumRate=-1;
                 else {
                   totalsRate.forEach(function(item){
@@ -176,8 +205,6 @@
                   });
                 }
  
-                //console.log(percents);
-
                 // build the values
                 items.forEach(function(item) {
                     var name = item.series.name;
@@ -186,19 +213,18 @@
                     var formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
                         item.point.tooltipFormatter(series.tooltipOptions.pointFormat);
 
-                    //console.log('fs'+formatString);
                     //add percentage
                     if ( $.inArray(name,['micromerge','minimerge','macromerge']) == -1  ){
                         formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
                     }
                     else {
-                      formatString = formatString.replace('<br/>','%<br/>');
-                      //formatString = formatString.substring(formatString.indexOf('<br>'),formatString.indexOf('<br/>')+5);
+                      //skip color bullet
+                      formatString = formatString.replace('<br/>','%<br/>').substr(formatString.indexOf("/span>")+6);
+                      //formatString = formatString.replace('<br/>','%<br/>');
                     }
                     s.push(formatString);
                     
                 });
-                //s.push("<br>Total:<i>" + Math.round(sumRate) + "</i></br>");
                 if (sumRate>=0)
                   s.push("<br>Total:<b>" + Math.round(sumRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " "+ series.chart.yAxis[0].axisTitle.textStr +"</b></br>");
 

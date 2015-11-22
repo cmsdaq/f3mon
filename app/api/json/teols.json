@@ -41,6 +41,9 @@
                "sum": {
                   "field": "NFiles"
                }
+            },
+            "time":{
+                  "min": {"field":"fm_date"}
             }
          }
       }

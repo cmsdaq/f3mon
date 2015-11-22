@@ -145,7 +145,7 @@
         })
     })
 
-    .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, streamRatesService, colors) {
+    .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, colors) {
         var config;
 
         $scope.$on('config.set', function(event) {
@@ -176,7 +176,7 @@
 
         $scope.unitChanged = function() {
             var axisTitle = $scope.unit;
-            if ($scope.queryParams.useDivisor) {
+            if ($scope.queryParams.useDivisor && axisTitle!=="Bytes / Event") {
                 axisTitle += '/s'
             }
             $scope.paramsChanged();
@@ -311,6 +311,25 @@
             //set masked stream callback
             chart.setMaskedStreams = function(maskedStreamList) {
               $scope.updateMaskedStreams(maskedStreamList);
+
+              data.micromerge.percents.forEach(function(s){
+                s.color="darkgreen"
+              })
+              data.minimerge.percents.forEach(function(s){
+                s.color="darkgreen"
+              })
+              data.macromerge.percents.forEach(function(s){
+                s.color="darkgreen"
+              })
+              microSerie.setData(data.micromerge.percents, false, false);
+              miniSerie.setData(data.minimerge.percents, false, false);
+              macroSerie.setData(data.macromerge.percents, false, false);
+              chart.redraw();
+            }
+
+            //add function to chart to communicate with stream config
+            chart.getTimezoneCustom = function() {
+              return angularMomentConfig.timezone;
             }
         
             streams = {};
@@ -417,7 +436,8 @@
             }
            
             data.streams.data.forEach(function(item) {
-                    var out = $scope.unit == 'Events' ? item.dataOut : item.fileSize;
+                    //var out = $scope.unit == 'Events' ? item.dataOut : item.fileSize;
+                    var out = $scope.unit == 'Events' ? item.dataOut : $scope.unit == 'Bytes' ? item.fileSize : item.sizePerEvt;
                     //add new series if doesnt exists
                     if ($.inArray(item.stream, Object.keys(streams)) == -1) {
                         var newcolor = colors.get();
@@ -440,7 +460,9 @@
             chart.xAxis[0].update({
                 tickPositions: data.lsList
             }, false, false);
-            var out = $scope.unit == 'Events' ? data.navbar.events : data.navbar.files;
+            //always show event count in navbar (not file count)
+            //var out = $scope.unit == 'Events' ? data.navbar.events : data.navbar.files;
+            var out = data.navbar.events;
 
             var navSerie = chart.series[1];
             navSerie.setData(out, false, false);
