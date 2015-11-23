@@ -197,7 +197,7 @@
                 })
 
                 var sumRate = 0;
-                if (tiptype==0)
+                if (tiptype==0 || tiptype==2)
                   sumRate=-1;
                 else {
                   totalsRate.forEach(function(item){
