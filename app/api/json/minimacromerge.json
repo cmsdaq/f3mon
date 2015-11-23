@@ -10,25 +10,13 @@
       "fm_date": "desc"
    },
   "query": {
-	  "filtered": {
-		  "query": {
-			  "bool": {
-				  "should" : [
-				  ]
-			  }
-		  },
-		  "filter": {
-			  "and": {
-				  "filters": [
-				  {
-					  "prefix": {
-						  "_id": "run225956"
-					  }
-				  }
-				  ]
-			  }
-		  }
-	  }
+      "bool":{
+        "must":{
+          "prefix":{"_id":"run225956"}
+        },
+        "should":[],
+        "minimum_should_match" : 1
+      }
   },
   "aggs": {
 	  "inrange": {
@@ -52,11 +40,24 @@
 					  }
 				  },
 				  "aggs": {
-					  "processed": {
+					  "procNoDQM": {
+                                                  "filter" : { "bool":{"must_not":{ "prefix": {"stream":"DQM" } }}},
+                                                  "aggs":{"processed":{ 
+						  "sum": {
+							  "field": "processed"
+						  }}}
+					  },
+                                          "procDQMHisto":{
+                                            "filter" : {"term":{"stream":"DQMHistograms"}},
+                                            "aggs":{"processed":{
+                                            "sum": {"field": "processed"}}}
+                                          },
+				          "procAll": {
 						  "sum": {
 							  "field": "processed"
 						  }
 					  }
+
 				  }
 			  }
 		  }

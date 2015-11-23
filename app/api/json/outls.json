@@ -10,19 +10,8 @@
         "_timestamp": "desc"
     },
     "query": {
-        "filtered": {
-            "query": {
-                "match_all": {}
-            },
-            "filter": {
-                "and": {
-                    "filters": [{
-                        "prefix": {
-                            "_id": "290011"
-                        }
-                    }]
-                }
-            }
+        "term": {
+                "_parent": 290011
         }
     },
     "aggs": {
@@ -30,7 +19,6 @@
             "terms": {
                 "size": 100,
                 "field": "stream",
-                "min_doc_count": 0,
                 "order" : { "_term" : "asc" }
             },
             "aggs": {

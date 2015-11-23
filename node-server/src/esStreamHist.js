@@ -260,17 +260,17 @@ var q6 = function (callback) {
 //Get macromerge
 var q5 = function (callback){
 
-	queryJSON1.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
+	queryJSON1.query.bool.must.prefix._id = 'run' + qparam_runNumber;
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
 
-        queryJSON1.query.filtered.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
+        queryJSON1.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
         streamListArray.forEach(function(s) {
-         if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
-           queryJSON1.query.filtered.query.bool.should.push({"term":{"stream":{"value":s}}});
+        if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
+           queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
         });
 
 	client.search({
@@ -293,10 +293,14 @@ var q5 = function (callback){
 		
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
-			var processed = lsList[i].processed.value;
+                        var procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
+			var processed = lsList[i].procAll.value;
 			var total = streamTotals.events[ls]*streamNum;
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
+                        var processedSel;
+                        if (allDQM) processedSel = processed;
+                        else processedSel = procNoDQM;
 
 			//calc macromerge percents
  			var percent;
@@ -307,7 +311,7 @@ var q5 = function (callback){
                                         percent = 100;
                                 }
                         }else{
-                                var p = 100*processed/total;
+                                var p = 100*processedSel/total;
                                 percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
@@ -340,18 +344,17 @@ var q5 = function (callback){
 //Get minimerge
 var q4 = function (callback){
 
-	queryJSON1.query.filtered.filter.and.filters[0].prefix._id = 'run' + qparam_runNumber;
+	queryJSON1.query.bool.must.prefix._id = 'run' + qparam_runNumber;
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
 
-        //queryJSON1.query.filtered.query.bool.should = [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
-        queryJSON1.query.filtered.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
+        queryJSON1.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
         streamListArray.forEach(function(s) {
          if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
-           queryJSON1.query.filtered.query.bool.should.push({"term":{"stream":{"value":s}}});
+           queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
         });
 	client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
@@ -373,10 +376,14 @@ var q4 = function (callback){
 		
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
-			var processed = lsList[i].processed.value;
+                        var procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
+                        var processed = lsList[i].procAll.value;
 			var total = streamTotals.events[ls]*streamNum;
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
+                        var processedSel;
+                        if (allDQM) processedSel = processed;
+                        else processedSel = procNoDQM;
 
 			//calc minimerge percents
  			var percent;
@@ -387,7 +394,7 @@ var q4 = function (callback){
                                         percent = 100;
                                 }
                         }else{
-                                var p = 100*processed/total;
+                                var p = 100*processedSel/total;
                                 percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
@@ -415,7 +422,9 @@ var q4 = function (callback){
 //Get stream out
 var q3 = function (callback){
 
-	queryJSON2.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
+	//queryJSON2.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
+	//queryJSON2.query.prefix._id = qparam_runNumber;
+	queryJSON2.query.term._parent = parseInt(qparam_runNumber);
 	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -455,7 +464,6 @@ var q3 = function (callback){
 			"dataOut" : [],
 			"fileSize" : [],
 			"sizePerEvt" : []
-			//"pMicro" : [],
 		};
 		streamData.streamList.push(streams[i].key);
 		

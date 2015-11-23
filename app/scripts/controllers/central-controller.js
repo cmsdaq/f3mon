@@ -268,7 +268,7 @@
                     console.log('warning: min>max! ' + max  + ' ' + min);
                     //$scope.queryInfo.isFromSelected = false;
                 }
-                if ((max - min) < 20) {
+                if ((max - min) <= 20) {
                     $scope.queryInfo.isFromSelected = false;
                 } else {
                     $scope.queryInfo.isFromSelected = true

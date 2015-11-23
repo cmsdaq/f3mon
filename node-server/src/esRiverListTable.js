@@ -89,7 +89,10 @@ module.exports = {
 		    return;
 	    }
 	    if (domains.length>0){
-		    retObj.list[this.idx].host  = domains[0]; //assign the first possible hostname
+                    if (domains[0].length>=4 && domains[0].indexOf(".cms", this.length - 4) !== -1)
+                      retObj.list[this.idx].host  = domains[0].substr(0,domains[0].length-4);
+                    else
+		      retObj.list[this.idx].host  = domains[0]; //assign the first possible hostname
 	    }else{
 		    retObj.list[this.idx].host  = ipAddresses[this.idx]; //escape with IP in case of unresolved
 	    }
