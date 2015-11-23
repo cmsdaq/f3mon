@@ -259,8 +259,7 @@ var q6 = function (callback) {
 
 //Get macromerge
 var q5 = function (callback){
-
-	queryJSON1.query.bool.must.prefix._id = 'run' + qparam_runNumber;
+        queryJSON1.query.bool.must.term._parent = parseInt(qparam_runNumber);
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -344,7 +343,7 @@ var q5 = function (callback){
 //Get minimerge
 var q4 = function (callback){
 
-	queryJSON1.query.bool.must.prefix._id = 'run' + qparam_runNumber;
+        queryJSON1.query.bool.must.term._parent = parseInt(qparam_runNumber);
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;

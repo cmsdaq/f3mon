@@ -12,7 +12,7 @@
   "query": {
       "bool":{
         "must":{
-          "prefix":{"_id":"run225956"}
+          "term":{"_parent":225956}
         },
         "should":[],
         "minimum_should_match" : 1
@@ -41,16 +41,32 @@
 				  },
 				  "aggs": {
 					  "procNoDQM": {
-                                                  "filter" : { "bool":{"must_not":{ "prefix": {"stream":"DQM" } }}},
-                                                  "aggs":{"processed":{ 
-						  "sum": {
-							  "field": "processed"
-						  }}}
+                                                  "filter" : {
+                                                         "bool":{
+                                                                 "must_not":{ 
+                                                                          "prefix": {
+                                                                                  "stream":"DQM"
+                                                                                  } 
+                                                                            }
+                                                                }
+                                                         },
+                                                  "aggs":{
+                                                          "processed":{ 
+						                 "sum": {
+							                "field": "processed"
+						                 }
+                                                         }
+                                                  }
 					  },
                                           "procDQMHisto":{
-                                            "filter" : {"term":{"stream":"DQMHistograms"}},
-                                            "aggs":{"processed":{
-                                            "sum": {"field": "processed"}}}
+                                            "filter" : {
+                                                    "term":{"stream":"DQMHistograms"}
+                                            },
+                                            "aggs":{
+                                                    "processed":{
+                                                           "sum": {"field": "processed"}
+                                                           }
+                                                   }
                                           },
 				          "procAll": {
 						  "sum": {
