@@ -281,7 +281,7 @@
                 }
                 else {
                   $scope.queryInfo.isFromSelected = false;
-                  $scope.queryInfo.isFromSelected = false;
+                  $scope.queryInfo.isToSelected = false;
                 }
             }
             $scope.queryParams.from = min;
