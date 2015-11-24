@@ -274,8 +274,15 @@
                     $scope.queryInfo.isFromSelected = true
                 }
             } else {
-                $scope.queryInfo.isFromSelected = true;
-                $scope.queryInfo.isToSelected = true;
+                if (lastLs>21) {
+                  //only allow range selection if ls count exceeds 21 (initial range)
+                  $scope.queryInfo.isFromSelected = true;
+                  $scope.queryInfo.isToSelected = true;
+                }
+                else {
+                  $scope.queryInfo.isFromSelected = false;
+                  $scope.queryInfo.isFromSelected = false;
+                }
             }
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
