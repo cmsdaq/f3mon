@@ -218,8 +218,8 @@ esLogTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("logme
 app.get('/f3mon/api/logtable', esLogTable.query);
 
 //callback 13
-var esNstatesSummary = require('./src/esNstatesSummary');
-esNstatesSummary.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("nstates.json"));
+var esNstatesSummary = require('./src/esMicrostates');
+esNstatesSummary.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("aggnstates.json"));
 app.get('/f3mon/api/nstates-summary', esNstatesSummary.query);
 
 //callback 14

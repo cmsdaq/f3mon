@@ -1,0 +1,51 @@
+{
+  "size": 0, 
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "_parent": 0
+          }
+        },
+        {
+          "range": {
+            "_timestamp": {
+              "from": "now-232s",
+              "to": "now-2s"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "dt":{
+      "date_histogram":{
+        "field":"_timestamp","interval":"2.3s"
+      },
+      "aggs":{
+        "entries":{
+          "nested":{
+            "path":"hmicro.entries"
+          },
+          "aggs":{
+            "keys":{
+              "terms":{
+                "field":"hmicro.entries.key",
+                "size":100
+              },
+              "aggs":{
+                "counts":{
+                  "sum":{
+                    "field":"hmicro.entries.count"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
