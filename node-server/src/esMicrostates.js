@@ -42,12 +42,14 @@ module.exports = {
     var qparam_maxTime = req.query.maxTime;
     var qparam_minLs=req.query.minLs;
     var qparam_maxLs=req.query.maxLs;
+    var qparam_format=req.query.format;
 
-    if (qparam_runNumber == null){qparam_runNumber = 0;}
+    if (qparam_runNumber === null){qparam_runNumber = 0;}
     else { qparam_runNumber = parseInt(req.query.runNumber);}
-    if (qparam_sysName == null){qparam_sysName = 'cdaq';}
-    if (qparam_numIntervals == null){qparam_numIntervals = 50;}
+    if (qparam_sysName === null){qparam_sysName = 'cdaq';}
+    if (qparam_numIntervals === null){qparam_numIntervals = 50;}
     else {qparam_numIntervals = parseInt(req.query.numIntervals);}
+    if (qparam_format===null) qparam_format='highcharts'
 
 //"numIntervals":"10","runNumber":"262742","sysName":"cdaq","timeRange":"300"}
 
@@ -63,6 +65,9 @@ module.exports = {
     var minTs=null;
     var maxTs=null; 
 
+    var hcformat=true;
+    if (qparam_format==='nvd3') hcformat=false;
+
     //if (qparam_numIntervals == null){qparam_numIntervals = "1000";}
 
     var requestKey;
@@ -72,6 +77,7 @@ module.exports = {
                            +'&'+qparam_sysName;
                            +'&'+qparam_minLs
                            +'&'+qparam_maxLs
+                           +'&'+qparam_format
     //make hash out of string
     var requestKey = 'nstates-summary?runNumber=' + qparam_runNumber +requestKeySuffix;//+ requestKeySuffix.reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
     var requestValue = f3MonCache.get(requestKey);
@@ -98,6 +104,8 @@ module.exports = {
     var special;
     var output;
     var ustatetype = "state-hist-summary";
+
+    idxmap = {}
 
     //var properties = [];
     var q1 = function(callback) {
@@ -140,7 +148,8 @@ module.exports = {
           retObj.data = [];
           sendResult();
         }else{
-          retObj.data = {};
+          if (hcformat) retObj.data = {};
+          else retObj.data = [];
           var result = body.hits.hits[0]; //hits for query
           reserved = result._source.reserved;
 	  special = result._source.special;
@@ -153,12 +162,25 @@ module.exports = {
 	    var shortened = result._source.stateNames;
 	    for (var i = 0 ; i< special ; i++) {
 	      legend[i]=shortened[i];
-	      retObj.data[shortened[i]] = [];
+              if (hcformat)
+	        retObj.data[shortened[i]] = [];
+              else {
+                idxmap[shortened[i]]=retObj.data.length
+	        retObj.data.push({'key':[shortened[i],'values':[]});
+              }
             }
 	    legend[special]='hltOutput';
-	    retObj.data['hltOutput'] = [];
 	    legend[reserved]='Busy';
-	    retObj.data['Busy'] = [];
+            if (hcformat) {
+	      retObj.data['hltOutput'] = [];
+	      retObj.data['Busy'] = [];
+            }
+            else {
+              idxmap['hltOutput']=retObj.data.length;
+              retObj.data.push({'key':'hltOutput','values':[]})
+              idxmap['Busy']=retObj.data.length;
+              retObj.data.push({'key':'Busy','values':[]})
+            }
 
 		//discovering array keys
 		//var properties = [];
@@ -215,10 +237,13 @@ module.exports = {
 	    var entries = results[i].entries.keys.buckets;
 	    //var entriesList = [];
 
-                
-            for (var ikey in retObj.data) {
-              retObj.data[ikey].push([timestamp,0]);//null?
-            }
+            if (hcformat)
+              for (var ikey in retObj.data)
+                retObj.data[ikey].push([timestamp,0]);//null?
+            else
+              for (var iidx=0; iidx<retObj.data.length;iidx++)
+                retObj.data[iidx].values.push([timestamp,0])
+
 	    for (var index=0;index<entries.length;index++) {
               var ukey = entries[index].key;
               if (!legend.hasOwnProperty(ukey)) {
@@ -227,7 +252,11 @@ module.exports = {
               }
               var name = legend[ukey];
 	      var value = entries[index].counts.value;
-              retObj.data[name][i][1] = value;
+              if (hcformat)
+                retObj.data[name][i][1] = value;
+              else
+                retObj.data[idxmap[name]].values[i][1]=value;
+
             }
           }
 
