@@ -145,7 +145,7 @@
         })
     })
 
-    .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, colors) {
+    .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, microStatesService, colors) {
         var config;
 
         $scope.$on('config.set', function(event) {
@@ -274,8 +274,8 @@
                     $scope.queryInfo.isFromSelected = true
                 }
             } else {
+                //no zoom for lastLS 21 or less (early in run)
                 if (lastLs>21) {
-                  //only allow range selection if ls count exceeds 21 (initial range)
                   $scope.queryInfo.isFromSelected = true;
                   $scope.queryInfo.isToSelected = true;
                 }
@@ -287,6 +287,9 @@
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
             $scope.paramsChanged();
+
+            //propagate to microstate service
+            microStatesService.updateRange(runInfoService.data.runNumber,min,lastLs<max?lastLs:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
         }
 
 

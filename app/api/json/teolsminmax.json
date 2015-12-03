@@ -1,0 +1,37 @@
+{  "size": 0,
+  "fields": ["_timestamp"],
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "term": {
+            "ls": 1
+          }
+        },
+        {
+          "term": {
+            "ls": 2
+          }
+        }
+      ],
+      "must":{
+        "term": {
+          "_parent":0
+        }
+      },
+      "minimum_should_match" : 1
+    }
+  },
+  "aggs": {
+    "lsmin": {
+      "min": {
+        "field":"fm_date"
+      }
+    },
+    "lsmax": {
+      "max": {
+        "field":"fm_date"
+      }
+    }
+  }
+}

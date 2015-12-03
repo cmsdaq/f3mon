@@ -219,7 +219,7 @@ app.get('/f3mon/api/logtable', esLogTable.query);
 
 //callback 13
 var esNstatesSummary = require('./src/esMicrostates');
-esNstatesSummary.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("aggnstates.json"));
+esNstatesSummary.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("aggnstates.json"),getQuery("teolsminmax.json"))
 app.get('/f3mon/api/nstates-summary', esNstatesSummary.query);
 
 //callback 14

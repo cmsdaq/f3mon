@@ -388,30 +388,81 @@
 
         var service = {
             data: {},
-            queryParams: {
-                runNumber: false,
-                sysName: false,
-                timeRange: 300,
-            },
-            queryInfo: {
-                //legend: false,
-                timeList:false,
-                lastTime: false,
-                //                took: 0,
-                //                noData: true,
-                //                isFromSelected: false,
-                //                isToSelected: false,
+            queryParams: {},
+            queryInfo: {},
+            closedRun:false,
+            active:false // unused
+        };
+
+        service.resetParams = function() {
+            service.data = {};
+            service.queryParams = {
+              runNumber: false,
+              sysName: false,
+              timeRange: 300,
+              numIntervals: 30
+            }
+            service.queryInfo = {
+              timeList:false,
+              lastTime: false
+              //took: 0,
+              //noData: true,
+              //isFromSelected: false,
+              //isToSelected: false,
             }
         };
+
         service.stop = function() {
             if (!angular.isUndefined(mypoller)) {
                 mypoller.stop();
             }
+            service.active=false;
         };
+
+        service.updateRange = function(runNumber,min,max,selectedFrom,selectedTo) {
+            service.queryParams.runNumber = runNumber;
+            if (!selectedTo && !selectedFrom && service.closedRun===false) {
+              service.queryParams.timeRange=300;
+              service.queryParams.numIntervals=30;
+              //service.queryParams.maxTime=null;
+              //service.queryParams.minTime=null;
+              delete service.queryParams.maxLs;
+              delete service.queryParams.minLs;
+            }
+            else if (!selectedTo && service.closedRun===false) {
+              //service.queryParams.maxTime=null;
+              //service.queryParams.minTime=null;
+              var range = (max-min)*23.31;//todo increase intervals if large range
+              service.queryParams.timeRange=range>300?range:300;
+              service.queryParams.numIntervals=300;
+              console.log(JSON.stringify(service.queryParams));
+              //if (range>300)
+              //  service.queryParams.numIntervals=Math.Round(1.*range/6.);
+              delete service.queryParams.maxLs;
+              delete service.queryParams.minLs;
+            }
+            else { //range mode or closed run
+              //use LS (start) timestamps
+              //service.queryParams.maxTime=null;
+              //service.queryParams.minTime=null;
+              var range = (max-min)*23.31;//todo:increase intervals if large range
+              service.queryParams.numIntervals=300;
+              //if (range>300)
+              //  service.queryParams.numIntervals=Math.Round(1.*range/6.);
+              service.queryParams.maxLs=max
+              service.queryParams.minLs=min
+              delete service.queryParams.timeRange;
+            }
+            service.start();
+        };
+
+
 
         service.start = function() {
             //console.log('Microstates STARTED');
             //if (!runInfo.isRunning) { return; };
+            service.queryParams.sysName = indexInfo.subSystem;
+             service.active=true;
 
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
@@ -446,14 +497,14 @@
 
         $rootScope.$on('runInfo.updated', function(event) {
             if (runInfo.endTime) {
+                service.closedRun=true;
                 return
-            };
-            var q = service.queryParams;
+            }
+            else {
+                service.closedRun=false;
+            }
             service.stop();
-
-            q.runNumber = runInfo.runNumber;
-            q.sysName = indexInfo.subSystem;
-
+            service.resetParams();
             service.start();
         });
 

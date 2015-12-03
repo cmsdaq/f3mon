@@ -475,7 +475,7 @@
     .constant('microStatesChartConfig', {
         chart: {
             renderTo: 'mschart',
-            animation: true, //animation for stacked area is not supported
+            animation: false, //animation for stacked area is not supported
             ignoreHiddenSeries: true,
             //height: 400,
             zoomType: 'xy',
@@ -570,7 +570,9 @@
         yAxis: {
             title: {
                 text: 'Percent'
-            }
+            },
+            tickInterval:5,
+            minorGridLineWidth:0
         },
         series: [],
     })
