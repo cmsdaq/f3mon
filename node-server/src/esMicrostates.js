@@ -105,7 +105,7 @@ module.exports = {
     var output;
     var ustatetype = "state-hist-summary";
 
-    idxmap = {}
+    var idxmap = {};
 
     //var properties = [];
     var q1 = function(callback) {
@@ -166,7 +166,7 @@ module.exports = {
 	        retObj.data[shortened[i]] = [];
               else {
                 idxmap[shortened[i]]=retObj.data.length
-	        retObj.data.push({'key':[shortened[i],'values':[]});
+	        retObj.data.push({'key':shortened[i],'values':[]});
               }
             }
 	    legend[special]='hltOutput';
