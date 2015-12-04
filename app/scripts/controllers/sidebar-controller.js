@@ -41,7 +41,7 @@
 
         var modal = $modal({
             scope: $scope,
-            template: 'views/restartModal.tpl.html',
+            templateUrl: 'views/restartModal.tpl.html',
             placement: 'center',
             show: false,
             backdrop: true
@@ -88,7 +88,7 @@
     .controller('riverListCtrl', function($scope, $modal, riverListService) {
         var modal = $modal({
             scope: $scope,
-            template: 'views/closeModal.tpl.html',
+            templateUrl: 'views/closeModal.tpl.html',
             show: false
         });
         var service = riverListService;

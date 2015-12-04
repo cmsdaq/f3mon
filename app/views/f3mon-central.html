@@ -14,9 +14,9 @@
                     <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:150px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
                     </div>
                     <div style="margin-left:10px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
-                        <label class="btn btn-primary" ng-model="unit" btn-radio="'Events'" ng-change='unitChanged()'>Events</label>
-                        <label class="btn btn-primary" ng-model="unit" btn-radio="'Bytes'" ng-change='unitChanged()'>Bytes</label>
-                        <label class="btn btn-primary" ng-model="unit" btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
+                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Events'" ng-change='unitChanged()'>Events</label>
+                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes'" ng-change='unitChanged()'>Bytes</label>
+                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
                     </div>
 
                     <div class="pull-right" style="width:170px;" id='sr-divisor'>
@@ -32,10 +32,10 @@
                           <i class="fa fa-area-chart-o"></i> Range Select Mode:
                         </button>
                         <!-- todo: understand why unit/Event names in first button are needed to have it selected on page load -->
-                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'stream'" ng-change='selectorModeChanged()'>Stream</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'micro'" ng-change='selectorModeChanged()'>Micro</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'mini'" ng-change='selectorModeChanged()'>Mini</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" btn-radio="'macro'" ng-change='selectorModeChanged()'>Macro</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'stream'" ng-change='selectorModeChanged()'>Stream</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'micro'" ng-change='selectorModeChanged()'>Micro</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'mini'" ng-change='selectorModeChanged()'>Mini</label>
+                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'macro'" ng-change='selectorModeChanged()'>Macro</label>
                     </div>
 
                     <!--<div class="pull-right" style="width:170px;" id='sr-divisor'>

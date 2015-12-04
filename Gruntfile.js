@@ -447,8 +447,8 @@ module.exports = function(grunt) {
         'cssmin',
         //'filerev',
         //'uglify', //REMOVE COMMENT TO REENABLE UGLIFY
-        'usemin',
-        'htmlmin'
+        'usemin'//,
+        //'htmlmin'
     ]);
 
 

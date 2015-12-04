@@ -2,37 +2,37 @@
   "name": "f3mon",
   "version": "0.0.0",
   "dependencies": {
-    "angular": "~1.3",
-    "json3": "^3.3.0",
-    "es5-shim": "^4.0.0",
-    "bootstrap": "^3.2.0",
-    "angular-animate": "~1.3",
-    "angular-cookies": "~1.3",
-    "angular-messages": "~1.3",
-    "angular-resource": "~1.3",
-    "angular-route": "~1.3",
-    "angular-sanitize": "~1.3",
-    "angular-touch": "~1.3",
-    "fontawesome": "~4.2.0",
-    "angular-poller": "~0.3.2",
+    "angular": "~1.4",
+    "json3": "~3.3",
+    "bootstrap": "~3.3",
+    "angular-animate": "~1.4",
+    "angular-cookies": "~1.4",
+    "angular-messages": "~1.4",
+    "angular-resource": "~1.4",
+    "angular-route": "~1.4",
+    "angular-sanitize": "~1.4",
+    "angular-touch": "~1.4",
+    "fontawesome": "~4",
+    "angular-poller": "~0.4",
     "angular-percentage-filter": "~1.0.2",
-    "angular-bootstrap": "~0.13",
-    "angular-utils-pagination": "~0.5.0",
-    "underscore": "~1.7.0",
-    "highstock-release": "~2.0.4",
+    "angular-bootstrap": "~0.14",
+    "angular-utils-pagination": "*",
+    "underscore": "~1.8",
+    "highstock-release": "~2.0",
     "numeral": "~1.5.3",
-    "bootstrap-tour": "~0.10.1",
-    "angular-strap": "~2.1.6",
-    "angular-motion": "~0.3.4",
-    "angular-moment": "~0.9.0",
-    "moment-timezone": "~0.3.0",
+    "bootstrap-tour": "~0.10",
+    "angular-strap": "~2.3",
+    "angular-motion": "~0.4",
+    "angular-moment": "~0.9",
+    "moment-timezone": "~0.4",
     "ngTimezone": "*",
-    "chroma-js":"~0.6.1",
-    "highcharts-ng":"~0.0.8"
+    "chroma-js":"~0.6",
+    "highcharts-ng":"~0.0.11",
+    "nvd3":"*"
   },
   "devDependencies": {
-    "angular-mocks": "~1.3",
-    "angular-scenario": "~1.3"
+    "angular-mocks": "~1.4",
+    "angular-scenario": "~1.4"
   },
   "appPath": "app",
    "overrides":{
@@ -49,6 +49,16 @@
                        "highcharts-more.js",
                        "modules/exporting.js",
                        "modules/drilldown.js"
+                   ]
+           },
+           "fontawesome": {
+                   "main": [
+                       "css/font-awesome.css"
+                   ]
+           },
+           "nvd3" : {
+                   "main": [
+                       "build/nv.d3.css"
                    ]
            }
 
