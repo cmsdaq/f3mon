@@ -497,22 +497,28 @@
         });
 
 
+        $scope.options = microStatesChartConfig;
 
-        var chart;
+        //var chart;
         var isDirty = true;
-        var chartConfig;
+        //var chartConfig;
 
         var initChart = function(){
-          if (chart) {
-                chart.destroy();
-                chart = false;
-                $("#" + chartConfig.chart.renderTo).empty().unbind();
-            };
+          //if (chart) {
+                //chart.destroy();
+          //      chart = false;
+                //$("#" + chartConfig.chart.renderTo).empty().unbind();
+          //  };
+            //$scope.options = microStatesChartConfig;
 
-            chartConfig = jQuery.extend({}, microStatesChartConfig);
-            chart = new Highcharts.Chart(chartConfig);
-            chart.showLoading(config.chartWaitingMsg);
+            //chartConfig = jQuery.extend({}, microStatesChartConfig);
+            //chart = new Highcharts.Chart(chartConfig);
+            //chart.showLoading(config.chartWaitingMsg);
+            
             isDirty = false;
+            //d3.select('#chart svg').datum(data);
+            //nv.utils.windowResize(chart.update);
+           
         }
 
         $scope.$on('runInfo.selected', function(event) {
@@ -522,14 +528,14 @@
 
         $scope.$on('msChart.updated', function(event) {
             //var series = $scope.chartConfig.series;
-            var data = microStatesService.data;
+            $scope.data = microStatesService.data;
             var timeList = microStatesService.queryInfo.timeList;
 
             //console.log(timeList)
             //$scope.chartConfig.options.xAxis.categories = timeList;
             //$scope.chartConfig.getHighcharts().xAxis[0].setCategories(timeList,false)
 
-            Object.keys(data).forEach(function(state) {
+/*            Object.keys(data).forEach(function(state) {
 
                 var stateData = data[state];
 
@@ -548,6 +554,11 @@
             chart.redraw();
             //chart.hideLoading();
             if(!isDirty){isDirty = true;chart.hideLoading();}
+*/
+          //d3.select('#chart svg').datum(data);
+          //nv.utils.windowResize(chart.update);
+          if(!isDirty)isDirty = true;
+
         })
 
     })

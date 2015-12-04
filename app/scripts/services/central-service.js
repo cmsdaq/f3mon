@@ -400,7 +400,8 @@
               runNumber: false,
               sysName: false,
               timeRange: 300,
-              numIntervals: 30
+              numIntervals: 30,
+              format : "nvd3"
             }
             service.queryInfo = {
               timeList:false,
