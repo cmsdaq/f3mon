@@ -166,7 +166,7 @@ module.exports = {
 	        retObj.data[shortened[i]] = [];
               else {
                 idxmap[shortened[i]]=retObj.data.length
-	        retObj.data.push({'key':shortened[i],'values':[]});
+	        retObj.data.push({key:shortened[i],values:[]});
               }
             }
 	    legend[special]='hltOutput';
@@ -177,9 +177,9 @@ module.exports = {
             }
             else {
               idxmap['hltOutput']=retObj.data.length;
-              retObj.data.push({'key':'hltOutput','values':[]})
+              retObj.data.push({key:'hltOutput',values:[]})
               idxmap['Busy']=retObj.data.length;
-              retObj.data.push({'key':'Busy','values':[]})
+              retObj.data.push({key:'Busy',values:[]})
             }
 
 		//discovering array keys
