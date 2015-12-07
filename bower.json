@@ -27,8 +27,7 @@
     "moment-timezone": "~0.4",
     "ngTimezone": "*",
     "chroma-js":"~0.6",
-    "highcharts-ng":"~0.0.11",
-    "nvd3":"*"
+    "highcharts-ng":"~0.0.11"
   },
   "devDependencies": {
     "angular-mocks": "~1.4",
@@ -54,11 +53,6 @@
            "fontawesome": {
                    "main": [
                        "css/font-awesome.css"
-                   ]
-           },
-           "nvd3" : {
-                   "main": [
-                       "build/nv.d3.css"
                    ]
            }
 
