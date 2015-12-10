@@ -11,25 +11,32 @@
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
                         <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
                     </div>
-                    <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:150px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
+                    <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
                     </div>
-                    <div style="margin-left:10px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
+                    <div class="pull-right" style="width:30px;margin-right:110px" id='sr-divisor'>
+                        <div class="input-group input-group-xs ">
+                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='stackedDisabled' ng-model="isStacked" type="checkbox" aria-label="..." style='vertical-align: middle'> stacked </span>
+                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='accumDisabled' ng-model="isAccum" type="checkbox" aria-label="..." style='vertical-align: middle'> accum </span>
+                        </div>
+                    </div>
+
+                    <div style="margin-left:20px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Events'" ng-change='unitChanged()'>Events</label>
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes'" ng-change='unitChanged()'>Bytes</label>
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
                     </div>
 
-                    <div class="pull-right" style="width:170px;" id='sr-divisor'>
+                    <div class="pull-right" style="width:120px;" id='sr-divisor'>
                         <div class="input-group input-group-xs ">
-                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="queryParams.useDivisor" type="checkbox" aria-label="..." style='vertical-align: middle'> SecondsPerLs </span>
+                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle'> sec/LS </span>
                             <input type="number" class="form-control" ng-model="queryParams.timePerLs" ng-change='paramsChanged()'>
                         </div>
                     </div>
 
-                    <div style="margin-left:10px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'>
+                    <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'>
 
                         <button type="button" class="btn btn-primary" disabled>
-                          <i class="fa fa-area-chart-o"></i> Range Select Mode:
+                          <i class="fa fa-area-chart-o"></i> Range Mode:
                         </button>
                         <!-- todo: understand why unit/Event names in first button are needed to have it selected on page load -->
                         <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'stream'" ng-change='selectorModeChanged()'>Stream</label>

@@ -647,7 +647,7 @@
         $rootScope.$on('runInfo.updated', function(event) {            
             var q = service.queryParams;
             service.stop();
-
+            if (runInfo.startTime===false) return;
             q.startTime = runInfo.startTime;
             q.endTime = runInfo.endTime;
             q.sysName = indexInfo.subSystem;

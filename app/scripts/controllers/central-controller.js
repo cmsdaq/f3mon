@@ -150,7 +150,7 @@
 
         $scope.$on('config.set', function(event) {
             config = configService.config;
-            initChart();
+            initChart(true);
         });
 
 
@@ -168,7 +168,20 @@
         var isDirty = true;
         var axisSet = false;
 
-        var currentRangeMode="stream";
+        var currentRangeMode = "stream";
+
+        $scope.selectorMode = currentRangeMode;
+        $scope.selectorModes = ["stream","micro","mini","macro"]
+
+        $scope.stackedDisabled = true;
+        var lastStackedState = false;
+        $scope.isStacked=false;
+
+        $scope.divisorDisabled = false;
+        $scope.useDivisor = true;
+
+        $scope.accumDisabled = false;
+        $scope.useAccum = false;
 
         $scope.updateMaskedStreams = function(maskedStreamList) {
           runInfoService.updateMaskedStreams(maskedStreamList);
@@ -176,9 +189,60 @@
 
         $scope.unitChanged = function() {
             var axisTitle = $scope.unit;
-            if ($scope.queryParams.useDivisor && axisTitle!=="Bytes / Event") {
-                axisTitle += '/s'
+
+
+            if ($scope.unit=='Bytes') {
+              $scope.stackedDisabled=false;
+              if (!lastStackedState && $scope.isStacked) {
+                streamRatesChartConfig.plotOptions.column.stacking = 'normal';
+                lastStackedState=true;
+                runInfoService.updateMaskedStreams([]);
+                initChart(false);
+                delete streamRatesChartConfig.plotOptions.column.stacking;
+              }
+              else if (lastStackedState && $scope.isStacked==false) {
+                lastStackedState=false;
+                runInfoService.updateMaskedStreams([]);
+                initChart(false);
+              }
             }
+            else {
+              //delete streamRatesChartConfig.plotOptions.column.stacking;
+              $scope.stackedDisabled=true;
+              if (lastStackedState) {
+                lastStackedState=false;
+                //console.log('reset!b...')
+                runInfoService.updateMaskedStreams([]);
+                initChart(false);
+              }
+            }
+
+            //else delete streamRatesChartConfig.plotOptions.column.stacking;
+
+            //check if accum needs to be disabled
+            if (axisTitle=="Bytes / Event")
+                $scope.accumDisabled=true;
+            else
+                $scope.accumDisabled=false;
+
+            if (!$scope.accumDisabled && $scope.isAccum) {
+               $scope.queryParams.accum = true;
+               $scope.divisorDisabled = true;
+            }
+            else { 
+               $scope.queryParams.accum = false;
+               $scope.divisorDisabled = false;
+               if (axisTitle=="Bytes / Event") $scope.divisorDisabled = true;
+            }
+
+            if (!$scope.divisorDisabled && $scope.useDivisor) {
+                if (axisTitle!=="Bytes / Event")
+                  axisTitle += '/s'
+                $scope.queryParams.useDivisor=true;
+            }
+            else $scope.queryParams.useDivisor=false;
+
+
             $scope.paramsChanged();
             //streamRatesChartConfig.yAxis[0].title.text = axisTitle; //waiting for fix https://github.com/pablojim/highcharts-ng/issues/247
             chart.yAxis[0].update({
@@ -294,16 +358,20 @@
 
 
 
-        var initChart = function() {
-            $scope.unit = config.streamRatesUnit;
-            $scope.selectorMode = "stream"; //todo:use config param
+        var initChart = function(changeUnit) {
+            if (changeUnit) {
+              $scope.unit = config.streamRatesUnit;
+              $scope.selectorMode = "stream"; //todo:use config param
+              $scope.isStacked=false;
+              $scope.stackedDisabled = true;
+              lastStackedState = false; 
+            }
             colors.reset();
             if (chart) {
                 chart.destroy();
                 chart = false;
                 $("#" + chartConfig.chart.renderTo).empty().unbind();
                 chartConfig = false;
-                
             };
 
             microSerie = false;
@@ -315,7 +383,8 @@
             chart = new Highcharts.StockChart(chartConfig);
             chart.showLoading(config.chartWaitingMsg);
 
-            axisSet=false;
+            if (changeUnit)
+              axisSet=false;
             //var nav = chart.get('navigator');
 
             //set masked stream callback
@@ -422,17 +491,19 @@
 
         $scope.$on('runInfo.selected', function(event) {            
             if (isDirty) {
-                initChart();
+                initChart(true);
             };
         })
 
         $scope.$on('srChart.updated', function(event) {
 
+            var updatedUstates = false;
+            var lastLS = runInfoService.data.lastLs;
             if (!axisSet) {
-              var lastLS = runInfoService.data.lastLs;
               if (lastLS>0) {
                 chart.xAxis[0].setExtremes(lastLS>20 ? lastLS-20 : 1,lastLS>20?lastLS:21);
                 axisSet=true;
+                updatedUstates=true;
               }
             }
             //stop chart if no stream label information is available
@@ -483,9 +554,15 @@
 
             chart.redraw();
 
+            if (!updatedUstates && data.lsList.length>0) {
+              var max = data.lsList[data.lsList.length-1];
+              var min = data.lsList[0];
+              microStatesService.updateRange(runInfoService.data.runNumber,min,lastLS<max?lastLS:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
+            }
+
         });
 
-        //initChart();
+        //initChart(true);
     })
 
     .controller('microStatesCtrl', function($scope, configService, moment, amMoment, microStatesService, microStatesChartConfig) {

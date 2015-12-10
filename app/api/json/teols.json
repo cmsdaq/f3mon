@@ -46,6 +46,23 @@
                   "min": {"field":"fm_date"}
             }
          }
+      },
+      "sumbefore" : {
+         "filter": {
+            "range" : {
+               "ls" : {
+                  "from": 0,
+                  "to" : 0
+               }
+            }
+         },
+         "aggs": {
+           "events": {
+             "sum": {
+                  "field": "NEvents"
+             }
+           }
+         }
       }
    }
 }

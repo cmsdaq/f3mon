@@ -77,6 +77,67 @@
 				  }
 			  }
 		  }
-	  }
+	  },
+
+
+	  "sumbefore": {
+		  "filter": {
+			  "range": {
+				  "ls": {
+					  "from": "0",
+					  "to": "1"
+				  }
+			  }
+		  },
+		  "aggs": {
+
+
+					  "procNoDQM": {
+                                                  "filter" : {
+                                                         "bool":{
+                                                                 "must_not":{ 
+                                                                          "prefix": {
+                                                                                  "stream":"DQM"
+                                                                                  } 
+                                                                            }
+                                                                }
+                                                         },
+                                                  "aggs":{
+                                                          "processed":{ 
+						                 "sum": {
+							                "field": "processed"
+						                 }
+                                                         }
+                                                  }
+					  },
+                                          "procDQMHisto":{
+                                            "filter" : {
+                                                    "term":{"stream":"DQMHistograms"}
+                                            },
+                                            "aggs":{
+                                                    "processed":{
+                                                           "sum": {"field": "processed"}
+                                                           }
+                                                   }
+                                          },
+				          "procAll": {
+						  "sum": {
+							  "field": "processed"
+						  }
+					  }
+
+
+
+                  }
+
+
+
+              }
+
+
+
+
+
+
   }
 }

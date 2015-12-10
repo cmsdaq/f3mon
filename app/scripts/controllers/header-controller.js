@@ -49,10 +49,13 @@
             if (name == 'Locale') {
                 angularMomentConfig.timezone = $timezone.getName();
                 $scope.selected = 'Locale';
+                Highcharts.theme.global.useUTC=false;
             } else {
                 angularMomentConfig.timezone = 'utc';
                 $scope.selected = 'UTC';
+                Highcharts.theme.global.useUTC=true;
             }
+            highchartsOptions = Highcharts.setOptions(Highcharts.theme);
         }
 
         $scope.$on('config.set', function(event) {

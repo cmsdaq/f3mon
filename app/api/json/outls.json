@@ -66,6 +66,38 @@
                             }
                         }
                     }
+                },
+                "sumbefore" : {
+                        "filter": {
+                          "range" : {
+                            "ls" : {
+                              "from": 0,
+                              "to" : 1
+                            }
+                          }
+                        },
+                            "aggs": {
+                                "in": {
+                                    "sum": {
+                                        "field": "in"
+                                    }
+                                },
+                                "error": {
+                                    "sum": {
+                                        "field": "err"
+                                    }
+                                },
+                                "out": {
+                                    "sum": {
+                                        "field": "out"
+                                    }
+                                },
+                                "filesize": {
+                                    "sum": {
+                                        "field": "filesize"
+                                    }
+                                }
+                            }
                 }
             }
         }
