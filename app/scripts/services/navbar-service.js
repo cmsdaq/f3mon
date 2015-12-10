@@ -118,7 +118,8 @@
 
 
         var service = {
-            config:false
+            config:false,
+            nbins : 25
         };
         //var service = {
         //    'defaultSubSystem': "cdaq",
@@ -197,7 +198,6 @@
         service.selected.index = "";
         service.selected.subSystem = "";
         service.list = [];
-        service.nbins = 25;
 
         service.select = function(subSystem) {
             var item = $.grep(this.list, function(e) {
