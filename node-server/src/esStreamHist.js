@@ -80,6 +80,7 @@ var qparam_sysName = req.query.sysName;
 var qparam_streamList = req.query.streamList;
 var qparam_timePerLs = req.query.timePerLs;
 var qparam_useDivisor = req.query.useDivisor;
+var qparam_accum = req.query.accum;
 
 if (qparam_runNumber == null){qparam_runNumber = 124029;}
 if (qparam_from == null){qparam_from = 1;}
@@ -90,6 +91,16 @@ if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_streamList == null){qparam_streamList = '';}
 if (qparam_timePerLs == null){qparam_timePerLs = 23.4;}
 if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor = (req.query.useDivisor === 'true');}
+
+//test
+//qparam_accum=true;
+
+var qparam_from_before = 0;
+if (qparam_accum === null || qparam_accum===undefined || qparam_accum === false || qparam_accum==='false') {qparam_accum=false} else {
+  qparam_accum=true;
+  qparam_useDivisor=false;
+  qparam_from_before=  qparam_from -1;
+}
 
 if (parseInt(qparam_from)>parseInt(qparam_to)) {
   console.log('invalid range: from ' + qparam_from + " to " + qparam_to);
@@ -104,12 +115,13 @@ var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNu
 var interval = Math.round(x); 
 if (interval == 0){interval = 1;}
 
+
 var allDQM=true;
 streamListArray.forEach(function(s) {
   if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')) allDQM=false;
 });
 
-var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&lastLs='+qparam_lastLs+'&intervalNum='+qparam_intervalNum+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&timePerLs='+qparam_timePerLs+'&useDivisor='+qparam_useDivisor;
+var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&lastLs='+qparam_lastLs+'&intervalNum='+qparam_intervalNum+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&timePerLs='+qparam_timePerLs+'&useDivisor='+qparam_useDivisor+'&accum='+qparam_accum;
 var requestValue = f3MonCache.get(requestKey);
 var ttl = ttls.streamhist; //cached ES response ttl (in seconds)
 
@@ -117,6 +129,7 @@ var ttl = ttls.streamhist; //cached ES response ttl (in seconds)
 var lastTimes = [];
 var tsList = {};
 var streamTotals;
+var streamBeforeTotal = 0;
 var took = 0;
 var streamNum;
 var postOffSt;
@@ -141,7 +154,11 @@ var sendResult = function(){
 	//console.log(JSON.stringify(lastTimes));
 	retObj.interval = interval;
 
-	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+        //adaptive ttl because of large variation in query time
+        var usettl = ttl;
+        var tookSec = took/1000.;
+        if (tookSec>ttl) usettl=ttl+tookSec;
+	f3MonCache.set(requestKey, [retObj,usettl], usettl);
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.queried += srvTime;
         console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -265,6 +282,7 @@ var q5 = function (callback){
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
 
         queryJSON1.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
         streamListArray.forEach(function(s) {
@@ -290,11 +308,33 @@ var q5 = function (callback){
 		
 		var lsList = body.aggregations.inrange.ls.buckets;
 		
+		var beforeLs = body.aggregations.sumbefore;
+
+                var procNoDQMAccum = beforeLs.procNoDQM.processed.value + beforeLs.procDQMHisto.processed.value;
+                var processedAccum = beforeLs.procAll.value
+
+                var totAcc = 0;
+
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
-                        var procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
-			var processed = lsList[i].procAll.value;
-			var total = streamTotals.events[ls]*streamNum;
+
+                        var procNoDQM;
+                        var processed;
+                        if (qparam_accum) {
+                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value + procNoDQMAccum;
+                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                        } else {
+                          procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
+                          processed = lsList[i].procAll.value;
+                        }
+
+                        var total;
+                        if (qparam_accum)
+                          total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*streamNum;
+                        else 
+                          total = streamTotals.events[ls]*streamNum;
+                        totAcc += streamTotals.events[ls];
+
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
                         var processedSel;
@@ -349,6 +389,7 @@ var q4 = function (callback){
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
 
         queryJSON1.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
         streamListArray.forEach(function(s) {
@@ -372,12 +413,33 @@ var q4 = function (callback){
 		};
 		
 		var lsList = body.aggregations.inrange.ls.buckets;
-		
+		var beforeLs = body.aggregations.sumbefore;
+
+                var procNoDQMAccum = beforeLs.procNoDQM.processed.value + beforeLs.procDQMHisto.processed.value;
+                var processedAccum = beforeLs.procAll.value
+
+                var totAcc = 0;
+
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
-                        var procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
-                        var processed = lsList[i].procAll.value;
-			var total = streamTotals.events[ls]*streamNum;
+
+                        var procNoDQM;
+                        var processed;
+                        if (qparam_accum) {
+                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value + procNoDQMAccum;
+                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                        } else {
+                          procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
+                          processed = lsList[i].procAll.value;
+                        }
+
+                        var total;
+                        if (qparam_accum)
+                          total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*streamNum;
+                        else 
+                          total = streamTotals.events[ls]*streamNum;
+                        totAcc += streamTotals.events[ls];
+
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
                         var processedSel;
@@ -429,6 +491,18 @@ var q3 = function (callback){
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+	queryJSON2.aggs.stream.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+
+        if (qparam_accum) {
+          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.out = {"sum": { "field": "out"}}
+          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"sum": { "field": "filesize"}}
+        }
+        else {
+          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.out = {"avg": { "field": "out"}}
+          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"avg": { "field": "filesize"}}
+       }
+
+       console.log(JSON.stringify(queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs));
 
    client.search({
     index: 'runindex_'+qparam_sysName+'_read',
@@ -452,7 +526,6 @@ var q3 = function (callback){
         var totSumError={};
         var nStreamsMicro=0;
 
-
 	for (var i=0;i<streams.length;i++){
 		 if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
                         continue;
@@ -467,27 +540,67 @@ var q3 = function (callback){
 		streamData.streamList.push(streams[i].key);
 		
 		var lsList = streams[i].inrange.ls.buckets;
+                var totStreamIn = streams[i].sumbefore.in.value;
+                var totStreamOut = streams[i].sumbefore.out.value;
+                var totStreamfsOut = streams[i].sumbefore.filesize.value;
+                var totStreamErr = 0;
+                if (streams[i].sumbefore.error!==undefined) totStreamErr = streams[i].sumbefore.error.value;
+
+                var totAcc = 0;
+
 		for (var j=0;j<lsList.length;j++){
 			var ls = lsList[j].key+postOffSt;
-			var total = streamTotals.events[ls];
+
+		        var total;
+                        if (qparam_accum)
+                          total = streamTotals.events[ls] + totAcc + streamBeforeTotal;
+                        else
+                          total = streamTotals.events[ls];
+                        totAcc += streamTotals.events[ls];
+
 			var doc_count = streamTotals.doc_counts[ls];
 
                         if (totSumIn[ls]==null) {
                           totSumIn[ls]=0;
                           totSumError[ls] = 0;
                         }
-			
+		
+                        if (qparam_accum) {
+
+                          //for total %
+                          totSumIn[ls] += lsList[j].in.value + totStreamIn;
+                          if (lsList[j].error!=undefined)
+                            totSumError[ls] += lsList[j].error.value + totStreamErr;
+                          //else
+                          //  totSumError[ls] += totStreamErr;
+
+			  totStreamIn = totStreamIn + lsList[j].in.value; 
+			  totStreamOut = totStreamOut + lsList[j].out.value; 
+			  totStreamfsOut = totStreamfsOut + lsList[j].filesize.value;
+                        }
+                        else {
+
+                          //for total %
+                          totSumIn[ls] += lsList[j].in.value;
+                          if (lsList[j].error!=undefined)
+                            totSumError[ls] += lsList[j].error.value;
+
+			  totStreamIn = lsList[j].in.value; 
+			  totStreamOut = lsList[j].out.value; 
+			  totStreamfsOut = lsList[j].filesize.value;
+                        }
 			//rounding with 2 dp precision
-			var inval = Math.round(100*lsList[j].in.value)/100;
-			var outval = Math.round(100*lsList[j].out.value)/100;
-			var fsval = Math.round(100*lsList[j].filesize.value)/100;
+			var inval = Math.round(100*totStreamIn)/100;
+			var outval = Math.round(100*totStreamOut)/100;
+			var fsval = Math.round(100*totStreamfsOut)/100;
+
+//                        var inval = Math.round(100*(lsList[j].in.value+totStreamIn))/100;
+//                        var outval = Math.round(100*(lsList[j].out.value+totStreamOut))/100;
+//                        var fsval = Math.round(100*(lsList[j].filesize.value+totStreamfsOut))/100;
+
 			var errval =0;
                         if (lsList[j].error!=undefined)
                           errval = Math.round(100*lsList[j].error.value)/100;
-
-                        //for total %
-                        totSumIn[ls] += inval;
-                        totSumError[ls] += errval;
 
 			//calc stream percents
 			//var percent;
@@ -517,6 +630,7 @@ var q3 = function (callback){
 			var d = {"x":ls,"y":outval, 'p':percentProc}; 
 			var f = {"x":ls,"y":fsval, 'p':percentProc};
 			var se = {"x":ls,"y":seval, 'p':percentProc};
+
 			//var p = {"x":ls,"y":percent};
 			//var pproc = {"x":ls,"y":percent};
 			sout.dataOut.push(d);
@@ -525,7 +639,7 @@ var q3 = function (callback){
 			//sout.pMicro.push(pproc);
 
 		}//end for j
-		streamData.data.push(sout);			
+		streamData.data.push(sout);
 	}//end for i
 
         
@@ -535,6 +649,7 @@ var q3 = function (callback){
 	};
 		
 	var lsList = streamTotals.lsList;
+        totAcc = 0;
 		
 	for (var i=0;i<lsList.length;i++){
 		var ls = lsList[i];
@@ -542,7 +657,12 @@ var q3 = function (callback){
                 if (processed == undefined) processed=0;
 		var err = totSumError[ls];
                 if (err == undefined) err=0;
-		var total = streamTotals.events[ls]*nStreamsMicro;
+		var total;
+                if (qparam_accum)
+                  total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*nStreamsMicro;
+                else 
+                  total = streamTotals.events[ls]*nStreamsMicro;
+                totAcc+=streamTotals.events[ls];
 		var doc_count = streamTotals.doc_counts[ls];
 		//var mdoc_count = lsList[i].doc_count;
 
@@ -570,7 +690,6 @@ var q3 = function (callback){
         }
 
 	retObj.streams = streamData;
-	retObj.took = took;
 	retObj.micromerge = micromerge;
 	retObj.lsList = streamTotals.lsList;
 	
@@ -601,6 +720,7 @@ var q2 = function (callback){
   queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON3.query.filtered.query.range.ls.from = qparam_from;
   queryJSON3.query.filtered.query.range.ls.to = qparam_to;
+  queryJSON3.aggregations.sumbefore.filter.range.ls.to = 0;
 
  client.search({
     index: 'runindex_'+qparam_sysName+'_read',
@@ -655,6 +775,7 @@ var q1 = function (callback){
   queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON3.query.filtered.query.range.ls.from = 1;
   queryJSON3.query.filtered.query.range.ls.to = qparam_lastLs;
+  queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
 
   client.search({
     index: 'runindex_'+qparam_sysName+'_read',
@@ -670,6 +791,8 @@ var q1 = function (callback){
 		"files" : []
 	};
 	took = body.took;
+        //console.log(JSON.stringify(body.aggregations.sumbefore))
+        streamBeforeTotal = body.aggregations.sumbefore.events.value;
 	var buckets = body.aggregations.ls.buckets;
 
 	var postOffset = buckets[buckets.length-1];

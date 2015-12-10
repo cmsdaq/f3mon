@@ -69,6 +69,7 @@ module.exports = {
     if (qparam_format==='nvd3') hcformat=false;
 
     //if (qparam_numIntervals == null){qparam_numIntervals = "1000";}
+    var took = 0;
 
     var requestKey;
     var requestKeySuffix = '&'+qparam_timeRange
@@ -91,7 +92,10 @@ module.exports = {
     };
 
     var sendResult = function(){
-	    f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	    var tookSec = took/1000.
+            var usettl = ttl;
+            if (tookSec>usettl) usettl = tooKSec+ttl;
+	    f3MonCache.set(requestKey, [retObj,usettl], usettl);
 	    var srvTime = (new Date().getTime())-eTime;
 	    totalTimes.queried += srvTime;
 	    console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
@@ -118,6 +122,7 @@ module.exports = {
         type: 'eols',
         body : JSON.stringify(queryJSON3)
       }).then (function(body){
+	took = body.took;
         if (body.hits.total===0) {
           retObj.data = [];
           sendResult();
@@ -144,6 +149,7 @@ module.exports = {
         type: 'microstatelegend',
         body : JSON.stringify(queryJSON1)
       }).then (function(body){
+	took += body.took;
         if (body.hits.total ===0){
           retObj.data = [];
           sendResult();
@@ -227,6 +233,7 @@ module.exports = {
           body : JSON.stringify(queryJSON2)
 
         }).then (function(body){
+	  took += body.took;
           var results = body.aggregations.dt.buckets; //date bin agg for query
           var timeList = [];
 		
