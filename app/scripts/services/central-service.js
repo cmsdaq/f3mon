@@ -85,11 +85,12 @@
                 runNumber: false,
                 from: false,
                 to: false,
-                intervalNum: 21,
+                intervalNum: configService.nbins,
                 sysName: false,
                 streamList: false,
                 timePerLs: 23.4,
                 useDivisor: true,
+                accum : false
             },
             queryInfo: {
                 took: 0,
@@ -175,15 +176,16 @@
             }
             q.runNumber = runInfo.runNumber;
 
+            var nbinsp = configService.nbins+1;
             if (!info.isFromSelected) {
-                q.from = runInfo.lastLs > 21 ? runInfo.lastLs - 21 : 1;
+                q.from = runInfo.lastLs > nbinsp ? runInfo.lastLs - nbinsp : 1;
             }
             if (!info.isToSelected) {
-                q.to = runInfo.lastLs > 21 ? runInfo.lastLs : 21;
+                q.to = runInfo.lastLs > nbinsp ? runInfo.lastLs : nbinsp;
             }
             if (q.from>q.to) {
               console.log('from > to ! ' + q.from + ' ' + q.to);
-              q.from = q.to > 21 ? q.to-21 : 1;
+              q.from = q.to > nbinsp ? q.to-nbinsp : 1;
             }
 
             q.sysName = indexListService.selected.subSystem;

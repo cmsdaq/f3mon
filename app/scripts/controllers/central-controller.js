@@ -281,9 +281,10 @@
 
                 if (currentRangeMode==="stream") {
 
-                  if (range < 20) {
-                    min = min - Math.round((20 - range) / 2);
-                    max = max + Math.round((20 - range) / 2);
+                  var nbins = configService.nbins;
+                  if (range < nbins) {
+                    min = min - Math.round((nbins - range) / 2);
+                    max = max + Math.round((nbins - range) / 2);
                   }
 
                   selectionRules(min, max);
@@ -326,20 +327,21 @@
             if (min === 0) {
                 min = 1
             }
+            var nbins = configService.nbins;
             if (max === lastLs) {
                 $scope.queryInfo.isToSelected = false;
                 if ((max - min) < 0) { 
                     console.log('warning: min>max! ' + max  + ' ' + min);
                     //$scope.queryInfo.isFromSelected = false;
                 }
-                if ((max - min) <= 20) {
+                if ((max - min) <= nbins) {
                     $scope.queryInfo.isFromSelected = false;
                 } else {
                     $scope.queryInfo.isFromSelected = true
                 }
             } else {
-                //no zoom for lastLS 21 or less (early in run)
-                if (lastLs>21) {
+                //no zoom for lastLS nbins+1 (e.g. 21) or less (early in run)
+                if (lastLs>nbins+1) {
                   $scope.queryInfo.isFromSelected = true;
                   $scope.queryInfo.isToSelected = true;
                 }
@@ -378,6 +380,7 @@
             miniSerie = false;
             macroSerie = false;
 
+            streamRatesChartConfig.xAxis[0].minRange = configService.nbins;
             chartConfig = jQuery.extend({}, streamRatesChartConfig);
             setEvents();
             chart = new Highcharts.StockChart(chartConfig);
@@ -501,7 +504,8 @@
             var lastLS = runInfoService.data.lastLs;
             if (!axisSet) {
               if (lastLS>0) {
-                chart.xAxis[0].setExtremes(lastLS>20 ? lastLS-20 : 1,lastLS>20?lastLS:21);
+                var nbins = configService.nbins;
+                chart.xAxis[0].setExtremes(lastLS>nbins ? lastLS-nbins : 1,lastLS>nbins?lastLS:nbins+1);
                 axisSet=true;
                 updatedUstates=true;
               }

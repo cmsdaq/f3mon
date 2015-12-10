@@ -336,7 +336,7 @@
             //            categories: [],
             //            type: "category",
             //            tickmarkPlacement: 'on',
-            minRange: 20,
+            minRange: 20,//overriden
             //tickInterval: 1,
             events: {}
         }],

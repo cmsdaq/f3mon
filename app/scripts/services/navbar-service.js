@@ -197,6 +197,7 @@
         service.selected.index = "";
         service.selected.subSystem = "";
         service.list = [];
+        service.nbins = 25;
 
         service.select = function(subSystem) {
             var item = $.grep(this.list, function(e) {
