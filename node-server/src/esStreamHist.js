@@ -133,6 +133,7 @@ var streamBeforeTotal = 0;
 var took = 0;
 var streamNum;
 var postOffSt;
+var maxls = 0;
 
 var retObj = {
 	"streams" : "",
@@ -317,6 +318,7 @@ var q5 = function (callback){
 
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
+                        if (qparam_accum && ls>maxls) continue;
 
                         var procNoDQM;
                         var processed;
@@ -422,6 +424,7 @@ var q4 = function (callback){
 
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
+                        if (qparam_accum && ls>maxls) continue;
 
                         var procNoDQM;
                         var processed;
@@ -550,6 +553,7 @@ var q3 = function (callback){
 
 		for (var j=0;j<lsList.length;j++){
 			var ls = lsList[j].key+postOffSt;
+                        if (qparam_accum && ls>maxls) continue;
 
 		        var total;
                         if (qparam_accum)
@@ -791,7 +795,7 @@ var q1 = function (callback){
 		"files" : []
 	};
 	took = body.took;
-        //console.log(JSON.stringify(body.aggregations.sumbefore))
+        maxls = body.aggregations.maxls.value;
         streamBeforeTotal = body.aggregations.sumbefore.events.value;
 	var buckets = body.aggregations.ls.buckets;
 
