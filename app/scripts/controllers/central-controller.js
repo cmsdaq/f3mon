@@ -355,7 +355,7 @@
             $scope.paramsChanged();
 
             //propagate to microstate service
-            microStatesService.updateRange(runInfoService.data.runNumber,min,lastLs<max?lastLs:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
+            microStatesService.updateRange(runInfoService.data.runNumber,min>0?min:1,lastLs<max?lastLs:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
         }
 
 
@@ -561,7 +561,7 @@
             if (!updatedUstates && data.lsList.length>0) {
               var max = data.lsList[data.lsList.length-1];
               var min = data.lsList[0];
-              microStatesService.updateRange(runInfoService.data.runNumber,min,lastLS<max?lastLS:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
+              microStatesService.updateRange(runInfoService.data.runNumber,min>0?min:1,lastLS<max?lastLS:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
             }
 
         });
