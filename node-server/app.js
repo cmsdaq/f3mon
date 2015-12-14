@@ -22,10 +22,10 @@ var app = express();
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
-app.use("/ecd",php.cgi("web/ecd/ecd"));
+//app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
-app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
-app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
+//app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
+//app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
 //static content
 app.use(express.static('web'));
 
@@ -99,7 +99,7 @@ process.on('uncaughtException', exceptionHandler = function(err) {
 //this map is loaded with all queries (structure in JSON) at startup, then callbacks use these queries instead of launching independent I/Os in the json directory
 var loadedJSONs = {};
 //loads queries
-var JSONPath = './web/f3mon/api/json/'; //set in each deployment
+var JSONPath = './src/json/'; //set in each deployment
 var initializeQueries = function (){
 	var namesArray = fs.readdirSync(JSONPath); //lists file name in json dir
 	//console.log (JSON.stringify(namesArray));

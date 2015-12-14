@@ -1,7 +1,8 @@
 'use strict';
 
 var client;
-var JSONPath = '../web/f3mon/api/json/'; //set in each deployment
+var JSONPath = '../src/json/'; //set in each deployment
+//var JSONPath = './json/'; //set in each deployment
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
