@@ -353,7 +353,10 @@ var q5 = function (callback){
                                 }
                         }else{
                                 var p = 100*processedSel/total;
-                                percent = Math.round(p*100)/100;
+                                if (p>=99.995 && p<100)
+                                  percent = Math.round(p*1000)/1000;
+                                else
+                                  percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
@@ -459,7 +462,10 @@ var q4 = function (callback){
                                 }
                         }else{
                                 var p = 100*processedSel/total;
-                                percent = Math.round(p*100)/100;
+                                if (p>=99.995 && p<100)
+                                  percent = Math.round(p*1000)/1000;
+                                else
+                                  percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
@@ -505,7 +511,6 @@ var q3 = function (callback){
           queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"avg": { "field": "filesize"}}
        }
 
-       console.log(JSON.stringify(queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs));
 
    client.search({
     index: 'runindex_'+qparam_sysName+'_read',
@@ -560,6 +565,7 @@ var q3 = function (callback){
                           total = streamTotals.events[ls] + totAcc + streamBeforeTotal;
                         else
                           total = streamTotals.events[ls];
+
                         totAcc += streamTotals.events[ls];
 
 			var doc_count = streamTotals.doc_counts[ls];
@@ -594,14 +600,12 @@ var q3 = function (callback){
 			  totStreamfsOut = lsList[j].filesize.value;
                         }
 			//rounding with 2 dp precision
-			var inval = Math.round(100*totStreamIn)/100;
+			//var inval = Math.round(100*totStreamIn)/100;
+			var inval = totStreamIn;
 			var outval = Math.round(100*totStreamOut)/100;
 			var fsval = Math.round(100*totStreamfsOut)/100;
 
-//                        var inval = Math.round(100*(lsList[j].in.value+totStreamIn))/100;
-//                        var outval = Math.round(100*(lsList[j].out.value+totStreamOut))/100;
-//                        var fsval = Math.round(100*(lsList[j].filesize.value+totStreamfsOut))/100;
-
+                        //TODO
 			var errval =0;
                         if (lsList[j].error!=undefined)
                           errval = Math.round(100*lsList[j].error.value)/100;
@@ -619,7 +623,10 @@ var q3 = function (callback){
 				//var p = 100*(inval+errval)/total;
                                 //percent = Math.round(p*100)/100;
 				var pnoerr = 100*inval/total;
-                                percentProc = Math.round(pnoerr*100)/100;
+                                if (pnoerr>=99.995 && pnoerr<100)
+                                  percentProc = Math.round(pnoerr*1000)/1000;
+                                else
+                                  percentProc = Math.round(pnoerr*100)/100;
 			}
 
 			//output
@@ -680,7 +687,10 @@ var q3 = function (callback){
 			}
 		}else{
 			var p = 100*(processed+err)/total;
-			percent = Math.round(p*100)/100;
+                        if (p>=99.995 && p<100)
+			  percent = Math.round(p*1000)/1000;
+                        else
+			  percent = Math.round(p*100)/100;
 		}
 		var color = percColor2(percent,err>0);
                 if (total==0) color = "palegreen";
@@ -780,6 +790,7 @@ var q1 = function (callback){
   queryJSON3.query.filtered.query.range.ls.from = 1;
   queryJSON3.query.filtered.query.range.ls.to = qparam_lastLs;
   queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
+
 
   client.search({
     index: 'runindex_'+qparam_sysName+'_read',
