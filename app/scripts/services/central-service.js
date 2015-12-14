@@ -88,7 +88,7 @@
                 intervalNum: configService.nbins,
                 sysName: false,
                 streamList: false,
-                timePerLs: 23.4,
+                timePerLs: 23.31,
                 useDivisor: true,
                 accum : false
             },

@@ -20,7 +20,7 @@
                         </div>
                     </div>
 
-                    <div style="margin-left:20px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
+                    <div style="margin-left:10px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Events'" ng-change='unitChanged()'>Events</label>
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes'" ng-change='unitChanged()'>Bytes</label>
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
@@ -28,8 +28,9 @@
 
                     <div class="pull-right" style="width:120px;" id='sr-divisor'>
                         <div class="input-group input-group-xs ">
+                            <span class="input-group-addon primary"> <input ng-change='tooltipToggle()' ng-model="tooltip" type="checkbox" aria-label="..." style='vertical-align: middle'> tooltip </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle'> sec/LS </span>
-                            <input type="number" class="form-control" ng-model="queryParams.timePerLs" ng-change='paramsChanged()'>
+                            <!--<input type="number" class="form-control" ng-model="queryParams.timePerLs" ng-change='paramsChanged()'>-->
                         </div>
                     </div>
 

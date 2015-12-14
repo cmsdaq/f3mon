@@ -187,9 +187,15 @@
           runInfoService.updateMaskedStreams(maskedStreamList);
         }
 
+        $scope.tooltip = true;
+        $scope.tooltipToggle = function() {
+          runInfoService.updateMaskedStreams([]);
+          initChart(false);
+          console.log('tooltip set: '+ $scope.tooltip);
+       }
+
         $scope.unitChanged = function() {
             var axisTitle = $scope.unit;
-
 
             if ($scope.unit=='Bytes') {
               $scope.stackedDisabled=false;
@@ -381,6 +387,7 @@
             macroSerie = false;
 
             streamRatesChartConfig.xAxis[0].minRange = configService.nbins;
+            streamRatesChartConfig.tooltip.enabled = $scope.tooltip;
             chartConfig = jQuery.extend({}, streamRatesChartConfig);
             setEvents();
             chart = new Highcharts.StockChart(chartConfig);
