@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -14,22 +14,28 @@
   <link rel="stylesheet" href="css/custom.css">
 </head>
 <body>
-<h2> Useful bookmarks to elasticsearch experimental stuff</h2>
+<h2> Useful bookmarks to elasticsearch FFF monitoring </h2>
 <div class="col-md-3 main-sidebar">
   <div class="panel-group" id="accordion">
     <div class="panel panel-primary ">
         <div class="panel-body">
 	  
 	  <ul class="list-group">                                                                                                           
-	    <li class="dropdown messages-dropdown"> <a href="http://cu-01/f3mon-test"><strong>Page with latest greatest using HighCharts (Apache/PHP)</strong></a><br>
-	    <li class="dropdown messages-dropdown"> <a href="http://cu-01:3000/node-f3mon"><strong>Page with latest greatest using HighCharts (NodeJS)</strong></a><br>
-<br>
-	    <li class="dropdown messages-dropdown"><a href="http://es-vm-cdaq/kibana/#/dashboard/elasticsearch/Ramdisk-EM"><strong>Ramdisk and Output rate from Kibana-cdaq</strong></a><br>Interval and refresh rate can be adjusted using the timepicker in the top right of the page.<br><br>
+	    <li class="dropdown messages-dropdown"> <a href="f3mon/"><strong>F3Mon (Node.js version)</strong></a><br>Latest and greatest page with run information, stream rates, merging completion and microstate monitoring.<br><br>
+	    <li class="dropdown messages-dropdown"> <a href="php-f3mon/"><strong>F3Mon (PHP version)</strong></a><br>Last PHP-powered version of the UI.<br><br>
+	    <li class="dropdown messages-dropdown"> <a href="ecd/"><strong>F3Mon (legacy version)</strong></a><br>Older PHP-powered version of F3Mon page<br><br>
 
-	    <li class="dropdown messages-dropdown"><a href="http://es-vm-cdaq/kibana-tribe/#/dashboard/file/rateTribe"><strong>Input rate from index file via Tribe</strong></a><br>
+	    <li class="dropdown messages-dropdown"> <a href="ecd-allmicrostates/"><strong>F3Mon (legacy version) with full detail microstate chart</strong></a><br>Warning: can overload browser if HLT menu has many modules<br><br>
+
+	    <li class="dropdown messages-dropdown"> <a href="sctest/bigpic.html"><strong>BigPic</strong></a><br>Monitoring of appliance resources and elasticsearch status<br><br>
+
+	    <li class="dropdown messages-dropdown"> <a href="ecd/kibana/#/dashboard/elasticsearch/Ramdisk-EM"><strong>Ramdisk and Output rate from Kibana-cdaq (obsolete)</strong></a><br>Interval and refresh rate can be adjusted using the timepicker in the top right of the page.<br><br>
+
+	    <li class="dropdown messages-dropdown"> <a href="kibana-tribe/#/dashboard/file/rateTribe"><strong>Input rate from index file via Tribe (obsolete)</strong></a><br>
 	      The run must be selected by hand by going to the settings of the page (the gear in the top right corner), selecting the "Index" tab and putting the run number as "default index" (don't forget the leading "run" and the trailing "*"). If you don't select a run number (i.e. use run* as default index) be careful that the time span is not too wide or the browser will collapse.
 <br><br>
 	  </ul>
+Note: if you are loading any *directory* link through the cmsdaq0 proxy, make sure to add a trailing slash character to the URL, otherwise links will be broken (links from this page are correct).
 	</div>
       </div>
     </div>
