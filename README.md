@@ -25,12 +25,6 @@ npm install grunt grunt-connect-proxy load-grunt-tasks time-grunt jshint-stylish
 bower install
 ```
 
-##Run this to update highcharts-ng lib to the latest version:
-
-```
-. update-highcharts-ng.sh 
-```
-
 #Notes:
 - Overrides are present in bower.json to force loading highstock drilldown module and fix an issue between latest bootstrap and bower definition
 
