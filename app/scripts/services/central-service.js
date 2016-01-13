@@ -651,8 +651,11 @@
             var q = service.queryParams;
             service.stop();
             if (runInfo.startTime===false) return;
-            q.startTime = runInfo.startTime;
-            q.endTime = runInfo.endTime;
+            //convert to unix millis time
+            dts = new Date(runInfo.startTime)
+            dte = new Date(runInfo.endTime)
+            q.startTime = dts.getTime();
+            q.endTime = dte.getTime();
             q.sysName = indexInfo.subSystem;
 
             service.start();
