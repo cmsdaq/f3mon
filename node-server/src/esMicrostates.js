@@ -51,7 +51,6 @@ module.exports = {
     else {qparam_numIntervals = parseInt(req.query.numIntervals);}
     if (qparam_format===null) qparam_format='highcharts'
 
-//"numIntervals":"10","runNumber":"262742","sysName":"cdaq","timeRange":"300"}
 
     if (qparam_timeRange == null){qparam_timeRange = "302";}
     if (qparam_maxTime == null){qparam_maxTime = "now-2s";}
@@ -167,9 +166,10 @@ module.exports = {
 	  else {
 	    var shortened = result._source.stateNames;
 	    for (var i = 0 ; i< special ; i++) {
-	      legend[i]=shortened[i];
-              if (hcformat)
+	        legend[i]=shortened[i];
+              if (hcformat) {
 	        retObj.data[shortened[i]] = [];
+              }
               else {
                 idxmap[shortened[i]]=retObj.data.length
 	        retObj.data.push({key:shortened[i],values:[]});
@@ -208,24 +208,30 @@ module.exports = {
     var q3 = function(callback){
         queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
 
+        //elastic 2.2 doesn't support date_histogram interval < 1 sec
         if (qparam_maxTime!==null) {
           if (qparam_maxTime.substr(0,3)==('now')) {
-	    queryJSON2.query.bool.must[1].range._timestamp.to = qparam_maxTime;
-	    queryJSON2.query.bool.must[1].range._timestamp.from = 'now-'+parseInt(qparam_timeRange)+'s';
+	    queryJSON2.query.bool.must[1].range.date.to = qparam_maxTime;
+	    queryJSON2.query.bool.must[1].range.date.from = 'now-'+parseInt(qparam_timeRange)+'s';
           }
           else { //unix timestamp
-	    queryJSON2.query.bool.must[1].range._timestamp.to = parseInt(qparam_maxTime);
-	    queryJSON2.query.bool.must[1].range._timestamp.from = Math.Round(parseInt(qparam_maxTime)-(1000*parseInt(qparam_timeRange)));
+	    queryJSON2.query.bool.must[1].range.date.to = parseInt(qparam_maxTime);
+	    queryJSON2.query.bool.must[1].range.date.from = Math.Round(parseInt(qparam_maxTime)-(1000*parseInt(qparam_timeRange)));
           }
-          queryJSON2.aggs.dt.date_histogram.interval=(parseInt(qparam_timeRange)/parseInt(qparam_numIntervals))+'s'
+          var intval = parseInt(qparam_timeRange)/parseInt(qparam_numIntervals);
+          //console.log(intval)
+          if (intval<1) intval = 1
+          queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
         }
         else {
           //LS time interval
-          queryJSON2.query.bool.must[1].range._timestamp.to = maxTs;
-          queryJSON2.query.bool.must[1].range._timestamp.from = minTs;
-          queryJSON2.aggs.dt.date_histogram.interval=(((maxTs-minTs))/(1000.*parseInt(qparam_numIntervals)))+'s'
+          queryJSON2.query.bool.must[1].range.date.to = maxTs;
+          queryJSON2.query.bool.must[1].range.date.from = minTs;
+          var intval = (maxTs-minTs)/(1000.*parseInt(qparam_numIntervals));
+          //console.log(intval)
+          if (intval<1) intval = 1
+          queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
         }
-
 
 	client.search({
           index: 'runindex_'+qparam_sysName+'_read',
@@ -236,40 +242,44 @@ module.exports = {
 	  took += body.took;
           var results = body.aggregations.dt.buckets; //date bin agg for query
           var timeList = [];
-		
+
+	  var entrycnt = 0;	
 	  for (var i=0;i<results.length;i++){
-	    var timestamp = results[i].key;
-            timeList.push(timestamp)
-            //console.log(results[i]);
-	    var entries = results[i].entries.keys.buckets;
-	    //var entriesList = [];
-
-            if (hcformat)
-              for (var ikey in retObj.data)
-                retObj.data[ikey].push([timestamp,0]);//null?
-            else
-              for (var iidx=0; iidx<retObj.data.length;iidx++)
-                retObj.data[iidx].values.push([timestamp,0])
-
-	    for (var index=0;index<entries.length;index++) {
-              var ukey = entries[index].key;
-              if (!legend.hasOwnProperty(ukey)) {
-                console.log('warning: key ' + ukey + ' out of range');
-                continue;
-              }
-              var name = legend[ukey];
-	      var value = entries[index].counts.value;
+            if (results[i].doc_count !== 0) {
+              entrycnt++;
+	      var timestamp = results[i].key;
+              timeList.push(timestamp)
+	      var entries = results[i].entries.keys.buckets;
+	      //var entriesList = [];
               if (hcformat)
-                retObj.data[name][i][1] = value;
+                for (var ikey in retObj.data)
+                  retObj.data[ikey].push([timestamp,0]);//null?
               else
-                retObj.data[idxmap[name]].values[i][1]=value;
+                for (var iidx=0; iidx<retObj.data.length;iidx++)
+                  retObj.data[iidx].values.push([timestamp,0])
 
+	      for (var index=0;index<entries.length;index++) {
+                var ukey = entries[index].key;
+                if (!legend.hasOwnProperty(ukey)) {
+                  console.log('warning: key ' + ukey + ' out of range');
+                  continue;
+                }
+                var name = legend[ukey];
+                //console.log('myname '+ name + hcformat + idxmap[name])
+	        var value = entries[index].counts.value;
+                if (hcformat)
+                  retObj.data[name][entrycnt-1][1] = value;
+                else
+                  retObj.data[idxmap[name]].values[entrycnt-1][1]=value;
+
+              }
             }
           }
 
           retObj.timeList = timeList;	
 	  if (results.length>0)
 	    retObj.lastTime = results[results.length-1].key;
+
           if (!hcformat) retObj.data.reverse();
 	  callback();
         }, function (error) {

@@ -5,14 +5,12 @@
          "must": [
             {
                "term": {
-                  "_parent": {
-                     "value": "233132"
-                  }
+                  "_parent": "233132"
                }
             },
             {
                "range": {
-                  "_timestamp": {
+                  "date": {
                      "from": "now-60s",
                      "to": "now"
                   }
@@ -23,7 +21,7 @@
    },
    "sort": [
       {
-         "_timestamp": {
+         "date": {
             "order": "asc"
          }
       }

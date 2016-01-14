@@ -52,8 +52,8 @@ module.exports = {
 
       //parameterize query fields
       queryJSON.size = qparam_size;
-      queryJSON.query.range._timestamp.from = qparam_from;
-      queryJSON.query.range._timestamp.to = qparam_to;
+      queryJSON.query.range.startTime.from = qparam_from;
+      queryJSON.query.range.startTime.to = qparam_to;
 
       //search ES
       client.search({
@@ -72,7 +72,7 @@ module.exports = {
 	  console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.send();
 	}else{
-	  var lasttime = results[0].fields._timestamp;
+	  var lasttime = results[0].fields.startTime;
 	  var index;
 	  var arr = [];
 	  for (index = 0 ; index < results.length; index++){

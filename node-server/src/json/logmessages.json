@@ -1,11 +1,11 @@
 {
   "sort": {
-    "_timestamp": {
+    "date": {
       "order": "asc"
     }
   },
   "fields": [
-    "_timestamp",
+    "date",
     "_source"
   ],
   "query": {
@@ -14,7 +14,7 @@
         "and": [
           {
             "range": {
-              "_timestamp": {
+              "date": {
                 "to": "now",
                 "from": "0"
               }
@@ -44,7 +44,7 @@
   },
    "aggs":{
     "lastTime":{
-        "max":{"field":"_timestamp"}
+        "max":{"field":"date"}
     }
    },
   "size": 100,

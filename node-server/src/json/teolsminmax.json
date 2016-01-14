@@ -1,5 +1,5 @@
 {  "size": 0,
-  "fields": ["_timestamp"],
+  "fields": ["fm_date"],
   "query": {
     "bool": {
       "should": [

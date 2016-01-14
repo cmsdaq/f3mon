@@ -1,7 +1,6 @@
 {
     "dynamic": true,
     "_timestamp":{
-        "enabled":true,
-        "store": true
+        "enabled":true
     }
 }

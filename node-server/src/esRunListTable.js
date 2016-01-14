@@ -129,6 +129,8 @@ module.exports = {
 	  "iTotalDisplayRecords" : filteredTotal,
 	  "aaData" : arr
 	};
+
+
 	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
 	totalTimes.queried += srvTime;

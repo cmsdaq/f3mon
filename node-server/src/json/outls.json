@@ -4,10 +4,10 @@
         "in",
         "out",
         "filesize",
-        "_timestamp"
+        "fm_date"
     ],
     "sort": {
-        "_timestamp": "desc"
+        "date": "desc"
     },
     "query": {
         "term": {

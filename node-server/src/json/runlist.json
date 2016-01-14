@@ -1,11 +1,11 @@
 {
     "fields": [
-        "_timestamp",
-        "_source"
+        "_source",
+        "startTime"
     ],
     "query": {
         "range": {
-            "_timestamp": {
+            "startTime": {
                 "from": "0",
                 "to": "now"
             }

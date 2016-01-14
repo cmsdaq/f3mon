@@ -108,13 +108,16 @@ module.exports = {
     var q1 = function (callback){
 
       queryJSON3.filter.term._id = qparam_runNumber;
-
       client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body : JSON.stringify(queryJSON3)
       }).then (function(body){
         var results = body.hits.hits; //hits for query
+	if (results.length === 0){
+          sendResult();
+          return;
+        }
 	retObj = results[0]._source; 	//throws cannot read property error if result list is empty (no hits found) because results[0] is undefined
 	callback(q3);
       }, function (error){

@@ -298,6 +298,7 @@ var q5 = function (callback){
     	}).then (function(body){
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
+                        //console.log(JSON.stringify('results[0] macro:'+results[0]))
 			lastTimes.push(results[0].fields.fm_date[0]*1000);
 		}
 		took += body.took;
@@ -519,7 +520,8 @@ var q3 = function (callback){
     }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
-		lastTimes.push(results[0].fields._timestamp);
+                //is unix timestamp
+		lastTimes.push(results[0].fields.date);
 	}
 	took += body.took;
 	
@@ -743,7 +745,8 @@ var q2 = function (callback){
     }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
-        	lastTimes.push(results[0].fields._timestamp);
+                var eoltimes = new Date(results[0].fields.fm_date);
+        	lastTimes.push(eoltimes.getTime());
 	}
 	var buckets = body.aggregations.ls.buckets;
 	var postOffset = buckets[buckets.length-1];
@@ -799,7 +802,9 @@ var q1 = function (callback){
     }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
-		lastTimes.push(results[0].fields._timestamp);
+                //console.log(JSON.stringify(results[0]));
+                var eoltimes = new Date(results[0].fields.fm_date);
+		lastTimes.push(eoltimes.getTime());
 	}
 	var ret = {
 		"events" : [],

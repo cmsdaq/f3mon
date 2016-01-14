@@ -1,7 +1,7 @@
 {  "size": 1,
-   "fields": ["_timestamp"],
+   "fields": ["fm_date"],
    "sort": {
-      "_timestamp": "desc"
+      "fm_date": "desc"
    },
    "query": {
       "filtered": {
@@ -15,7 +15,7 @@
          },
          "filter": {
                    "prefix": {
-                      "_id": "290011"
+                      "_id": "run290011"
                   }
          }
       }

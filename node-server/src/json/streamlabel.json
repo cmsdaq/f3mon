@@ -5,9 +5,7 @@
          "must": [
             {
                "prefix": {
-                  "_id": {
-                     "value": "run225956"
-                  }
+                  "_id": "run225956"
                }
             }
          ]

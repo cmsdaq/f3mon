@@ -136,7 +136,7 @@ module.exports = {
     //Get states
     var q2 = function(callback){
 
-	    queryJSON2.query.bool.must[1].range._timestamp.from = 'now-'+qparam_timeRange+'s';
+	    queryJSON2.query.bool.must[1].range.date.from = 'now-'+qparam_timeRange+'s';
 	    queryJSON2.query.bool.must[0].term._parent = qparam_runNumber;
 
 	    client.search({

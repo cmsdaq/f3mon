@@ -10,7 +10,7 @@
         },
         {
           "range": {
-            "_timestamp": {
+            "date": {
               "from": "now-232s",
               "to": "now-2s"
             }
@@ -22,7 +22,7 @@
   "aggs": {
     "dt":{
       "date_histogram":{
-        "field":"_timestamp","interval":"2.3s"
+        "field":"date","interval":"2.3s"
       },
       "aggs":{
         "entries":{

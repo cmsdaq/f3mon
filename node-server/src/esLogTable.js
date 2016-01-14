@@ -65,8 +65,8 @@ module.exports = {
       //parameterize query
       queryJSON.size = qparam_size;
       queryJSON.from = qparam_from;
-      queryJSON.query.filtered.filter.and[0].range._timestamp.from = qparam_startTime;
-      queryJSON.query.filtered.filter.and[0].range._timestamp.to = qparam_endTime;
+      queryJSON.query.filtered.filter.and[0].range.date.from = qparam_startTime;
+      queryJSON.query.filtered.filter.and[0].range.date.to = qparam_endTime;
 
       if (qparam_search != ''){
 	var searchText = '';
