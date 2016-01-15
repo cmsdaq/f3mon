@@ -206,6 +206,7 @@ module.exports = {
 
     //Get states
     var q3 = function(callback){
+         //TODO: use fm_date field here..(all remapped documents will contain it)
         queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
 
         //elastic 2.2 doesn't support date_histogram interval < 1 sec
