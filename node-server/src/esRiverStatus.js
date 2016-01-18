@@ -34,8 +34,6 @@ module.exports = {
     var qparam_size = req.query.size;
     if (qparam_size == null){qparam_size = 100;}
 
-    //var qparam_query = req.query.query;
-    //if (qparam_query == null){qparam_query = 'riverstatus';}
     var qparam_query = 'riverstatus';
 
     var requestKey = 'riverStatus?size='+qparam_size+'&query='+qparam_query;
@@ -45,42 +43,14 @@ module.exports = {
     //parameterize query fields 
     queryJSON.size = qparam_size;
 
-    //search ES - Q1 (get status)
-    var q1 = function (callback) {
-      queryJSON.filter.term._id = "_status" //param for Q1
-
-      client.search({
-        index:'_river',
-        body: JSON.stringify(queryJSON)
-      }).then (function(body){
-        var results = body.hits.hits; //hits for query 1
-        var statusList = []; //built in Q1, used in Q2
-        for (var index = 0 ; index < results.length; index++){
-          //impl. php substr() for negative length parameter l
-          var l = 6;
-          var suffix = results[index]._source.node.transport_address.substr(l);
-          var ip = suffix.substring(0, suffix.length-l);
-          var entry = {
-            "key" : results[index]._type,
-            "value" : ip
-          };
-          statusList[index] = entry;
-        }
-        callback(statusList);
-      }, function (error){
-        excpEscES(res,error);
-        console.trace(error.message);
-      });
-    }//end q1
-
-
     //search ES - Q2 (get meta)
-    var q2 = function (statusList){
+    var q1 = function (){
 
-      queryJSON.filter.term._id = "_meta" //param for Q2
+      //queryJSON.query.term. = "_meta" //param for Q2
 
       client.search({
-        index:'_river',
+        index:'river',
+        type:'instance',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
         var results = body.hits.hits; //hits for query 2
@@ -97,37 +67,42 @@ module.exports = {
         var prepareLookup = function () {
           if (index < results.length) {
 
-		var type = results[index]._type;
+		var type = results[index]._type; //'instance'
 		source[index] = results[index]._source;
+                system[index] = source[index].subsystem
+                stat[index] = source[index].node.status
+                host[index] = source[index].node.name
+                formatEntry(index);
+                index++;
+                prepareLookup();
+ 
+		////impl. php substr() for positive length parameter l
+		//var l = 9; //equals size of the string 'runIndex_'
+		//var suffix  = source[index].runIndex_read.substr(l);
+		//var strpos_minus_const = source[index].runIndex_read.indexOf("_read")-l;
+		//system[index] = suffix.substring(0, strpos_minus_const);
 
-		//impl. php substr() for positive length parameter l
-		var l = 9; //equals size of the string 'runIndex_'
-		var suffix  = source[index].runIndex_read.substr(l);
-		var strpos_minus_const = source[index].runIndex_read.indexOf("_read")-l;
-		system[index] = suffix.substring(0, strpos_minus_const);
+		////status = false means that the river exists but the instance is not running
+		//var entriesByKey = statusList.filter(function (o){
+		//	return o.key == type;
+		//});
 
-		//status = false means that the river exists but the instance is not running
-		var entriesByKey = statusList.filter(function (o){
-			return o.key == type;
-		});
-
-		//console.log('fltd_array:'+JSON.stringify(entriesByKey));
-		var ip;
-                host[index]="";
-		if (entriesByKey.length>0){	
-		        stat[index]=true;
-			ip = entriesByKey[0].value;
-			var b = true;
-	                var idx = index;
-			require('dns').reverse(ip, checkResult.bind({b:b,idx:idx}));	
-                }
-                else {
-		        stat[index]=false;
-                        host[index]="";
-                        formatEntry(index);
-                        index++;
-                        prepareLookup();
-                }
+		////console.log('fltd_array:'+JSON.stringify(entriesByKey));
+		//var ip;
+                //host[index]="";
+		//if (entriesByKey.length>0){
+		//        stat[index]=true;
+		//	ip = entriesByKey[0].value;
+		//	var b = true;
+	        //        var idx = index;
+		//	require('dns').reverse(ip, checkResult.bind({b:b,idx:idx}));
+                //}
+                //else {
+		//        stat[index]=false;
+                //        host[index]="";
+                //        formatEntry(index);
+                //        index++;
+                //        prepareLookup();
           }
           else {
             response();
@@ -155,7 +130,7 @@ module.exports = {
 
 
         var formatEntry = function(idx) {
-		if ((source[idx].hasOwnProperty("role"))&&(source[idx].role=="collector")){
+		if (source[idx].hasOwnProperty("runNumber") && source[idx].runNumber!==0){
 			var o  = {
 				"runNumber" : source[idx].runNumber,
 				"status" : stat[idx],
@@ -205,8 +180,7 @@ module.exports = {
       f3MonCache.set(requestKey, "requestPending", ttl);
 
       //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
-      //q1 is executed and then passes to its callback, q2
-      q1(q2);
+      q1();
     }else{
       var srvTime = (new Date().getTime())-eTime;
       totalTimes.cached += srvTime;

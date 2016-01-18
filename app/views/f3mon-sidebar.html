@@ -160,6 +160,7 @@
                                     </th>
                                     <th style='text-align: center'>Host</th>
                                     <th style='text-align: center'>System</th>
+                                    <th style='text-align: center'>Status</th>
                                 </tr>
                             </thead>
                             <tbody ng-show="noData">
@@ -173,6 +174,7 @@
                                     <!--<td>{{row.role}}</td>-->
                                     <td style='white-space: nowrap' >{{row.host}}</td>
                                     <td style='text-align: center'>{{row.subSystem}}</td>
+                                    <td style='text-align: center'>{{row.status}}</td>
                                     <td ng-show="row.role=='collector'" style='text-align: right'>
                                         <a ng-click="closeCollectorDialog(row.name,row.subSystem)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
                                     </td>

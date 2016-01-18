@@ -1,15 +1,9 @@
 {
-   "query": {
-      "term": {
-         "_id": {
-            "value": "_meta"
-         }
-      }
-   },"sort": [
+   "sort": [
       {
-         "role": {
+         "instance_name": {
             "order": "desc",
-            "missing": "main",
+            "missing": "undefined",
             "unmapped_type": "string"
          }
       }

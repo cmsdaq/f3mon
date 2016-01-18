@@ -64,94 +64,14 @@ module.exports = {
       res.send(cb +' ('+JSON.stringify(retObj)+')');
     }
 
-    var indx = 0;
-
-    var prepareLookup = function (){
-      if (indx < ipAddresses.length){
-        var ip = ipAddresses[indx];
-        if (ip == -1){
-          indx++;
-	  prepareLookup();	
-	}else{
-	  var idx = indx;
-	  require('dns').reverse(ip, checkResult.bind({idx:idx}));
-	}	
-      }else{
-        sendResult();
-      }
-
-    }//end prepareLookup
-
-    var checkResult = function (err, domains){
-	    if (err){
-		    console.log(err.toString());
-		    retObj.list[this.idx].host = ipAddresses[this.idx]; //escape with IP in case of unresolved
-		    return;
-	    }
-	    if (domains.length>0){
-                    if (domains[0].length>=4 && domains[0].indexOf(".cms", this.length - 4) !== -1)
-                      retObj.list[this.idx].host  = domains[0].substr(0,domains[0].length-4);
-                    else
-		      retObj.list[this.idx].host  = domains[0]; //assign the first possible hostname
-	    }else{
-		    retObj.list[this.idx].host  = ipAddresses[this.idx]; //escape with IP in case of unresolved
-	    }
-	    indx++;
-	    prepareLookup();
-    }//end checkResult 
-
-
-    //search ES - Q2 (check status)
-    var q2 = function (callback, typeList, list){
-
-      //set query parameter
-      queryJSON1.query.bool.must[1].terms._type = typeList;
-
-      client.search({
-        index: '_river',
-        body: JSON.stringify(queryJSON1)
-      }).then(function(body) {
-        var results = body.hits.hits; //hits for query 2
-
-        for (var index=0;index<list.length;index++){
-          var stat = [];
-          var itemName = list[index].name;
-	  for (var j=0;j<results.length;j++){
-	    if (results[j]._type == itemName){
-	      stat.push(results[j]);
-	    }
-	  }
-
-          if (stat.length>0){
-            var ipstring = stat[0];
-	    ipstring = ipstring._source.node.transport_address;
-	    var ip;
-	    var start = ipstring.indexOf('/')+1;
-	    var suffix = ipstring.substr(start);
-	    var len = ipstring.indexOf(':')-ipstring.length; //always negative, remove chars from the end
-	    ip = suffix.substring(0, suffix.length+len);
-	    ipAddresses[index] = ip;
-	    list[index].status = true;
-          }else{
-	    ipAddresses[index] = -1;
-          }
-        }
-        retObj.list = list;//passes list to callback-level scope, next functs will access it directly
-        callback();
-      }, function (error){
-        excpEscES(res,error);
-        console.trace(error.message);
-      });
-    }//end q2
-
 
     //search ES - Q1 (get meta)
-    var q1 = function (callback){
+    var q1 = function (){
 
       queryJSON2.size = qparam_size;
       queryJSON2.from = qparam_from;
-      queryJSON2.query.term._id.value = "_meta";
 
+      //TODO:sortBy name mapping...
       if (qparam_sortBy != '' && qparam_sortOrder != ''){
         var inner = {
 	  "order" : qparam_sortOrder,
@@ -165,26 +85,37 @@ module.exports = {
       }
 
       client.search({
-        index:'_river',
+        index:'river',
+        type:'instance',
         body: JSON.stringify(queryJSON2)
       }).then (function(body){
         var results = body.hits.hits; //hits for query 1
         retObj.total = body.hits.total;
-        var typeList = [];
         var list = [];
         for (var index = 0 ; index < results.length; index++){
-          typeList.push(results[index]._type);
-          var runindex = results[index]._source.runIndex_read.split('_');
-          runindex = runindex[1];
+          var host = ""
+          if (results[index]._source.hasOwnProperty("node"))
+            host = results[index]._source.node.name;
+          //console.log(results[index]._source)
+          var nstatus = "undefined"
+          if (results[index]._source.hasOwnProperty("node"))
+            nstatus = results[index]._source.node.status;
+          var role = "main";
+          if (results[index]._source.hasOwnProperty("runNumber") && results[index]._source.runNumber!=0)
+            role = "collector";
           var o = {
-            "name" : results[index]._type,
-            "role" : results[index]._source.hasOwnProperty("role") ? results[index]._source.role : 'main',
-	    "status" : false,
-	    "subSystem" : runindex
+            //"name" : results[index]._source.instance_name.substr(6), //after river_
+            "name" : results[index]._source.instance_name.split("_")[2],
+            "subSystem" : results[index]._source.subsystem,
+            "host" : host, //todo:adapt river tables
+            "status" : nstatus,
+            "role" : role
 	  };
+          //todo:sort list by instance_name (desc!)
 	  list.push(o);
         }
-        callback(prepareLookup,typeList, list);
+        retObj.list = list;//passes list to callback-level scope, next functs will access it directly
+        sendResult();
       }, function (error){
         excpEscES(res,error);
         console.trace(error.message);
@@ -200,7 +131,7 @@ module.exports = {
 
       //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
       //q1 is executed and then passes to its callback, q2
-      q1(q2);
+      q1();
     }else{
 	var srvTime = (new Date().getTime())-eTime;
         totalTimes.cached += srvTime;

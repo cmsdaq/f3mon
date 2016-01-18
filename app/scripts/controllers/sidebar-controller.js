@@ -103,7 +103,8 @@
 
         $scope.closeCollectorDialog = function(name, subSystem) {
             $scope.selected = {
-                "runNumber": name.split("_")[1],
+                //"runNumber": name.split("_")[1],
+                "runNumber": name,
                 "subSystem": subSystem
             };
             modal.$promise.then(modal.show);

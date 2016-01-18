@@ -1,8 +1,6 @@
 {
    "size": 100,
-   "filter": {
-      "term": {
-         "_id": "_meta"
-      }
-   }
+   "sort":[{
+     "_id":"asc"
+   }]
 }

@@ -44,6 +44,7 @@ module.exports = {
     var qparam_maxLs=req.query.maxLs;
     var qparam_format=req.query.format;
 
+
     if (qparam_runNumber === null){qparam_runNumber = 0;}
     else { qparam_runNumber = parseInt(req.query.runNumber);}
     if (qparam_sysName === null){qparam_sysName = 'cdaq';}
@@ -51,6 +52,9 @@ module.exports = {
     else {qparam_numIntervals = parseInt(req.query.numIntervals);}
     if (qparam_format===null) qparam_format='highcharts'
 
+    //console.log('nints '+qparam_numIntervals);
+
+//"numIntervals":"10","runNumber":"262742","sysName":"cdaq","timeRange":"300"}
 
     if (qparam_timeRange == null){qparam_timeRange = "302";}
     if (qparam_maxTime == null){qparam_maxTime = "now-2s";}
@@ -138,10 +142,10 @@ module.exports = {
 
     } //end q1
 
-
     //Get legend
     var q2 = function(callback) {
-      queryJSON1.query.filtered.query.term._parent = qparam_runNumber;
+      queryJSON1.query.term._parent = qparam_runNumber;
+      //console.log('xxxx'+JSON.stringify(queryJSON1));
 
       client.search({
         index: 'runindex_'+qparam_sysName+'_read',
@@ -206,8 +210,8 @@ module.exports = {
 
     //Get states
     var q3 = function(callback){
-         //TODO: use fm_date field here..(all remapped documents will contain it)
         queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
+        //TODO: use fm_date field here..(all remapped documents will contain it)
 
         //elastic 2.2 doesn't support date_histogram interval < 1 sec
         if (qparam_maxTime!==null) {
@@ -244,36 +248,40 @@ module.exports = {
           var results = body.aggregations.dt.buckets; //date bin agg for query
           var timeList = [];
 
+          //console.log(JSON.stringify(results));
 	  var entrycnt = 0;	
 	  for (var i=0;i<results.length;i++){
             if (results[i].doc_count !== 0) {
-              entrycnt++;
-	      var timestamp = results[i].key;
-              timeList.push(timestamp)
-	      var entries = results[i].entries.keys.buckets;
-	      //var entriesList = [];
-              if (hcformat)
-                for (var ikey in retObj.data)
-                  retObj.data[ikey].push([timestamp,0]);//null?
-              else
-                for (var iidx=0; iidx<retObj.data.length;iidx++)
-                  retObj.data[iidx].values.push([timestamp,0])
+            entrycnt++;
+	    var timestamp = results[i].key;
+            timeList.push(timestamp)
+            //console.log(results[i]);
+	    var entries = results[i].entries.keys.buckets;
+	    //var entriesList = [];
+            //console.log(JSON.stringify(retObj.data))
+            if (hcformat)
+              for (var ikey in retObj.data)
+                retObj.data[ikey].push([timestamp,0]);//null?
+            else
+              for (var iidx=0; iidx<retObj.data.length;iidx++)
+                retObj.data[iidx].values.push([timestamp,0])
 
-	      for (var index=0;index<entries.length;index++) {
-                var ukey = entries[index].key;
-                if (!legend.hasOwnProperty(ukey)) {
-                  console.log('warning: key ' + ukey + ' out of range');
-                  continue;
-                }
-                var name = legend[ukey];
-                //console.log('myname '+ name + hcformat + idxmap[name])
-	        var value = entries[index].counts.value;
-                if (hcformat)
-                  retObj.data[name][entrycnt-1][1] = value;
-                else
-                  retObj.data[idxmap[name]].values[entrycnt-1][1]=value;
-
+	    for (var index=0;index<entries.length;index++) {
+              var ukey = entries[index].key;
+              //console.log('entry'+JSON.stringify(entries[index]))
+              if (!legend.hasOwnProperty(ukey)) {
+                console.log('warning: key ' + ukey + ' out of range');
+                continue;
               }
+              var name = legend[ukey];
+              //console.log('myname '+ name + hcformat + idxmap[name])
+	      var value = entries[index].counts.value;
+              if (hcformat)
+                retObj.data[name][entrycnt-1][1] = value;
+              else
+                retObj.data[idxmap[name]].values[entrycnt-1][1]=value;
+
+            }
             }
           }
 
@@ -281,7 +289,7 @@ module.exports = {
 	  if (results.length>0)
 	    retObj.lastTime = results[results.length-1].key;
 
-          if (!hcformat) retObj.data.reverse();
+          if (!hcformat) retObj.data.reverse()
 	  callback();
         }, function (error) {
 	    excpEscES(res,error);
