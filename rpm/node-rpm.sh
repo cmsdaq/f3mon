@@ -21,7 +21,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fff-node-scripts.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.0.1
+Version: 1.0.2
 Release: 0
 Summary: node.js f3mon scripts
 License: gpl
