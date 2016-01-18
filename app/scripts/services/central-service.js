@@ -505,6 +505,10 @@
             else {
                 service.closedRun=false;
             }
+            //avoid restart in runInfo LS range update
+            if (service.queryParams.runNumber===runInfoService.data.runNumber && service.active) {
+                return;
+            }
             service.stop();
             service.resetParams();
             service.start();
