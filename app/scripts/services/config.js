@@ -474,46 +474,37 @@
 
     .constant('microStatesChartConfig', {
         chart: {
-            renderTo: 'mschart',
-            animation: false, //animation for stacked area is not supported
-            ignoreHiddenSeries: true,
-            //height: 400,
-            zoomType: 'xy',
-        },
-
-        plotOptions: {
-            column: {
-                pointRange: 5500,
-                gapsize: 0,
-                stacking: 'percent',
-                groupPadding: 0,
-                pointPadding: 0,
-                borderWidth: 0,
-                connectNulls: false,
-                lineWidth: 0,
-                marker: {
-                    enabled: false,
-                    states: {
-                        hover: {
-                            enabled: false,
-                        }
-                    }
-                }
-            },
-            area: {
-                gapsize: 1,
-                stacking: 'percent',
-                connectNulls: false,
-                lineWidth: 0,
-                marker: {
-                    enabled: false,
-                    states: {
-                        hover: {
-                            enabled: false,
-                        }
-                    }
-                }
-            },
+          type: "stackedAreaChart",
+          height: 450,
+          margin: {
+            top: 20,
+            right: 20,
+            bottom: 30,
+            left: 40
+          },
+          x: (function(d) { return d[0] }),
+          y: (function(d) { return d[1] }),
+          useVoronoi: false,
+          clipEdge: true,
+          duration: 100,
+          useInteractiveGuideline: true,
+          xAxis: {
+          showMaxMin: false
+          },
+          yAxis: {},
+          zoom: {
+                  enabled: true,
+                  scaleExtent: [
+                          1,
+                          10
+                  ],
+                  useFixedDomain: false,
+                  useNiceScale: false,
+                  horizontalOff: false,
+                  verticalOff: true,
+                  unzoomEventType: "dblclick.zoom"
+          }
+          
         },
         colors: Colors.colorList(),
         legend: {

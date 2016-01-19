@@ -28,7 +28,8 @@
     'angularUtils.directives.dirPagination',    
     'mgcrea.ngStrap',
     'angularMoment',
-    'ngTimezone'
+    'ngTimezone',
+    'nvd3'
   ]);
 
 
