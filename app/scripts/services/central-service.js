@@ -655,10 +655,14 @@
             service.stop();
             if (runInfo.startTime===false) return;
             //convert to unix millis time
-            var dts = new Date(runInfo.startTime);
-            var dte = new Date(runInfo.endTime);
+            var dts = new Date(runInfo.startTime+'+0000');
             q.startTime = dts.getTime();
-            q.endTime = dte.getTime();
+            if (runInfo.endTime!==false) {
+              var dte = new Date(runInfo.endTime+'+0000');
+              q.endTime = dte.getTime();
+            }
+            else
+              delete q.endTime;
             q.sysName = indexInfo.subSystem;
 
             service.start();
