@@ -1,5 +1,5 @@
 {  "size": 1,
-   "fields":["fm_date"],
+   "fields":["fm_date","_source"],
    "sort": {
       "fm_date": "desc"
    },
