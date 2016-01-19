@@ -44,8 +44,7 @@ module.exports = {
     var qparam_maxLs=req.query.maxLs;
     var qparam_format=req.query.format;
 
-
-    if (qparam_runNumber === null){qparam_runNumber = 0;}
+    if (qparam_runNumber === null || qparam_runNumber===undefined){qparam_runNumber = 0;}
     else { qparam_runNumber = parseInt(req.query.runNumber);}
     if (qparam_sysName === null){qparam_sysName = 'cdaq';}
     if (qparam_numIntervals === null){qparam_numIntervals = 50;}
