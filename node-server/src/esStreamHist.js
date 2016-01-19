@@ -298,8 +298,10 @@ var q5 = function (callback){
     	}).then (function(body){
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-                        //console.log(JSON.stringify('results[0] macro:'+results[0]))
-			lastTimes.push(results[0].fields.fm_date[0]*1000);
+                  //console.log(JSON.stringify('results[0] macro:'+results[0]))
+                  fm_date_val = results[0].fields.fm_date[0];
+                  if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
+                  else lastTimes.push(results[0].fields.fm_date[0]);
 		}
 		took += body.took;
 
@@ -409,7 +411,9 @@ var q4 = function (callback){
     	}).then (function(body){
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-			lastTimes.push(results[0].fields.fm_date[0]*1000);
+                  fm_date_val = results[0].fields.fm_date[0];
+                  if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
+                  else lastTimes.push(results[0].fields.fm_date[0]);
 		}
 		took += body.took;
 
