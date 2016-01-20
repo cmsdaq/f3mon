@@ -57,6 +57,7 @@ module.exports = {
           var myAlias = info[0];
           var myIndexType = info[1].split("_")[0];
           if (myAlias.indexOf(myIndexType)!==0) continue;//skip if not starting with runindex
+          //TODO:this should be done by makig aliasList a set (list(set()) python equivalent
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
         aliasList.sort(function(a,b){if (a.subSystem>b.subSystem) return true; else return false;});
