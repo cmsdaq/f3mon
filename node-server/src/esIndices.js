@@ -52,9 +52,11 @@ module.exports = {
         for(var alias_info in alias_infos) {
           if (!alias_infos[alias_info].length) continue;
           //console.log(alias_infos[alias_info]);
-          var info = alias_infos[alias_info].split(' ');
+          var info = alias_infos[alias_info].replace(/\s+/g,' ').trim().split(' ');
           var mySubsys = info[0].split("_")[1];
           var myAlias = info[0];
+          var myIndexType = info[1].split("_")[0];
+          if (myAlias.indexOf(myIndexType)!==0) continue;//skip if not starting with runindex
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
         aliasList.sort(function(a,b){if (a.subSystem>b.subSystem) return true; else return false;});
