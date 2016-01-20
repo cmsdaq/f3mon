@@ -28,8 +28,6 @@ module.exports = {
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"getIndices request");
     var eTime = new Date().getTime();
     var cb = req.query.callback;
-    var qparam_sysSuffix = req.query.qparam_sysSuffix;
-    if (qparam_sysSuffix===undefined || qparam_sysSuffix===null) qparam_sysSuffix="";
 
     var requestKey = 'getIndices';
     var requestValue = f3MonCache.get(requestKey);
@@ -55,10 +53,11 @@ module.exports = {
           if (!alias_infos[alias_info].length) continue;
           //console.log(alias_infos[alias_info]);
           var info = alias_infos[alias_info].split(' ');
-          var mySubsys = info[0].split("_")[1]+qparam_sysSuffix;
+          var mySubsys = info[0].split("_")[1];
           var myAlias = info[0];
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
+        aliasList.sort(function(a,b){if (a.subSystem>b.subSystem) return true; else return false;});
         //console.log('sending '+aliasList);
         var retObj = {'list':aliasList};
         f3MonCache.set(requestKey, [retObj,ttl], ttl);
