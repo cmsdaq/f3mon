@@ -29,7 +29,7 @@ bower install
 - Overrides are present in bower.json to force loading highstock drilldown module and fix an issue between latest bootstrap and bower definition
 
 #Run Dev server (optional):
-grunt serve (note: If it returns no errors but server doesnt start, try again and again )
+#grunt serve (note: If it returns no errors but server doesnt start, try again and again )
 
 #Build
 grunt build (note: Disabled the uglify process due to some conflict with angular )

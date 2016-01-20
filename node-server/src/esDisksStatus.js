@@ -73,6 +73,21 @@ module.exports = {
 	res.set('Content-Type', 'text/javascript');
 	res.send(cb +  ' (' +JSON.stringify(retObj)+')');
       }, function (error){
+        //return default reponse in case of index missing
+        if (error.message.indexOf("IndexMissingException")===0) {
+          var retObj = {
+                   "output":{"value":null},
+                   "ramdisk":{"value":null},
+                   "ramdiskused":{"value":null},
+                   "data":{"value":null},
+                   "dataused":{"value":null},
+                   "outputused":{"value":null}
+          }
+	  console.log('getDisksStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+	  res.set('Content-Type', 'text/javascript');
+	  res.send(cb +  ' (' +JSON.stringify(retObj)+')');
+          return;
+        }
         excpEscES(res,error);
         console.trace(error.message);
       });//end  client.search(...)

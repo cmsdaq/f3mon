@@ -57,6 +57,7 @@ module.exports = {
           var myAlias = info[0];
           aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
+        aliasList.sort(function(a,b){if (a.subSystem>b.subSystem) return true; else return false;});
         //console.log('sending '+aliasList);
         var retObj = {'list':aliasList};
         f3MonCache.set(requestKey, [retObj,ttl], ttl);
