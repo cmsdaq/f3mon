@@ -159,6 +159,7 @@
                     action: 'jsonp_get',
                     delay: config.fastPollingDelay,
                     smart: true
+                    //,argumentsArray: [{"sysSuffix":"2015"}] #uncomment this to look at _subsys2015_ set of indices
                 });
 
                 mypoller.promise.then(null, null, function(data) {
