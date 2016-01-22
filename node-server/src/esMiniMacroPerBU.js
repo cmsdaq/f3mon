@@ -102,9 +102,12 @@ var sendResult = function(){
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
+//TODO: implement q1 and q2 with "appliance" field aggs
+
 //Get mini or macro merge
 var q2 = function (callback,totals_q1){
 
+  if (queryJSON1.size>9000) queryJSON1.size=9000;
   queryJSON1.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
   queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
   queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
@@ -182,7 +185,7 @@ var q2 = function (callback,totals_q1){
 var q1 = function (callback){
   streamListArray = qparam_streamList.split(',');
 
-  queryJSON2.size = 2000000;
+  queryJSON2.size = 9000;
   queryJSON2.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
   queryJSON2.query.filtered.query.range.ls.from = qparam_from;
   queryJSON2.query.filtered.query.range.ls.to = qparam_to;
