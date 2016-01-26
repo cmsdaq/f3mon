@@ -83,6 +83,7 @@ cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 unlink /opt/node/prod/app.js >& /dev/null || true
 unlink /opt/node/prod/node_modules >& /dev/null || true
 unlink /opt/node/prod/web >& /dev/null || true
+unlink /opt/node/prod/src >& /dev/null || true
 
 ln -s /cmsnfses-web/es-web/prod/app.js /opt/node/prod/app.js
 ln -s /cmsnfses-web/es-web/prod/node_modules /opt/node/prod/node_modules
@@ -98,6 +99,7 @@ ln -s /opt/node/prod/node_modules /opt/node/node_modules
 unlink /opt/node/test/app.js >& /dev/null || true
 unlink /opt/node/test/node_modules >& /dev/null || true
 unlink /opt/node/test/web >& /dev/null || true
+unlink /opt/node/test/src >& /dev/null || true
 
 ln -s /cmsnfses-web/es-web/test/app.js /opt/node/test/app.js
 ln -s /cmsnfses-web/es-web/test/node_modules /opt/node/test/node_modules
