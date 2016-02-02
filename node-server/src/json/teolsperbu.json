@@ -1,24 +1,45 @@
-{  "size": 1,
+{  "size": 0,
    "fields":["fm_date","_source"],
    "sort": {
       "fm_date": "desc"
    },
    "query": {
-      "filtered": {
-         "query": {
-            "range": {
-               "ls": {
-                  "from": 1,
-                  "to": 5
-               }
-            }
-         },
-         "filter": {
-                   "prefix": {
-                      "_id": "run290011"
-                  }
-         }
+      "bool": {
+         "must": [
+           {
+              "range": {
+                 "ls": {
+                    "from": 1,
+                    "to": 5
+                 }
+              }
+           },
+           {
+              "term": {
+                 "_parent": "290011"
+              }
+           }
+         ]
       }
+   },
+   "aggs":{
+     "host":{
+       "term":{
+         "field":"appliance"
+       },
+       "aggs"{
+         "events":{
+           "sum":{
+            "field":"NEvents"
+           },
+         },
+         "lostEvents":{
+           "sum":{
+            "field":"NLostEvents"
+           }
+         }
+       }
+     }
    }
 }
 

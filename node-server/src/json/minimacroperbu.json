@@ -12,10 +12,8 @@
                }
             },
             {
-               "prefix": {
-                  "_id": {
-                     "value": "run225956"
-                  }
+               "term": {
+                  "_parent":"225956"
                }
             },
             {
@@ -26,6 +24,28 @@
                }
             }
          ]
+      }
+   },
+   "aggs": {
+      "host": {
+         "terms": {
+            "size":100,
+            "field": "host"
+         },
+         "aggs":{
+             "processed":{
+                 "sum":{
+                     "field":"processed"
+                 }
+             }
+         },
+         "aggs":{
+             "errorEvents":{
+                 "sum":{
+                     "field":"processed"
+                 }
+             }
+         }
       }
    }
 }

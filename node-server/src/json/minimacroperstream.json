@@ -33,6 +33,13 @@
                      "field":"processed"
                  }
              }
+         },
+         "aggs":{
+             "errorEvents":{
+                 "sum":{
+                     "field":"processed"
+                 }
+             }
          }
       }
    }

@@ -20,7 +20,7 @@
          }
       }
    },
-   "aggregations": {
+   "aggs": {
             "events": {
                "sum": {
                   "field": "NEvents"
