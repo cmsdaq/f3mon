@@ -25,7 +25,6 @@
       "stream": {
          "terms": {
             "size":100,
-            "min_doc_count": 0,
             "field": "stream"
          },
          "aggs":{
