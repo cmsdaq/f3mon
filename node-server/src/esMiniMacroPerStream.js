@@ -126,14 +126,19 @@ var q2 = function(callback, total_q1){
     }).then (function(body){
         //var results = body.hits.hits; //hits for query
         var streams = body.aggregations.stream.buckets;
-        for (var i=0;i<streams.length;i++){
-		var stream = streams[i].key;
-		if (stream == '' || streamListArray.indexOf(stream) == -1){
-			continue;
-		}
-		var processed = streams[i].processed.value;
-		var doc_count = streams[i].doc_count;
-
+        for (var j=0;j<streamListArray.length;j++){
+		var stream = streamListArray[j].key;
+                if (stream == '') continue
+                var processed;
+                var doc_count;
+                var i = streams.indexOf(stream);
+		if (i == -1){
+		        processed = 0;
+		        doc_count = 0;
+		} else {
+		        processed = streams[i].processed.value;
+		        doc_count = streams[i].doc_count;
+                }
 		//calc minimerge percents
 		var percent;
 		if (total_q1 == 0){
