@@ -68,27 +68,30 @@ var cb = req.query.callback;
 var qparam_runNumber = req.query.runNumber;
 var qparam_from = req.query.from;
 var qparam_to = req.query.to;
+var qparam_stream = req.query.stream;
 var qparam_sysName = req.query.sysName;
+var qparam_streamList = req.query.streamList;
 var qparam_type = req.query.type;
 
 
 if (qparam_runNumber == null){qparam_runNumber = 390008;}
 if (qparam_from == null){qparam_from = 1000;}
 if (qparam_to == null){qparam_to = 2000;}
+if (qparam_stream == null){qparam_stream = 'A';}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
 if (qparam_type == null){qparam_type = 'minimerge';}
 
-var requestKey = 'minimacroperbu?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&sysName='+qparam_sysName+'&type='+qparam_type;
+var requestKey = 'minimacroperbu?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&stream='+qparam_stream+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&type='+qparam_type;
 var requestValue = f3MonCache.get(requestKey);
-var ttl = ttls.minimacroperstream; //cached ES response ttl (in seconds)
+var ttl = ttls.minimacroperbu; //cached ES response ttl (in seconds)
+
 
 var streamListArray;
 var inner = [];
 var retObj = {
 	"percents" : inner
 };
-
-var totals = {}; //obj to hold per bu event counters
 
 var sendResult = function(){
 	f3MonCache.set(requestKey, [retObj,ttl], ttl);
@@ -99,97 +102,119 @@ var sendResult = function(){
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
-//Get minimerge
-var q2 = function(callback){
+//TODO: implement q1 and q2 with "appliance" field aggs
 
-   queryJSON1.query.bool.must[1].term._parent = qparam_runNumber;
-   queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
-   queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
-   queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
+//Get mini or macro merge
+var q2 = function (callback,totals_q1){
 
-   client.search({
+  if (queryJSON1.size>9000) queryJSON1.size=9000;
+  queryJSON1.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
+  queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
+  queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
+  queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
+
+  client.search({
     index: 'runindex_'+qparam_sysName+'_read',
     type: qparam_type,
     body : JSON.stringify(queryJSON1)
     }).then (function(body){
-        //var results = body.hits.hits; //hits for query
-        var hosts = body.aggregations.host.buckets;
-        for (var host in totals) {
-          if (host == '') continue;
-          if (totals.hasOwnProperty(host)) {
-                var processed;
-                var doc_count;
-                var i = hosts.indexOf(host);
-		if (i == -1){
-		        processed = 0;
-		        doc_count = 0;
-		} else {
-		        processed = hosts[i].processed.value;
-		        doc_count = hosts[i].doc_count;
+        var results = body.hits.hits; //hits for query
+	var totalProc = {};
+		
+	for (var i=0;i<results.length;i++){
+                var id = results[i]._id;
+                var strpos = id.indexOf('bu');
+                var bu = id.substring(strpos);
+		var processed = results[i]._source.processed;
+		if (totalProc[bu] == null){
+                        totalProc[bu] = 0;
                 }
-                var total = totals[host];
-		//calc minimerge percents
+                totalProc[bu] += processed;
+	}
+
+        var mykeys = [];
+        for (var mykey in totals_q1) {
+          if (totals_q1.hasOwnProperty(mykey)) {
+            mykeys.push(mykey);
+          }
+        }
+        mykeys.sort();
+        var keylen = mykeys.length;
+        for (var i = 0; i < keylen; i++) {
+          var buname = mykeys[i];
+                var total = totals_q1[buname];
+		var proc = -1;
+		if (totalProc[buname] == null){
+			proc = 0;
+		}else{
+			proc = totalProc[buname];
+		}
+
+		//calc percents
 		var percent;
 		if (total == 0){
-			if (doc_count == 0){
+			if (proc == 0){
 				percent = 0;
 			}else{
 				percent = 100;
 			}
 		}else{
-			var p = 100*processed/total;
-			percent = Math.round(p*100)/100;
+			var p = 100*proc/total;
+                       	percent = Math.round(p*100)/100;
 		}
-		
-		var color = percColor(percent);	
-		
-		var b = false;
-		if (qparam_type === 'minimerge'){
-			b = true;
-		}
+		var color = percColor(percent);
 
 		var entry = {
-			"name" : host,
-			"y" : percent,
-			"color" : color,
-			"drilldown" : b
-		};
-		retObj.percents.push(entry);
-            }
+                  "name" : buname,
+                  "y" : percent,
+                  "color" : color,
+                  "drilldown" : false
+                };
+                retObj.percents.push(entry);
 	}
-        callback();
+	callback();
+
     }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
     });
 
-};//end q2
+}//end q2
 
 //Get total
-var q1 = function(callback){
+var q1 = function (callback){
+  streamListArray = qparam_streamList.split(',');
 
-  queryJSON2.query.bool.must[1].term._parent = qparam_runNumber;
-  queryJSON2.query.bool.must[0].range.ls.from = qparam_from;
-  queryJSON2.query.bool.must[0].range.ls.to = qparam_to;
-
+  queryJSON2.size = 9000;
+  queryJSON2.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+  queryJSON2.query.filtered.query.range.ls.from = qparam_from;
+  queryJSON2.query.filtered.query.range.ls.to = qparam_to;
 
   client.search({
     index: 'runindex_'+qparam_sysName+'_read',
     type: 'eols',
     body : JSON.stringify(queryJSON2)
     }).then (function(body){
-        var total = body.aggregations.events.value;
-        for (var bu in body.aggregations.host.buckets) {
-	  totals[bu.key] = bu.events.value;
-        }
-	//var doc_count = body.hits.total;
-        callback(sendResult);
+        var results = body.hits.hits; //hits for query
+  	var totals = {}; //obj to hold per bu event counters
+
+	for (var i=0;i<results.length;i++){
+		var id = results[i]._id;
+		var total = results[i]._source.NEvents;
+		var strpos = id.indexOf('bu');
+		var bu = id.substring(strpos);
+		if (totals[bu] == null){
+			totals[bu] = 0;	
+		}
+		totals[bu] += total;
+	}
+        callback(sendResult, totals);
   }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
   });
 
-};//end q1
+}//end q1
 
 if (requestValue=="requestPending"){
   requestValue = f3MonCacheSec.get(requestKey);
@@ -207,11 +232,6 @@ if (requestValue == undefined) {
         res.set('Content-Type', 'text/javascript');
         res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
-
-
-
-
-
 
   }
 }
