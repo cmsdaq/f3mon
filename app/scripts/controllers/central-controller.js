@@ -580,13 +580,15 @@
     })
 
     .controller('microStatesCtrl', function($scope, $rootScope, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
-        var config;
-        var cleared = true;
+
+        //implementation switch
         var nvd3 = true;
         
+        var config;
         $scope.$on('config.set', function(event) {
             config = configService.config;
-            //initChart();
+            if (!nvd3)
+              initChart();
         });
 
         var chartConfig;
@@ -603,9 +605,13 @@
 
         $scope.options = chartConfig;
 
-        //var chart;
-        //var isDirty = true;
-        //var chartConfig;
+        //highcharts
+        var chart;
+        var isDirty = true;
+        var chartConfig;
+
+        //nvd3
+        var cleared = true;
 
         $rootScope.$on('timeZone.updated', function(event) {
             if (nvd3)
@@ -619,8 +625,8 @@
               $scope.api.clearElement()
               cleared = true;
               $scope.data = []
-            } //else
-              //if(isDirty){initChart()};
+            } else
+              if(isDirty){initChart()};
         });
 
         $scope.$on('msChart.updated', function(event) {
