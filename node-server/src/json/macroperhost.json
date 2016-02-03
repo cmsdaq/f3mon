@@ -13,19 +13,20 @@
             },
             {
                "prefix": {
-                  "_id": {
-                     "value": "run225956"
-                  }
+                  "_id":"run225956"
                }
             }
-         ]
+         ],
+         "should" : [
+         ],
+         "minimum_should_match" : 1
       }
    },
    "aggs": {
-      "stream": {
+      "host": {
          "terms": {
             "size":100,
-            "field": "stream"
+            "field": "host"
          },
          "aggs":{
              "processed":{
@@ -35,7 +36,7 @@
              },
              "errorEvents":{
                  "sum":{
-                     "field":"errorEvents"
+                     "field":"processed"
                  }
              }
          }

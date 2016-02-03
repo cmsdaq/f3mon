@@ -289,7 +289,7 @@
         var mypoller, cache, config;
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
         //var resource = $resource(prePath+'/api/minimacroperbu.php?', {
-	var resource = $resource('api/minimacroperbu', {
+	var resource = $resource('api/minimacroperhost', {
             callback: 'JSON_CALLBACK',
         }, {
             jsonp_get: {

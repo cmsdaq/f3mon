@@ -26,6 +26,7 @@
    "aggs":{
      "host":{
        "terms":{
+         "size":100,
          "field":"appliance"
        },
        "aggs":{

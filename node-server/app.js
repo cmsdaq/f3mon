@@ -232,10 +232,15 @@ var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
 esMiniMacroPerStream.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
 app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query); 
 
+////callback 16
+//var esMiniMacroPerBU = require('./src/esMiniMacroPerBU');
+//esMiniMacroPerBU.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("teolsperbu.json"));
+//app.get('/f3mon/api/minimacroperbu', esMiniMacroPerBU.query); 
+
 //callback 16
-var esMiniMacroPerBU = require('./src/esMiniMacroPerBU');
-esMiniMacroPerBU.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("teolsperbu.json"));
-app.get('/f3mon/api/minimacroperbu', esMiniMacroPerBU.query); 
+var esMiniMacroPerHost = require('./src/esMiniMacroPerHost');
+esMiniMacroPerHost.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("macroperhost.json"),getQuery("teolsperbu.json"),getQuery("teolsperstream.json"));
+app.get('/f3mon/api/minimacroperhost', esMiniMacroPerHost.query); 
 
 //callback 17
 var esStreamHist = require('./src/esStreamHist');

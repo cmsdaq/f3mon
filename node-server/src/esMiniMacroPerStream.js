@@ -93,6 +93,12 @@ var retObj = {
 	"percents" : inner
 };
 
+//drilldown status
+var enable_drill = true;
+if (qparam_type === 'micromerge'){
+    enable_drill = false;
+}
+
 var sendResult = function(){
 	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
@@ -126,12 +132,15 @@ var q2 = function(callback, total_q1){
     }).then (function(body){
         //var results = body.hits.hits; //hits for query
         var streams = body.aggregations.stream.buckets;
+        var streamNames = [];
+        for (var is=0;is<streams.length;is++)
+          streamNames.push(streams[is].key);
         for (var j=0;j<streamListArray.length;j++){
 		var stream = streamListArray[j];
                 if (stream == '') continue
                 var processed;
                 var doc_count;
-                var i = streams.indexOf(stream);
+                var i = streamNames.indexOf(stream);
 		if (i == -1){
 		        processed = 0;
 		        doc_count = 0;
@@ -154,16 +163,16 @@ var q2 = function(callback, total_q1){
 		
 		var color = percColor(percent);	
 		
-		var b = false;
-		if (qparam_type === 'minimerge'){
-			b = true;
+		var b = true;
+		if (qparam_type === 'micromerge'){
+			b = false;
 		}
 
 		var entry = {
 			"name" : stream,
 			"y" : percent,
 			"color" : color,
-			"drilldown" : b
+			"drilldown" : enable_drill
 		};
 		retObj.percents.push(entry);
 	}
