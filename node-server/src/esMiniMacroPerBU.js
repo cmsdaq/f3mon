@@ -104,7 +104,7 @@ var sendResult = function(){
 //Get minimerge
 var q2 = function(callback){
 
-   queryJSON1.query.bool.must[1].term._parent = qparam_runNumber;
+   queryJSON1.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
    queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
    queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
    queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
@@ -116,12 +116,15 @@ var q2 = function(callback){
     }).then (function(body){
         //var results = body.hits.hits; //hits for query
         var hosts = body.aggregations.host.buckets;
+        var hostNames = [];
+        for (var ib=0;ib<hosts.length;ib++)
+          hostNames.push(hosts[ib].key);
         for (var host in totals) {
           if (host == '') continue;
           if (totals.hasOwnProperty(host)) {
                 var processed;
                 var doc_count;
-                var i = hosts.indexOf(host);
+                var i = hostNames.indexOf(host);
 		if (i == -1){
 		        processed = 0;
 		        doc_count = 0;

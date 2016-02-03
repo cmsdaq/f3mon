@@ -12,8 +12,8 @@
                }
             },
             {
-               "term": {
-                  "_parent":"225956"
+               "prefix": {
+                  "_id":"run225956"
                }
             },
             {
@@ -37,9 +37,7 @@
                  "sum":{
                      "field":"processed"
                  }
-             }
-         },
-         "aggs":{
+             },
              "errorEvents":{
                  "sum":{
                      "field":"processed"
