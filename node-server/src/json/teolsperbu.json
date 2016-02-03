@@ -5,7 +5,8 @@
    },
    "query": {
       "bool": {
-         "must": [
+         "must":
+         [
            {
               "range": {
                  "ls": {
@@ -24,14 +25,14 @@
    },
    "aggs":{
      "host":{
-       "term":{
+       "terms":{
          "field":"appliance"
        },
-       "aggs"{
+       "aggs":{
          "events":{
            "sum":{
             "field":"NEvents"
-           },
+           }
          },
          "lostEvents":{
            "sum":{
