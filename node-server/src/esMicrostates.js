@@ -288,7 +288,7 @@ module.exports = {
 	  if (results.length>0)
 	    retObj.lastTime = results[results.length-1].key;
 
-          if (!hcformat) retObj.data.reverse()
+          if (!hcformat) retObj.data.reverse();
 	  callback();
         }, function (error) {
 	    excpEscES(res,error);
