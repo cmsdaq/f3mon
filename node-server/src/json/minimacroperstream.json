@@ -32,12 +32,10 @@
                  "sum":{
                      "field":"processed"
                  }
-             }
-         },
-         "aggs":{
+             },
              "errorEvents":{
                  "sum":{
-                     "field":"processed"
+                     "field":"errorEvents"
                  }
              }
          }
