@@ -127,7 +127,7 @@ var q2 = function(callback, total_q1){
         //var results = body.hits.hits; //hits for query
         var streams = body.aggregations.stream.buckets;
         for (var j=0;j<streamListArray.length;j++){
-		var stream = streamListArray[j].key;
+		var stream = streamListArray[j];
                 if (stream == '') continue
                 var processed;
                 var doc_count;
