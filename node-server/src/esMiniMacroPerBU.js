@@ -68,6 +68,7 @@ var cb = req.query.callback;
 var qparam_runNumber = req.query.runNumber;
 var qparam_from = req.query.from;
 var qparam_to = req.query.to;
+var qparam_stream = req.query.stream;
 var qparam_sysName = req.query.sysName;
 var qparam_type = req.query.type;
 
@@ -77,8 +78,9 @@ if (qparam_from == null){qparam_from = 1000;}
 if (qparam_to == null){qparam_to = 2000;}
 if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 if (qparam_type == null){qparam_type = 'minimerge';}
+if (qparam_stream == null){qparam_stream = 'A';}
 
-var requestKey = 'minimacroperbu?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&sysName='+qparam_sysName+'&type='+qparam_type;
+var requestKey = 'minimacroperbu?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&sysName='+qparam_sysName+'&stream='+qparam_stream+'&type='+qparam_type;
 var requestValue = f3MonCache.get(requestKey);
 var ttl = ttls.minimacroperstream; //cached ES response ttl (in seconds)
 
@@ -172,15 +174,15 @@ var q1 = function(callback){
   queryJSON2.query.bool.must[0].range.ls.from = qparam_from;
   queryJSON2.query.bool.must[0].range.ls.to = qparam_to;
 
-
   client.search({
     index: 'runindex_'+qparam_sysName+'_read',
     type: 'eols',
     body : JSON.stringify(queryJSON2)
     }).then (function(body){
-        var total = body.aggregations.events.value;
-        for (var bu in body.aggregations.host.buckets) {
-	  totals[bu.key] = bu.events.value;
+        //console.log(body.aggregations.host.buckets)
+        var host_buckets = body.aggregations.host.buckets;
+        for (var i=0;i<host_buckets.length;i++) {
+	  totals[host_buckets[i].key] = host_buckets[i].events.value;
         }
 	//var doc_count = body.hits.total;
         callback(sendResult);
