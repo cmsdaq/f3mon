@@ -93,6 +93,12 @@ var retObj = {
 	"percents" : inner
 };
 
+//drilldown status
+var enable_drill = true;
+if (qparam_type === 'micromerge'){
+    enable_drill = false;
+}
+
 var sendResult = function(){
 	f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	var srvTime = (new Date().getTime())-eTime;
@@ -157,16 +163,16 @@ var q2 = function(callback, total_q1){
 		
 		var color = percColor(percent);	
 		
-		var b = false;
-		if (qparam_type === 'minimerge'){
-			b = true;
+		var b = true;
+		if (qparam_type === 'micromerge'){
+			b = false;
 		}
 
 		var entry = {
 			"name" : stream,
 			"y" : percent,
 			"color" : color,
-			"drilldown" : b
+			"drilldown" : enable_drill
 		};
 		retObj.percents.push(entry);
 	}

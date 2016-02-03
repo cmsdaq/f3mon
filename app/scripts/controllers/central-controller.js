@@ -95,7 +95,10 @@
 
         var secondDrillDown = function(event) {
             dd2Event = event;
-            $scope.queryParams.stream = event.point.name;
+            if ($scope.queryParams.type === 'macromerge')
+              $scope.queryParams.stream = false;
+            else
+              $scope.queryParams.stream = event.point.name;
             drillDownService.stop();
             secondDrillDownService.start();
 

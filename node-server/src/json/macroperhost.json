@@ -1,0 +1,45 @@
+{
+   "size": 0,
+   "query": {
+      "bool": {
+         "must": [
+            {
+               "range": {
+                  "ls": {
+                     "from": 1642,
+                     "to": 1642
+                  }
+               }
+            },
+            {
+               "prefix": {
+                  "_id":"run225956"
+               }
+            }
+         ],
+         "should" : [
+         ],
+         "minimum_should_match" : 1
+      }
+   },
+   "aggs": {
+      "host": {
+         "terms": {
+            "size":100,
+            "field": "host"
+         },
+         "aggs":{
+             "processed":{
+                 "sum":{
+                     "field":"processed"
+                 }
+             },
+             "errorEvents":{
+                 "sum":{
+                     "field":"processed"
+                 }
+             }
+         }
+      }
+   }
+}
