@@ -32,7 +32,7 @@
 
     })
 
-    .controller('timezoneSelectorCtrl', function($scope, $timezone, configService, angularMomentConfig) {
+    .controller('timezoneSelectorCtrl', function($scope, $rootScope, $timezone, configService, angularMomentConfig, microStatesChartConfig) {
         var config;
 
         $scope.list = ['UTC', 'Locale'];
@@ -56,6 +56,7 @@
                 Highcharts.theme.global.useUTC=true;
             }
             highchartsOptions = Highcharts.setOptions(Highcharts.theme);
+            $rootScope.$broadcast('timeZone.updated');
         }
 
         $scope.$on('config.set', function(event) {

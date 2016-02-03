@@ -579,77 +579,58 @@
         //initChart(true);
     })
 
-    .controller('microStatesCtrl', function($scope, configService, moment, amMoment, microStatesService, microStatesChartConfig) {
+    .controller('microStatesCtrl', function($scope, $rootScope, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
         var config;
+        var cleared = true;
+        var nvd3 = true;
         
         $scope.$on('config.set', function(event) {
             config = configService.config;
-            initChart();
+            //initChart();
+        });
+
+        var chartConfig;
+        if (nvd3) chartConfig = microStatesChartConfigNVD3;
+        else chartConfig = microStatesChartConfig;
+
+        chartConfig.chart.xAxis.tickFormat = function(d){
+          if (angularMomentConfig.timezone=='utc')
+            var mm = moment.unix(d/1000).utc();
+          else
+            var mm = moment.unix(d/1000).local();
+          return  padDigits(mm.hours(),2)+':'+padDigits(mm.minutes(),2)+':'+padDigits(mm.seconds(),2);
+        };
+
+        $scope.options = chartConfig;
+
+        //var chart;
+        //var isDirty = true;
+        //var chartConfig;
+
+        $rootScope.$on('timeZone.updated', function(event) {
+            if (nvd3)
+                $scope.api.refresh();
         });
 
 
-        $scope.options = microStatesChartConfig;
-
-        //var chart;
-        var isDirty = true;
-        //var chartConfig;
-
-        var initChart = function(){
-          //if (chart) {
-                //chart.destroy();
-          //      chart = false;
-                //$("#" + chartConfig.chart.renderTo).empty().unbind();
-          //  };
-            //$scope.options = microStatesChartConfig;
-
-            //chartConfig = jQuery.extend({}, microStatesChartConfig);
-            //chart = new Highcharts.Chart(chartConfig);
-            //chart.showLoading(config.chartWaitingMsg);
-            
-            isDirty = false;
-            //d3.select('#chart svg').datum(data);
-            //nv.utils.windowResize(chart.update);
-           
-        }
-
         $scope.$on('runInfo.selected', function(event) {
             microStatesService.stop();
-            if(isDirty){initChart()};
-        })
+            if (nvd3) {
+              $scope.api.clearElement()
+              cleared = true;
+              $scope.data = []
+            } //else
+              //if(isDirty){initChart()};
+        });
 
         $scope.$on('msChart.updated', function(event) {
             //var series = $scope.chartConfig.series;
-            $scope.data = microStatesService.data;
-            var timeList = microStatesService.queryInfo.timeList;
-
-            //console.log(timeList)
-            //$scope.chartConfig.options.xAxis.categories = timeList;
-            //$scope.chartConfig.getHighcharts().xAxis[0].setCategories(timeList,false)
-
-/*            Object.keys(data).forEach(function(state) {
-
-                var stateData = data[state];
-
-                var serie = chart.get(state);
-                if (!serie) {
-                    chart.addSeries({
-                        type: 'area',
-                        id: state,
-                        name: state,
-                        data: stateData,
-                    },false,false);
-                } else {
-                    serie.setData(stateData,false,false);
-                };
-            })
-            chart.redraw();
-            //chart.hideLoading();
-            if(!isDirty){isDirty = true;chart.hideLoading();}
-*/
-          //d3.select('#chart svg').datum(data);
-          //nv.utils.windowResize(chart.update);
-          if(!isDirty)isDirty = true;
-
+             //$scope.options.chart.visible = true;
+             $scope.data = microStatesService.data;
+             //var timeList = microStatesService.queryInfo.timeList;
+             if (cleared)
+               $scope.api.refresh();
+             cleared = false;
         })
 
     })

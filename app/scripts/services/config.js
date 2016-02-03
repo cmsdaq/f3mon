@@ -568,5 +568,45 @@
         series: [],
     })
 
+    .constant('microStatesChartConfigNVD3', {
+        chart: {
+          type: "stackedAreaChart",
+          style: "expand",
+          visible : false, //default
+          height: 450,
+          margin: {
+            top: 20,
+            right: 55,
+            bottom: 30,
+            left: 55
+          },
+          x: (function(d) { return d[0] }),
+          y: (function(d) { return d[1] }),
+          useVoronoi: false,
+          clipEdge: true,
+          duration: 100,
+          useInteractiveGuideline: true,
+          xAxis: {
+            showMaxMin: false,
+            tickPadding: 15
+          },
+          yAxis: {},
+          zoom: {
+                  enabled: true,
+                  scaleExtent: [
+                          1,
+                          10
+                  ],
+                  useFixedDomain: false,
+                  useNiceScale: false,
+                  horizontalOff: false,
+                  verticalOff: true,
+                  unzoomEventType: "dblclick.zoom"
+          },
+          color: Colors.colorListNVD3(),
+          noData : "No monitoring information"
+        }
+    })
+
 
 })();
