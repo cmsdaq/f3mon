@@ -49,7 +49,7 @@ module.exports = {
     if (qparam_sysName === null){qparam_sysName = 'cdaq';}
     if (qparam_numIntervals === null){qparam_numIntervals = 50;}
     else {qparam_numIntervals = parseInt(req.query.numIntervals);}
-    if (qparam_format===null) qparam_format='highcharts'
+    if (qparam_format===null) qparam_format='hc'
 
     //console.log('nints '+qparam_numIntervals);
 
@@ -88,6 +88,7 @@ module.exports = {
 
 
     var retObj = {
+            "format"   : qparam_format,
 	    "lastTime" : null,
 	    "timeList" : null,
 	    "data" : ""
