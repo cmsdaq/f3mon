@@ -29,7 +29,8 @@
     'mgcrea.ngStrap',
     'angularMoment',
     'ngTimezone',
-    'nvd3'
+    'nvd3',
+    'disableAll'
   ]);
 
 

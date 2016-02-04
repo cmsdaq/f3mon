@@ -596,6 +596,9 @@
             }
         });
 
+        $scope.isDisabledNvd3 = (nvd3===false);
+        $scope.isDisabledHc = (nvd3===true);
+
         var chartConfig;
         if (nvd3) chartConfig = microStatesChartConfigNVD3;
         else chartConfig = microStatesChartConfig;
