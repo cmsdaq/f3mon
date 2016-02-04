@@ -403,7 +403,7 @@
               sysName: false,
               timeRange: 300,
               numIntervals: 30,
-              format : "nvd3"
+              format : "" //nvd3 or other(hc)
             }
             service.queryInfo = {
               timeList:false,
