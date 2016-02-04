@@ -90,14 +90,26 @@
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+
+                    <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-microchartselectswitch'>
+
+                        <button type="button" class="btn btn-primary" disabled>
+                          <i class="fa fa-area-chart-o"></i> Chart Library:
+                        </button>
+                        <!-- todo: understand why unit/Event names in first button are needed to have it selected on page load -->
+                        <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'highcharts'" ng-change='switchChartLib()'>HighCharts</label>
+                        <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'nvd3'" ng-change='switchChartLib()'>NVD3</label>
+                        <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'disabled'" ng-change='switchChartLib()'>Disabled</label>
+                    </div>
+
                     <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
-                </div>
-                <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:20px;' disable-all="isDisabledNvd3">
-                     <!--<div id="mschart" style='height:95%;width:99%'></div>-->
-                     <nvd3 options='options' data='data' api='api'></nvd3>
                 </div>
                 <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:20px;' disable-all="isDisabledHc">
                      <div id="mschart" style='height:95%;width:99%'></div>
+                </div>
+                <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:20px;' disable-all="isDisabledNvd3">
+                     <nvd3 options='options' data='data' api='api'></nvd3>
+                </div>
             </div>
 
         </div>

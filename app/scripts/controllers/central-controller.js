@@ -193,6 +193,7 @@
         $scope.tooltip = true;
         $scope.tooltipToggle = function() {
           runInfoService.updateMaskedStreams([]);
+          lastStackedState=false;
           initChart(false);
           console.log('tooltip set: '+ $scope.tooltip);
        }
@@ -581,59 +582,109 @@
 
     .controller('microStatesCtrl', function($scope, $rootScope, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
 
-        //implementation switch
-        var nvd3 = true;
-        
-        var config;
-        $scope.$on('config.set', function(event) {
-            config = configService.config;
-            if (nvd3) {
-              microStatesService.queryParams.format = "nvd3"
-            }
-            else {
-              microStatesService.queryParams.format = "hc"
-              initChart();
-            }
-        });
+        //defaults
+        $scope.chartLib = "highcharts";
 
-        $scope.isDisabledNvd3 = (nvd3===false);
-        $scope.isDisabledHc = (nvd3===true);
+        //state
+        var nvd3=($scope.chartLib==="nvd3");
+        var chartEnabled=false;
+        var lastChartLib = "disabled";
 
-        var chartConfig;
-        if (nvd3) chartConfig = microStatesChartConfigNVD3;
-        else chartConfig = microStatesChartConfig;
+        $scope.switchChartLib = function() {
+          if (lastChartLib===$scope.chartLib) return;
+          if (chartEnabled) {
+            destroyChart();
+          }
+          if ($scope.chartLib === "highcharts") {
+            startHC();
+            microStatesService.reconfigureFormat("hc")
+          }
+          if ($scope.chartLib === "nvd3") {
+	    startNvd3();
+            microStatesService.reconfigureFormat("nvd3")
+          }
+          if ($scope.chartLib == "disabled") {
+             chartEnabled=false;
+             $scope.isDisabledNvd3 = true;
+             $scope.isDisabledHc = true;
+             microStatesService.pause("nvd3")
+          }
+          lastChartLib=$scope.chartLib;
+        }
 
-        if (nvd3)
-          chartConfig.chart.xAxis.tickFormat = function(d){
+
+        //hc
+        var chart;
+        var chartConfigHc;
+
+        //nvd3
+        var cleared = true;
+
+        var destroyChart = function() {
+          if (chart) {
+                chart.destroy();
+                chart = false;
+                $("#" + chartConfigHc.chart.renderTo).empty().unbind();
+          }
+          if (!cleared) {
+            $scope.api.clearElement()
+            cleared = true;
+            $scope.data = []
+          }
+          //todo:destroy nvd3 properly if api available
+        }
+
+        //highcharts
+        var isDirty = true;
+        var startHC = function() {
+          chartEnabled=true;
+          nvd3=false;
+          $scope.isDisabledNvd3 = true;
+          $scope.isDisabledHc = false;
+          chartConfigHc = jQuery.extend({}, microStatesChartConfig);
+          chart = new Highcharts.Chart(chartConfigHc);
+          chart.showLoading(config.chartWaitingMsg);
+          isDirty = false;
+        }
+
+        var startNvd3 = function() {
+          chartEnabled=true;
+          nvd3=true;
+          $scope.isDisabledNvd3 = false;
+          $scope.isDisabledHc = true;
+        }
+
+        var resetChart = function() {
+          if (!$scope.isDisabledNvd3 && !cleared) {
+            destroyChart(); 
+            startNvd3()
+          }
+          else {if (!$scope.isDisabledHc && isDirty) {
+            destroyChart(); 
+            startHC();
+          }}
+        }
+
+        //init nvd3 chart config
+        chartConfigNVD3 = microStatesChartConfigNVD3;
+        chartConfigNVD3.chart.xAxis.tickFormat = function(d) {
             if (angularMomentConfig.timezone=='utc')
               var mm = moment.unix(d/1000).utc();
             else
               var mm = moment.unix(d/1000).local();
             return  padDigits(mm.hours(),2)+':'+padDigits(mm.minutes(),2)+':'+padDigits(mm.seconds(),2);
-          };
+        };
+        $scope.options = chartConfigNVD3; //nvd3 scope var
 
+        //initial setup (called once)
+        var config;
+        $scope.$on('config.set', function(event) {
+            config = configService.config;
+            /* chart init point */
+            $scope.switchChartLib();
+        });
 
-        //highcharts
-        var chart;
-        var isDirty = true;
-        var chartConfigEx;
-
-        var initChart = function(){
-          if (chart) {
-                chart.destroy();
-                chart = false;
-                $("#" + chartConfigEx.chart.renderTo).empty().unbind();
-            };
-            chartConfigEx = jQuery.extend({}, chartConfig);
-            chart = new Highcharts.Chart(chartConfigEx);
-            chart.showLoading(config.chartWaitingMsg);
-            isDirty = false;
-        }
- 
-        //nvd3
-        var cleared = true;
-        $scope.options = chartConfig;
-
+        //nvd3 only (hc and moment already seem to work together well)
         $rootScope.$on('timeZone.updated', function(event) {
             if (nvd3)
                 $scope.api.refresh();
@@ -642,21 +693,24 @@
 
         $scope.$on('runInfo.selected', function(event) {
             microStatesService.stop();
-            if (nvd3) {
-              $scope.api.clearElement()
-              cleared = true;
-              $scope.data = []
-            } else
-              if(isDirty){initChart()};
+            resetChart();
         });
 
         $scope.$on('msChart.updated', function(event) {
+            console.log("UPD:" + $scope.isDisabledHc + " " + $scope.isDisabledNvd3)
+            if (!chartEnabled) {
+              console.log('micro chart disabled');
+              return;
+            }
             if (!nvd3) {
+              console.log('update for HC dirty:'+isDirty)
               var data = microStatesService.data;
               var timeList = microStatesService.queryInfo.timeList;
               Object.keys(data).forEach(function(state) {
                 var stateData = data[state];
                 var serie = chart.get(state);
+                if (!serie)
+                  console.log('HC no serie..')
                 if (!serie) {
                     chart.addSeries({
                         type: 'area',
@@ -672,6 +726,7 @@
               if(!isDirty){isDirty = true;chart.hideLoading();}
             }
             else {
+              console.log('update for nvd3 cleared:'+cleared)
               $scope.data = microStatesService.data;
               if (cleared) $scope.api.refresh();
               cleared = false;

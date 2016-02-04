@@ -385,6 +385,7 @@
         
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
+            service.pollingDelay = config.slowPollingDelay;
         });
 
 
@@ -392,8 +393,11 @@
             data: {},
             queryParams: {},
             queryInfo: {},
+            rangeParams: {},
+            pollingDelay:false,
             closedRun:false,
-            active:false // unused
+            active:false,
+            paused:false
         };
 
         service.resetParams = function() {
@@ -404,7 +408,7 @@
               timeRange: 300,
               numIntervals: 30,
               format : "" //nvd3 or other(hc)
-            }
+            };
             service.queryInfo = {
               timeList:false,
               lastTime: false
@@ -412,7 +416,16 @@
               //noData: true,
               //isFromSelected: false,
               //isToSelected: false,
-            }
+            };
+            service.rangeParams = {
+              runNumber:false,
+              min:-1,
+              max:-1,
+              numIntervals:-1,
+              timeRange:-1
+            };
+            if (config) //or call resetParams in on.config
+              service.pollingDelay = config.slowPollingDelay;
         };
 
         service.stop = function() {
@@ -427,14 +440,20 @@
             if (!selectedTo && !selectedFrom && service.closedRun===false) {
               service.queryParams.timeRange=300;
               service.queryParams.numIntervals=30;
-              //service.queryParams.maxTime=null;
-              //service.queryParams.minTime=null;
               delete service.queryParams.maxLs;
               delete service.queryParams.minLs;
+
+              //skip service refresh if parameters are same as before
+              /*if (runNumber===service.rangeParams.runNumber
+                  && service.queryParams.timeRange===service.rangeParams.timeRange
+                  && service.queryParams.numIntervals===service.rangeParams.numIntervals)
+                return;
+              service.rangeParams.runNumber=runNumber;
+              service.rangeParams.timeRange=service.queryParams.timeRange;
+              service.rangeParams.numIntervals=service.queryParams.numIntervals;
+              service.pollingDelay = config.slowPollingDelay;*/
             }
             else if (!selectedTo && service.closedRun===false) {
-              //service.queryParams.maxTime=null;
-              //service.queryParams.minTime=null;
               var range = (max-min)*23.31;//todo increase intervals if large range
               service.queryParams.timeRange=range>300?range:300;
               service.queryParams.numIntervals=300;
@@ -443,11 +462,19 @@
               //  service.queryParams.numIntervals=Math.Round(1.*range/6.);
               delete service.queryParams.maxLs;
               delete service.queryParams.minLs;
+
+              //skip service refresh if parameters are same as before
+              /*if (runNumber===service.rangeParams.runNumber
+                  && service.queryParams.timeRange===service.rangeParams.timeRange
+                  && service.queryParams.numIntervals===service.rangeParams.numIntervals)
+                return;
+              service.rangeParams.runNumber=runNumber;
+              service.rangeParams.timeRange=service.queryParams.timeRange;
+              service.rangeParams.numIntervals=service.queryParams.numIntervals;
+              service.pollingDelay = config.slowPollingDelay;*/
             }
             else { //range mode or closed run
               //use LS (start) timestamps
-              //service.queryParams.maxTime=null;
-              //service.queryParams.minTime=null;
               var range = (max-min)*23.31;//todo:increase intervals if large range
               service.queryParams.numIntervals=300;
               //if (range>300)
@@ -455,6 +482,17 @@
               service.queryParams.maxLs=max
               service.queryParams.minLs=min
               delete service.queryParams.timeRange;
+
+              //skip service refresh if parameters are same as before
+              if (runNumber===service.rangeParams.runNumber
+                  && min===service.rangeParams.min
+                  && max===service.rangeParams.max)
+                return;
+              service.rangeParams.runNumber=runNumber;
+              service.rangeParams.min=min;
+              service.rangeParams.max=max;
+              //service.pollingDelay = config.slowPollingDelay*2; //!
+
             }
             service.start();
         };
@@ -462,36 +500,64 @@
 
 
         service.start = function() {
-            //console.log('Microstates STARTED');
-            //if (!runInfo.isRunning) { return; };
+            service.active=true;
+            if (service.paused) return;
             service.queryParams.sysName = indexInfo.subSystem;
-             service.active=true;
-
+            //console.log('Microstates STARTED');
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
                 mypoller = poller.get(resource, {
                     action: 'jsonp_get',
-                    delay: config.slowPollingDelay,
+                    delay: service.pollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    //console.log(data.timestamp,service.queryInfo.timestamp);
-                    //console.log(data.lastTime)
-                    if (data.lastTime && service.queryInfo.lastTime != data.lastTime) {
-                        //console.log('ms update');
+                    if (service.queryParams.format == data.format) {
+                      if (data.lastTime && service.queryInfo.lastTime != data.lastTime) {
                         //service.queryInfo.legend = data.legend;
                         service.queryInfo.lastTime = data.lastTime;
                         service.queryInfo.timeList = data.timeList;
                         service.data = data.data;
                         broadcast('updated');
                     }
+                  } else
+                    console.log("wrong us format exp:"+service.queryParams.format+"recv:" + data.format)
                 })
             } else {
                 mypoller = poller.get(resource, {
-                    argumentsArray: [service.queryParams]
+                    argumentsArray: [service.queryParams],
+                    delay: service.pollingDelay
                 });
             }
+        }
+
+        service.pause = function() {
+          console.log('pause')
+          if (!angular.isUndefined(mypoller)) {
+              console.log('poller stop')
+              mypoller.stop();
+          }
+          service.paused = true;
+        }
+
+        service.resume = function() {
+          console.log('resume')
+          if (service.paused && service.active) {
+             if (!angular.isUndefined(mypoller)) //make sure existing poller is restarted
+               mypoller.start();
+               //mypoller.restart();
+             service.start();
+          }
+          service.paused = false;
+        }
+
+        service.reconfigureFormat = function(format) {
+             service.pause();
+             service.queryParams.format = format;
+             service.queryInfo.lastTime = false;
+             console.log('reconfigured with..'+format)
+             service.resume();
         }
 
         var broadcast = function(msg) {
