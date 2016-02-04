@@ -497,8 +497,6 @@
             service.start();
         };
 
-
-
         service.start = function() {
             service.active=true;
             if (service.paused) return;
@@ -533,16 +531,13 @@
         }
 
         service.pause = function() {
-          console.log('pause')
           if (!angular.isUndefined(mypoller)) {
-              console.log('poller stop')
               mypoller.stop();
           }
           service.paused = true;
         }
 
         service.resume = function() {
-          console.log('resume')
           if (service.paused && service.active) {
              if (!angular.isUndefined(mypoller)) //make sure existing poller is restarted
                mypoller.start();
@@ -577,7 +572,10 @@
                 return;
             }
             service.stop();
+            //remember ustate chart lib choice
+            var fmt  = service.queryParams.format;
             service.resetParams();
+            service.queryParams.format = fmt;
             service.start();
         });
 

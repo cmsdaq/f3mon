@@ -697,20 +697,16 @@
         });
 
         $scope.$on('msChart.updated', function(event) {
-            console.log("UPD:" + $scope.isDisabledHc + " " + $scope.isDisabledNvd3)
             if (!chartEnabled) {
               console.log('micro chart disabled');
               return;
             }
             if (!nvd3) {
-              console.log('update for HC dirty:'+isDirty)
               var data = microStatesService.data;
               var timeList = microStatesService.queryInfo.timeList;
               Object.keys(data).forEach(function(state) {
                 var stateData = data[state];
                 var serie = chart.get(state);
-                if (!serie)
-                  console.log('HC no serie..')
                 if (!serie) {
                     chart.addSeries({
                         type: 'area',
@@ -726,7 +722,6 @@
               if(!isDirty){isDirty = true;chart.hideLoading();}
             }
             else {
-              console.log('update for nvd3 cleared:'+cleared)
               $scope.data = microStatesService.data;
               if (cleared) $scope.api.refresh();
               cleared = false;
