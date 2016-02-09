@@ -97,7 +97,7 @@ module.exports = {
     var sendResult = function(){
 	    var tookSec = took/1000.
             var usettl = ttl;
-            if (tookSec>usettl) usettl = tooKSec+ttl;
+            if (tookSec>usettl) usettl = tookSec+ttl;
 	    f3MonCache.set(requestKey, [retObj,usettl], usettl);
 	    var srvTime = (new Date().getTime())-eTime;
 	    totalTimes.queried += srvTime;
