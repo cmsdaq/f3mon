@@ -161,7 +161,9 @@ module.exports = {
           else retObj.data = [];
           var result = body.hits.hits[0]; //hits for query
           reserved = result._source.reserved;
+          if (reserved===undefined) reserved=33
 	  special = result._source.special;
+          if (special===undefined) special=7
 	  output = result._source.output;
           if (result._source.stateNames===undefined) {
             retObj.data = [];
@@ -268,18 +270,26 @@ module.exports = {
 
 	    for (var index=0;index<entries.length;index++) {
               var ukey = entries[index].key;
+              var add=false;
               //console.log('entry'+JSON.stringify(entries[index]))
               if (!legend.hasOwnProperty(ukey)) {
-                console.log('warning: key ' + ukey + ' out of range');
-                continue;
+                if (ukey>=special && ukey<reserved) {add=true;ukey=special;}
+                else {
+                  console.log('warning: key ' + ukey + ' out of range');
+                  continue;
+                }
               }
               var name = legend[ukey];
               //console.log('myname '+ name + hcformat + idxmap[name])
 	      var value = entries[index].counts.value;
-              if (hcformat)
-                retObj.data[name][entrycnt-1][1] = value;
-              else
+              if (hcformat) {
+                if (add) retObj.data[name][entrycnt-1][1]+=value;
+                else retObj.data[name][entrycnt-1][1] = value;
+              }
+              else {
+                if (add) retObj.data[idxmap[name]].values[entrycnt-1][1]+=value;
                 retObj.data[idxmap[name]].values[entrycnt-1][1]=value;
+              }
 
             }
             }
