@@ -1,0 +1,129 @@
+<!doctype html>
+<html class="no-js">
+<head>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/font-awesome/css/font-awesome.min.css">
+  <!-- <link rel="stylesheet" href="css/lavish-bootstrap.css"> -->
+  <link rel="stylesheet" href="css/pure-min.css">
+  <link rel="stylesheet" href="css/jquery-ui.css">
+
+  <title>The Big Picture</title>
+
+  <link rel="shortcut icon" href="favicon.ico" type="image/ico">
+<style>
+  tr:nth-child(even) {background-color:lightblue;}
+  th {vertical-align:top;}
+  .ui-button .ui-button-text
+  {
+  padding: 0px 11px 0px 21px !important;
+  font-size: .72em !important;
+  }
+</style>
+<script src="js/jquery.min.js"></script>
+<!--<script src="../ecd/js/lib/jquery-ui.min.js"></script>-->
+<script src="js/jquery-ui.min.js"></script>
+<script src="bigpic.js"></script>
+</head>
+<body onload="bootstrap_all()">
+<div class="pure-g">
+  <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+    <table style="font-size:10pt;width:100%" class="pure-table">
+      <tr>
+	<td style="width:15%;vertical-align:top">
+	  <h1>F<sup>3</sup> General Status</h1>
+	  Last Updated at <div id="timestamp"></div> 
+	  Query time <div id="querytime"></div> 
+	  <div id="updatenotice">(this page updates every 3 seconds)</div>
+	  <br><form id="updates"><input type="checkbox" id="autoupdate" checked><label for="autoupdate">Auto Update</label></form>
+	</td>
+	<td style="width:75%;margin-left:15px;margin-right:15px">
+	  run: <h1 id="currentRun"></h1>
+	  LS: <h2 id="currentLs"></h2>
+
+	  <table class="pure-table1" style="font-size:9pt;">
+	    <thead>
+	      <tr id="streams1"></tr>
+	    </thead>
+	    <tbody id="streamvalues1"></tbody>
+	  </table>
+
+	  <table class="pure-table2" style="font-size:9pt;">
+	    <thead>
+	      <tr id="streams2"></tr>
+	    </thead>
+	    <tbody id="streamvalues2"></tbody>
+	  </table>
+
+	  <table class="pure-table3" style="font-size:9pt;">
+	    <thead>
+	      <tr id="streams3"></tr>
+	    </thead>
+	    <tbody id="streamvalues3"></tbody>
+	  </table>
+
+	</td>
+	<td>
+	  <div id="statusbar"><div class="status-label">Calculating...</div></div>
+	</td>
+      </tr>
+    </table>
+  </div>
+  <br>
+  <div class="pure-u-1-1" id="servicestatus" style="margin-left:15px;margin-right:15px;">
+    <form id="setups">Setups
+      <div id="radio2">
+	<input type=radio name=setup value=cdaq id=cdaq checked=checked><label for="cdaq">cdaq</label>
+	<input type=radio name=setup value=minidaq id=minidaq><label for="minidaq">minidaq</label>
+	<input type=radio name=setup value=dv id=dv><label for="dv">daqval</label>
+	<!--<input type=radio name=setup value=dqm id=dqm><label for="dqm">dqm</label>-->
+	<!--<input type=radio name=setup value=ed id=ed ><label for="ed">eventdisplay</label>-->
+      </div>
+    </form>
+    <form id="details">Details
+      <div id="radio1">
+	<input type=radio name=detail value=on id=detailOn><label for="detailOn">Show</label>
+	<input type=radio name=detail value=off id=detailOff checked=checked><label for="detailOff">Hide</label>
+      </div>
+    </form>
+    <br>
+    <table id="esstatus" class="pure-table pure-table-bordered">
+      <thead>
+	<tr>
+	  <th>Service</th>
+	  <th>Alive FUs:<br>hltd<br> heartbeat<br>(+blacklist) <br>/<br> FUs in DB</th>
+	  <th>idle<br>slots</th>
+	  <th>active<br>slots</th>
+	  <th>idle |<br>active<br>FUs</th>
+	  <th>cloud <br>slots/<br>FUs</th>
+	  <th>quaran-<br>tined<br>slots/<br>FUs</th>
+	  <th>black-<br>listed FUs</th>
+	  <th title="these nodes are older than 10 seconds">stale FUs:<br>no datanet<br> heartbeat<br>in >10s< <br>or stale<br> flag</th>
+	  <th title="these nodes are older than 1 hour">dead FUs:<br>no datanet<br>heartbeat<br> in >1h< </th>
+	  <th title="these nodes are disconnected">discon-<br>nected FUs:<br>no datanet<br>heartbeat<br> FOUND<br></th>
+	  <th id="thide1">FU list<br>
+	  <font color="ff0000">red: FUs not in ES (age)</font></th>
+	  <th>ramdisk<br> % used</th>
+	  <th id="thide2">ramdisk values (MB)</th>
+	  <th>local (FU)<br>disk %<br> quota<br> used</th>
+	  <th id="thide3">FU disk values (MB)</th>
+	  <th>output <br>(BU)<br>disk %<br> used</th>
+	  <th id="thide4">BU spindisk values (MB)</th>
+	  <th>Rack</th>
+	</tr>
+      </thead>
+      <tbody id="services" class="togglecols">
+      </tbody>
+    </table>
+  </div>
+
+  <br>
+  <div class="pure-u-1-1" id="servicestatus" style="margin-left:15px;margin-right:15px;">
+    Runs:<br>
+    <table style="font-size:10pt;width=90%" class="pure-table"><tr id="runlist"></tr></table>
+  </div>
+</div>
+
+</body>
+<script type="text/javascript">
+</script>
+</html>

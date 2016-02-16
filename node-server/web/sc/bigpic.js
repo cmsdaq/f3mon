@@ -1,0 +1,618 @@
+'use strict';
+var node_tree;
+var update_funct=true;
+
+var old_setup;
+
+function get_node_tree(callback,callback2) {
+//	$.ajaxSetup({
+//		async: false
+//		    });
+//
+	var setup = $('input[name=setup]:checked', '#setups').val();
+        console.log('setup='+setup);
+	$.get("/sc/php/pp2.php?setup="+setup,function(data){
+		node_tree = data;
+                if (callback!==null) callback(callback2)
+		else
+		  callback();
+		old_setup=setup;
+	    });
+}
+
+function run_data_format(){
+    $.get("/sc/php/brun.php?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+	    //console.log("called brun");
+	    var run=0;
+	    if(!isNaN(parseInt(data.number)) && data.ended==""){
+		run=parseInt(data.number);
+	    }
+	    var ls = 0;
+	    if(run!=0 && $("#autoupdate").is(":checked")){
+		$('#currentRun').html(run);
+		//		console.log("current run is "+run);
+		$.get("/sc/php/lastls.php?setup="+$('input[name=setup]:checked', '#setups').val()+"&run="+run,function(data2){ls=data2; $('#currentLs').html(ls);
+			//console.log("got after lastls");
+			$.getJSON("/sc/php/streamsinrun.php?run="+run+'&setup='+$('input[name=setup]:checked', '#setups').val(),function(data3){
+				//console.log(data3);
+				var streams=data3;//.split(" ");
+
+				var content = ["<tr><td>micro<br>complete/incomplete</td>"];
+				var heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.splice(0,10).join("</th><th valign=\"top\">")  +"</th>";
+                                //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
+				$('#streams1').html(heading);
+				if (streams.length) {
+				  heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.splice(0,10).join("</th><th valign=\"top\">")  +"</th>";
+                                  //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
+				  $('#streams2').html(heading);
+				  content.push(content[0]);
+				}
+				if (streams.length) {
+				  heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.join("</th><th valign=\"top\">")  +"</th>";
+                                  //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
+				  $('#streams3').html(heading);
+				  content.push(content[0]);
+				}
+
+				$.getJSON("/sc/php/teols.php?runNumber="+run+"&to="+ls+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+                                      var keys = Object.keys(data).sort();
+				      //console.log("keys:"+keys)
+				      $.each(data,function(j,val){
+                                                var keyidx=keys.indexOf(j);
+						var contidx = 0;
+						if (keyidx>=10)  contidx++;
+						if (keyidx>=20)  contidx++;
+						var complete=0;
+						var incomplete=0;
+						$.each(val,function(k,frac){
+							if(frac==100)complete=complete+1;
+							else incomplete=incomplete+1
+								 });
+						if(incomplete < 3){
+						    content[contidx]+="<td>"+complete+"/"+incomplete+"</td>";
+						}
+						else if(incomplete < 3){
+						    content[contidx]+="<td style='background-color:yellow'>"+complete+"/"+incomplete+"</td>";
+						}
+						else{
+						    content[contidx]+="<td style='background-color:red'>"+complete+"/"+incomplete+"</td>";
+						}
+					    });
+				      content[0]+="</tr>";
+				      $('#streamvalues1').html(content[0]);
+				      if (content[1] && content[1].length) {
+				        content[1]+="</tr>";
+				        $('#streamvalues2').html(content[1]);
+				      }
+				      if (content[2] && content[2].length) {
+				        content[2]+="</tr>";
+				        $('#streamvalues3').html(content[2]);
+				      }
+
+                                      setTimeout(run_data_format,3000);
+				    });
+			    });
+		    });
+	    }
+	    else{
+                setTimeout(run_data_format,3000);
+		$('#currentRun').html("NO RUN ONGOING");
+	    }
+
+	});
+
+}
+
+function secondsToTime(s)
+{
+    secs=s%60;
+    mins=((s-secs)/60)%60;
+    hrs=((s-mins*60-secs)/3600)%24;
+    days=((s-mins*60-secs)/3600-hrs)/24;
+    
+    return days+'d '+("00" + hrs).slice(-2)+":"+("00" + mins).slice(-2)+":"+("00" + secs).slice(-2);
+}
+
+function cluster_data_format(callback){
+        //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    //    console.log($('input[name=setup]:checked', '#setups').val());
+    var statusvar = 0.;
+
+    var fumap = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
+
+    if(update_funct){
+    $.getJSON("/sc/api/bigPic?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+	    var content="";
+            if (data.setup!==$('input[name=setup]:checked', '#setups').val()) return;
+	    if (data.hasOwnProperty("appliance_clusters")) {
+                        var i = "appliance_clusters";
+                        var val = data["appliance_clusters"];
+			content+="<tr><td style='font-size:16pt;'>"+i+"</td></tr>";
+			//console.log("val.length ="+Object.keys(val).length);
+			var total_bu_factor=40./Object.keys(val).length;
+			var bus_with_zero_fus=0;
+			var placeholder_ordinal=0;
+                        //loop over bu keys/elements
+                        var nameArray = [];
+	                jQuery.each(val, function(i,vval2){nameArray.push(i)});
+                        nameArray.sort();
+                        //console.log(nameArray);
+                        for (var jc=0;jc<nameArray.length;jc++) {
+                                    //console.log(jc);
+                                    var j = nameArray[jc];
+                                    var vval = val[j];
+				    var diff = {};
+                                    //query in pp.php only returns BUs with FUs 
+                                    var zero_fus = !window.node_tree.hasOwnProperty(j);
+                                    var pp_node_length = 0;
+                                    var pp_fu_nodes = [];
+                                    if (!zero_fus) {
+                                      pp_node_length=window.node_tree[j].length;
+                                      pp_fu_nodes=window.node_tree[j];
+                                    }
+                                    var fu_racks={};
+                                    for (var ppidx=0;ppidx<pp_fu_nodes.length;ppidx++)
+				      fu_racks[pp_fu_nodes[ppidx].split("-")[1].substring(2,5).toUpperCase()]=null;
+				    fu_racks = Object.keys(fu_racks);//convert to array
+
+				    if(zero_fus){
+					content+='<tr class="unused-bu ordinal'+placeholder_ordinal+'" style="display:none">';
+					bus_with_zero_fus+=1;
+                                        //continue?
+				    }
+				    else{
+                                        //found fus (last 20s window of fu-box-status)
+					if(vval.fus!==undefined){
+					    //diff = $(pp_fu_nodes).not(Object.keys(vval.fus)).get();
+					    diff = $(pp_fu_nodes).not(vval.fus).get();
+					    diff.sort();
+					}
+					if(bus_with_zero_fus!=0){ //end zero-fu collapse
+					    content+='<tr class="unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+					    content+='<td colspan=14 style="background-color:grey;"></td></tr>';
+					    bus_with_zero_fus=0;
+					    placeholder_ordinal+=1;
+					}
+					content+='<tr style="display:table-row">'; //new bu row
+				    }
+				    content+="<td>"+j+" ("+vval.active_runs+")<br>"; //name column with active runs
+				    content+="<div style='font-size:9pt;'>[age="+vval.age+" s ; fuCPU="+vval.cpu_name+"]</div>";//and doc age
+			            content+="</td>";
+
+				    if(true || vval.connected=="connected"){ //now always true
+					statusvar += total_bu_factor; //?
+
+                                        var nall = vval.fu_count_all;
+                                        var nnobl = vval.fu_count_nbl;
+
+                                        //sum up alive boxes
+                                        fumap.boxes+=nnobl;
+                                        fumap.boxes_bl+=(nall-nnobl);
+                                        fumap.boxes_db+=pp_node_length;
+
+					//if(Object.keys(vval.fus).length==0){ //column with number of fus seen(fu-box-status) / number of fus in DB)
+
+					//column with number of fus seen(fu-box-status) / number of fus in DB)
+					var inverted="darkgrey";
+					if(nnobl==0){
+					    content+="<td style='background-color:red;'>";
+					}
+					else if(nall > pp_node_length){
+					    content+="<td style='background-color:orange;'>";
+					}
+					else if(nall < pp_node_length) {
+                                            if ((pp_node_length-vval.blacklisted_nodes.length)>nnobl){
+					      content+="<td style='background-color:yellow;'>";
+					      //inverted="dimgrey";
+					      inverted="grey";
+                                            }
+                                            else {
+					      content+="<td style='background-color:yellowgreen;'>";
+					      inverted="dimgrey";
+                                            }
+					}
+					else{
+					    content+="<td style='background-color:green;'>";
+					}
+
+					if(!zero_fus){
+					    if (nnobl===0)
+					      content+=nall+"/"+ pp_node_length+"</td>";
+					    else if (nall>nnobl)
+					      //content+=nnobl+"(<span style='background-color:grey;color:white'>+"+(nall-nnobl)+"</span>)/"+ pp_node_length+"</td>";
+					      //if (isyellow)
+					        content+=nnobl+"(<span style='color:"+inverted+"'>+"+(nall-nnobl)+"</span>)/"+ pp_node_length+"</td>";
+                                              //else
+					      //  content+=nnobl+"(<span style='color:"+inverted+"'>+"+(nall-nnobl)+"</span>)/"+ pp_node_length+"</td>";
+                                            else
+					      content+=nnobl+"/"+ pp_node_length+"</td>";
+					    statusvar += total_bu_factor*nall/pp_node_length;
+                                        }
+                                        else {
+                                            content+=nnobl+"/0 </td>";
+                                        }
+                                          
+				    }
+				    else {
+				      content+="<td></td>";//not used
+				    }
+				    content+="<td title="+vval.idle_count+">"+vval.idle+"</td>"; //idle column
+				    content+="<td title="+vval.online_count+">"+vval.online+"</td>"; //online column
+
+				    fumap.totalCores+=vval.idle+vval.online;//quarantined?
+				    fumap.totalQuarantinedCores+=vval.quarantined;//quarantined?
+				    fumap.totalHealthyBoxesHLT+=vval.idle_count+vval.online_count;
+
+				    var running_color=""
+                                    if (vval.idle_count===0 && vval.online_count>0) {}//running_color="style='background-color:aquamarine'";
+                                    else if (vval.idle_count>0 && vval.online_count===0 && !vval.active_runs==="") running_color="style='background-color:gold'";
+                                    else if (vval.idle_count>0 && vval.online_count>0) running_color="style='background-color:khaki'"; //can be transitional
+                                    else if (vval.idle_count===0 && vval.online_count===0) running_color="style='background-color:red'";
+				    content+="<td "+running_color+" >"+vval.idle_count+"|"+vval.online_count+"</td>"; //idle/active FUs column
+
+				    fumap.totalCloud+=vval.cloud;
+				    fumap.totalHealthyBoxesCloud+=vval.cloud_nodes.length;
+
+				    if(vval.cloud != 0 || vval.cloud_nodes.length){ //cloud column
+					content+="<td style='background-color:blue;color:white;font-weight:bold;' "
+                                        if (vval.cloud_nodes.length)
+                                          content+="title="+vval.cloud_nodes.toString()+" ondblclick='doubleClick(event)'"
+                                        content+=">"+vval.cloud+"/"+vval.cloud_nodes.length+"</td>";
+				    }
+				    else
+                                        {
+					    content+="<td>"+vval.cloud+"/"+vval.cloud_nodes.length+"</td>";
+				        }
+				    if(vval.quarantined_nodes.length!=0){ //quarantined column
+					content+="<td style='background-color:orange;' title="+vval.quarantined_nodes.toString()+" ondblclick='doubleClick(event)'>"
+                                                 +vval.quarantined.length+"/"+vval.quarantined_nodes.length+"</td>";
+				    }
+				    else
+					{
+					    content+="<td>0/"+vval.quarantined_nodes.length+"</td>";
+					}
+ 
+				    //blacklisted column
+				    if(vval.blacklisted_nodes.length!=0){ //quarantined column
+					content+="<td style='background-color:black;color:white;font-weight:bold;' title="
+                                                 +vval.blacklisted_nodes.join()+" ondblclick='doubleClick(event)'>"+vval.blacklisted_nodes.length+"</td>";
+                                    }
+                                    else {
+			              content+="<td>"+vval.blacklisted_nodes.length+"</td>";
+				    }
+
+				    if(vval.stale.length!=0){ //stale column
+					content+="<td style='background-color:yellow;' title="+vval.stale.toString()+" ondblclick='doubleClick(event)'>"+vval.stale.length+"</td>";
+				    }
+				    else
+					{
+					    content+="<td>"+vval.stale.length+"</td>";
+					}
+				    if(vval.dead.length!=0){//dead column
+					content+="<td style='background-color:red;' title="+vval.dead.toString()+" ondblclick='doubleClick(event)'>"+vval.dead.length+"</td>";
+				    }
+				    else
+					{
+					    content+="<td>"+vval.dead.length+"</td>";
+					}
+				    if(vval.disc.length!=0){//missing but in DB (todo:using "id" of fu-box-status)
+					content+="<td style='background-color:orange;' title="+vval.disc.toString()+" ondblclick='doubleClick(event)'>"+vval.disc.length+"</td>";
+				    }
+				    else
+					{
+					    content+="<td>"+vval.disc.length+"</td>";
+					}
+
+				    var fulist;
+				    if (pp_fu_nodes.length) 
+				      fulist="<td style='font-size:9pt;' id="+j+" title="+pp_fu_nodes.join()+" ondblclick='doubleClickPP(event)'>";//fu detail column (optional)
+				    else
+				      fulist="<td style='font-size:9pt;' id="+j+">";//fu detail column (optional)
+				    //for(var index in vval.fus){
+				    for(var index=0;index<vval.fus.length;index++){
+					//(if(vval.fus[index].stale_status==1){
+					//    fulist += '<em style="color:yellow; background-color:black;font-weight:bolder">'+index+"</em><br>";
+					//}
+					//if(vval.fus[index].stale_status==2){
+					//    fulist += '<em style="color:red; background-color:black;font-weight:bolder">'+index+"</em><br>";
+					//}
+					//if(vval.fus[index].stale_status==3){
+					//    fulist += '<em style="color:orange; background-color:black;font-weight:bolder">'+index+"</em><br>";
+					//}
+					//else
+					{
+					    //fulist += index+"<br>";
+                                            var detail_fu_name = vval.fus[index];
+					    var in_bl=false;
+                                            for (var blidx = 0;blidx<vval.blacklisted_nodes.length;blidx++) {
+                                              if (vval.blacklisted_nodes[blidx]===detail_fu_name) {in_bl=true;break}
+                                            }
+					    if (in_bl) {
+					      fulist += '<span style="color:white; background-color:black;font-weight:bolder">'+ detail_fu_name+"</span><br>";
+					    }
+					    else {
+					      var in_cl=false;
+                                              for (var clidx = 0;clidx<vval.cloud_nodes.length;clidx++) {
+                                                if (vval.cloud_nodes[clidx]===detail_fu_name) {in_cl=true;break}
+					      }
+					      if (in_cl)
+					        fulist += '<span style="color:white; background-color:blue;font-weight:bolder">'+ detail_fu_name+"</span><br>";
+					      else
+					        //fulist += '<em style="font-weight:bolder">'+ detail_fu_name+"</em><br>";
+					        fulist += '<span style="font-weight:bolder">'+ detail_fu_name+"</span><br>";
+					        //fulist += detail_fu_name+"<br>";
+					    }
+					}
+				    }
+				    //if(diff.length>0) fulist+='<FONT COLOR="FF0000">';
+				    //todo:sort
+				    for(var index in diff){
+                                        var missing_fu = diff[index];
+                                        var in_bl=false;
+                                        for (var blidx = 0;blidx<vval.blacklisted_nodes.length;blidx++) {
+                                          if (vval.blacklisted_nodes[blidx]===missing_fu) {in_bl=true;break}
+                                        }
+                                        if (!in_bl)
+				          fulist += '<span style="color:red; background-color:black;font-weight:bolder">'+ missing_fu+" : Unknown</span><br>";
+                                        else
+				          fulist += '<span style="color:white; background-color:black;font-weight:bolder">'+ missing_fu+" : Unknown (BL)</span><br>";
+				    }
+				    //if(diff.length>0) fulist+='</FONT>';
+				    fulist+="</td>";
+				    //				    $(fulist).click(function(){console.log("clicked");});
+				    content+=fulist;
+
+                                    //ramdisk %
+				    content+="<td>"+(vval.rdiskused/vval.rdisktotal*100).toFixed(2)+"</td>";
+                                    //ramdisk used
+				    content+="<td>"+vval.rdiskused+"/"+vval.rdisktotal+"</td>";
+                                    //FU quota % and used
+				    if(vval.uldisk==0 && vval.tldisk==0){
+					content+="<td>N/A</td>";
+					content+="<td>N/A</td>";
+				    }
+				    else{
+					content+="<td>"+(vval.uldisk/vval.tldisk*100).toFixed(2)+"</td>";
+					content+="<td>"+vval.uldisk+"/"+vval.tldisk+"</td>";
+				    }
+
+                                    //output % and used
+				    content+="<td>"+(vval.odiskused/vval.odisktotal*100).toFixed(2)+"</td>";
+				    content+="<td>"+vval.odiskused+"/"+vval.odisktotal+"</td>";
+
+                                    //rack name
+				    content+='<td style="background-color:';
+				    switch(j.split("-")[1].substring(2,3).toUpperCase()){
+				    case "D":
+					content+='purple;color:white';
+					break;
+				    case "E":
+					content+='pink';
+					break;
+				    case "F":
+					content+='magenta';
+					break;
+				    }
+                                    if (fu_racks.length) content+='" title='+fu_racks.join()+'>';
+                                    else content+='">';
+				    content+=j.split("-")[1].substring(2,5).toUpperCase()+"</td>";
+                                    //end row
+				    content+="</tr>";
+				}//);
+			    // complete the table with the last placeholder in case the last BU was an unused one
+			    if(bus_with_zero_fus!=0){
+				content+='<tr class="unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+				content+='<td colspan=14 style="background-color:grey;"></td></tr>';
+			    }
+			    content+="</tr></tr>";//sm:why this??
+		}//);
+
+		if (true ||data.hasOwnProperty("fumap")) {
+                    var val = fumap;
+		    content+="<tr><td style='font-size:16pt;'>fu_statistics</td>";
+		    //$('#querytime').html(val.query_time);
+		    content +="<td>boxes: <br>"+val.boxes+"(+"+val.boxes_bl+")<br>/"+val.boxes_db+"</td>";
+
+                    //var fumap = {"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
+		    //content +="<td>boxes: "+Object.keys(val).length+"</td>";
+		    //totalCores=0.;
+		    //totalCloud=0.;
+		    //for(var index in val){
+		    //    totalCores+=parseInt(val[index].idle);
+		    //    totalCores+=parseInt(val[index].online);
+		    //    totalCloud+=parseInt(val[index].cloud);
+		    //}
+		    content +="<td>cores<br>HLT:<br>"+val.totalCores+"</td><td/><td/>";
+		    content +="<td>cores<br>CLOUD:<br>"+val.totalCloud+"</td>";
+		    content +="<td>cores<br>QUARAN.:<br>"+val.totalQuarantinedCores+"</td>";
+		    content +="</tr>";
+		}
+		if (data.hasOwnProperty("central_server")) {
+                    var val = data.central_server;
+		    content+="<tr><td style='font-size:16pt;'>"+"central_server"+"</td>";
+		    $('#querytime').html(val.query_time);
+			if(val.status=='green') statusvar +=10;
+			content +="<td style='background-color:"+val.status+";'>"+val.status+"</td>";
+			content +="<td>"+val.number_of_data_nodes+"</td>";
+			content +="<td>"+val.active_primary_shards+"</td>";
+			content +="</tr>";
+		}
+		if (data.hasOwnProperty("eslocal_server")) {
+                    var val = data.eslocal_server;
+		    content+="<tr><td style='font-size:16pt;'>"+"eslocal_server"+"</td>";
+		    if(val.status=='green') statusvar +=10;
+		    content +="<td style='background-color:"+val.status+";'>"+val.status+"</td>";
+		    content +="<td>"+val.number_of_data_nodes+"</td>";
+		    content +="<td>"+val.active_primary_shards+"</td>";
+		    content +="</tr>";
+		}
+
+	    $('#services').html(content);
+	    //	    console.log("radio value: "+$("#details :radio:checked").val());
+	    show_hide();
+	    var now = new Date();
+	    $('#timestamp').html(now.toLocaleString());
+	    statusvar = Math.round(statusvar*100)/100;
+	    $('#statusbar').progressbar( "value", statusvar );
+
+            uruns(callback);
+        });
+    }
+    else { 
+            callback(post_set);
+            setTimeout(cluster_data_format,3000);
+    }
+}
+
+var show_hide=function(){
+	    if($("#details :radio:checked").val()=="off"){
+		//$('#esstatus tr td:nth-child(12),th:nth-child(12)').hide();
+		$('#esstatus tr td:nth-child(12)').hide();
+		$('#esstatus tr td:nth-child(14)').hide();
+		$('#esstatus tr td:nth-child(16)').hide();
+		$('#esstatus tr td:nth-child(18)').hide();
+                $('#thide1').hide();
+                $('#thide2').hide();
+                $('#thide3').hide();
+                $('#thide4').hide();
+	    }
+	    else{
+		//$('#esstatus tr td:nth-child(12),th:nth-child(12)').show();
+		$('#esstatus tr td:nth-child(12)').show();
+		$('#esstatus tr td:nth-child(14)').show();
+		$('#esstatus tr td:nth-child(16)').show();
+		$('#esstatus tr td:nth-child(18)').show();
+                $('#thide1').show();
+                $('#thide2').show();
+                $('#thide3').show();
+                $('#thide4').show();
+
+
+	    }			    
+}
+
+var uruns=function(callback) {
+    $.getJSON("/sc/php/uruns.php?setup="+$('input[name=setup]:checked', '#setups').val(),function(adata){
+	    var content;
+	    var ldata = adata.hits.hits;
+	    $.getJSON("/f3mon/api/runRiverListTable",function(bdata){
+	       jQuery.each(ldata, function(i,val){
+                    for (var index = 0;index<bdata.list.length;index++) {
+                      var found;
+                      if (bdata.list[index].name===val._source.runNumber) {
+			found=index;
+			break
+                      }
+		    }
+		    var river;
+		    if(found!==undefined)
+			river=" RIVER:("+bdata.list[found].host+" "+bdata.list[found].status+") ";
+		    else
+		        river=" RIVER:(none)";
+		    content+="<tr><td>"+val._source.runNumber+" started at "+val._source.startTime+"</td><td>"+river+"</td><tr>";
+		});
+
+	      $('#runlist').html(content);
+              if (callback) callback();
+              setTimeout(cluster_data_format,3000);
+	    });
+	});
+        //    setTimeout(cluster_data_format,30000)
+}
+
+var post_set = function() {
+    $('.unused-placeholder').click(function(){
+	    $(this).hide();
+	    var myordinal=$(this).attr('class').split(" ")[1];
+	    console.log(myordinal);
+	    $.each($('.unused-bu'),function(j,val){		    
+		    if(String($(this).attr('class')).indexOf(myordinal)>0){
+			$(this).show();
+		    }
+		});
+	});
+    if($("#autoupdate").is(":checked")){
+	update_funct=true;
+    }else{
+	update_funct=false;
+	$("#updatenotice").html("(updates currently disabled)");
+    }
+	//update_func = setInterval(cluster_data_format,3000);
+
+}
+
+var post_db = function() {
+    //    $('#services td:nth-child(9),th:nth-child(9)').hide();
+    $( "#autoupdate" ).prop('checked', true);
+    $( "#autoupdate" ).change(function(){
+	    if($(this).is(":checked")){
+		console.log("enabling updates");
+		update_funct = true;
+		$("#updatenotice").html("(this page updates every 5 seconds)");
+
+	    }
+	    else{
+		console.log("disabling updates");
+		update_funct=false;
+		$("#updatenotice").html("(updates currently disabled)");
+	    }
+
+	});
+    $('#details').buttonset();
+    //$('#setups').buttonset();
+    $( "#radio" ).buttonset();
+    $('#details').click(show_hide);//function callback
+    $('#setups').click(function(){
+      var setup = $('input[name=setup]:checked', '#setups').val();
+      if ( ((old_setup==="cdaq" || old_setup==="minidaq") && setup==="dv")
+         ||((setup==="cdaq" || setup==="minidaq") && old_setup==="dv"))
+      {
+        get_node_tree(cluster_data_format,post_set)
+      }
+      else 
+        cluster_data_format(post_set);
+    });
+    statusbar = $('#statusbar');
+    var statuslabel = $('.status-label');
+    statusbar.progressbar({
+	    value: false,
+		change: function() {
+		statuslabel.text( statusbar.progressbar( "value" ) + "%" );
+		var value = this.getAttribute( "aria-valuenow" );
+		var selector = "#" + this.id + " > div";
+		if (value < 10){
+		    $(selector).css({ 'background': 'Red' });
+		} else if (value < 30){
+		    $(selector).css({ 'background': 'Orange' });
+		} else if (value < 50){
+		    $(selector).css({ 'background': 'Yellow' });
+		} else{
+		    $(selector).css({ 'background': 'LightGreen' });
+		}
+		
+	    }
+	});
+    run_data_format();
+    cluster_data_format(post_set);
+}
+
+var bootstrap_all = function() {
+    $('#setups').buttonset();
+    get_node_tree(post_db,null);
+}
+
+var doubleClick = function(e) {
+  console.log("clicked on element with title: "+e.target.title)
+  window.prompt("Copy to clipboard: Ctrl+C, Enter", e.target.title);
+}
+
+var doubleClickPP = function(e) {
+  if (e.target.title==="") {
+    console.log("clicked on element with title: "+e.target.parentNode.title)
+    window.prompt("Copy to clipboard: Ctrl+C, Enter", e.target.parentNode.title);
+  } else {
+    console.log("clicked on element with title: "+e.target.title)
+    window.prompt("Copy to clipboard: Ctrl+C, Enter", e.target.title);
+  }
+}
+
