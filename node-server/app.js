@@ -21,8 +21,9 @@ http.globalAgent.maxSockets=Infinity;
 var app = express();
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
+app.use("/sc/php",php.cgi("web/sc/php"));
 app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
-//app.use("/ecd",php.cgi("web/ecd/ecd"));
+app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
 //app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
 //app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
@@ -41,6 +42,18 @@ var client = new elasticsearch.Client({
 	levels : ['debug'] //can put more logging levels here
 	}]
 });
+
+//currently used only for checking cluster health
+var clientESlocal = new elasticsearch.Client({
+  host: 'es-local:9200',
+  //log: 'trace'
+  //log: 'debug'
+  log : [{
+	type : 'file', //outputs ES logging to a file in the app's directory
+	levels : ['debug'] //can put more logging levels here
+	}]
+});
+
 
 //5.redirecting console log to a file
 var fs = require('fs');
@@ -260,8 +273,16 @@ app.get('/f3mon/api/getConfig', esGetConfig.query);
 //***TRANSFER STATUS CALLBACK***
 //callback 20
 app.get('/sc/api/transfer', function (req, res) {
-  smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true);
+  smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
 });
+
+
+//callback 19
+var esBigPic =  require('./src/esBigPic');
+esBigPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
+app.get('/sc/api/bigPic', esBigPic.query);
+
+
 
 /*
 //escapes client hanging upon a nodejs code exception/error by sending http 500
@@ -276,6 +297,7 @@ var server = app.listen(serverPort, function () {
 
    // test elasticsearch connection (test)
    client.ping();
+   clientESlocal.ping();
    //client.cat.aliases({name: 'runindex*cdaq*'},function (error, response) { console.log(JSON.stringify(response.split('\n')));});
    var port = server.address().port;
    console.log('Server listening at port:'+port);

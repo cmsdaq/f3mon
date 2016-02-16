@@ -14,6 +14,11 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var checkDefault = function(value,defaultValue) {
+    if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
+    else return value;
+}
+
 module.exports = {
 
   setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2) {
@@ -31,7 +36,7 @@ module.exports = {
 
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runRiverListTable request');
     var eTime = new Date().getTime();
-    var cb = req.query.callback;
+    var cb = checkDefault(req.query.callback,null);
 
     var retObj = {
       "list" : "",
@@ -41,14 +46,10 @@ module.exports = {
     var ipAddresses = [];
 
     //GET query string params
-    var qparam_from = req.query.from;
-    var qparam_size = req.query.size;
-    var qparam_sortBy = req.query.sortBy;
-    var qparam_sortOrder = req.query.sortOrder;
-    if (qparam_from == null){qparam_from = 0;}
-    if (qparam_size == null){qparam_size = 100;}
-    if (qparam_sortBy == null){qparam_sortBy = '';}
-    if (qparam_sortOrder == null){qparam_sortOrder = '';}
+    var qparam_from = checkDefault(req.query.from,0);
+    var qparam_size = checkDefault(req.query.size,100);
+    var qparam_sortBy = checkDefault(req.query.sortBy,'');
+    var qparam_sortOrder = checkDefault(req.query.sortOrder,'');
 
     var requestKey = 'runRiverListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder;
     var requestValue = f3MonCache.get(requestKey);
@@ -61,7 +62,10 @@ module.exports = {
       totalTimes.queried += srvTime;
       console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
-      res.send(cb +' ('+JSON.stringify(retObj)+')');
+      if (cb!==null)
+        res.send(cb +' ('+JSON.stringify(retObj)+')');
+      else
+        res.send(JSON.stringify(retObj));
     }
 
 
@@ -137,7 +141,10 @@ module.exports = {
         totalTimes.cached += srvTime;
 	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+        if (cb!==null)
+          res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
+        else
+          res.send(JSON.stringify(requestValue[0]));
     }
   }
 }

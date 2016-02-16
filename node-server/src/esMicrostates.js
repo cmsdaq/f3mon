@@ -288,7 +288,7 @@ module.exports = {
               }
               else {
                 if (add) retObj.data[idxmap[name]].values[entrycnt-1][1]+=value;
-                retObj.data[idxmap[name]].values[entrycnt-1][1]=value;
+                else retObj.data[idxmap[name]].values[entrycnt-1][1]=value;
               }
 
             }
