@@ -11,7 +11,7 @@ function get_node_tree(callback,callback2) {
 //
 	var setup = $('input[name=setup]:checked', '#setups').val();
         console.log('setup='+setup);
-	$.get("/sc/php/pp2.php?setup="+setup,function(data){
+	$.getJSON("/sc/api/pp?setup="+setup,function(data){
 		node_tree = data;
                 if (callback!==null) callback(callback2)
 		else

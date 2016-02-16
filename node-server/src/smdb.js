@@ -9,6 +9,7 @@ var f3MonCacheSec;
 var client;
 var ttls;
 var totalTimes;
+var dbInfo;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -24,13 +25,15 @@ var excpEscOracle = function (res, error){
 
 
 module.exports = {
-setup : function(cache,cacheSec,cl,ttl,totTimes) {
+setup : function(cache,cacheSec,cl,ttl,totTimes,dbinfo) {
   f3MonCache = cache
   f3MonCacheSec = cacheSec
   client = cl
   ttls = ttl
   totalTimes = totTimes
+  dbInfo = dbinfo
 },
+
 runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
  //params definition
  var eTimeT = new Date().getTime();
@@ -83,9 +86,9 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
     //connection and query to Oracle DB
     oracledb.getConnection(
     {
-       user          : "CMS_DAQ2_HW_CONF_R",
-       password      : "mickey2mouse",	//change this before any git push!
-       connectString : "cmsonr1-v.cms:10121/cms_rcms.cern.ch"
+       user          : dbInfo.cdaq[0],//"CMS_DAQ2_HW_CONF_R",
+       password      : dbInfo.cdaq[1],//"mickey2mouse",	//change this before any git push!
+       connectString : dbInfo.cdaq[2]//"cmsonr1-v.cms:10121/cms_rcms.cern.ch"
     },
     function(err, connection)
     {
@@ -334,7 +337,150 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
         }
   }
 
-}//end function
+},//end function
+
+
+runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
+
+  var ttl = ttls.pp;
+  var eTimeT = new Date().getTime();
+
+  var setup = reqQuery.setup;
+  var setuptag="";
+  var fuprefix="";
+  if (setup === "minidaq") setup="cdaq";//same db
+
+  if (setup==="cdaq" || setup==="minidaq") {setuptag='DAQ2';fuprefix='fu-%';}
+  if (setup==="dv") {setuptag='DAQ2VAL';fuprefix='dvrubu-%';}
+
+  var cb = reqQuery.cb;//angular callback (optional)
+
+  var requestKey = 'sc_pp?setup='+setup
+  var requestValue = f3MonCache.get(requestKey);
+  if (requestValue=="requestPending")
+  	requestValue = f3MonCacheSec.get(requestKey);
+
+  var retObj = {};
+
+  var sendResult = function(){
+     f3MonCache.set(requestKey, [retObj,ttl], ttl);
+     var srvTime = (new Date().getTime())-eTimeT;
+     totalTimes.queried += srvTime;
+     console.log('sc_pp (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
+     res.set('Content-Type', 'text/javascript');
+     if (cb === undefined || cb === null)
+       res.send(JSON.stringify(retObj));
+     else
+       res.send(cb +' ('+JSON.stringify(retObj)+')');
+  }
+
+  if (requestValue !== undefined){
+    //return from cache
+    if (!reply)
+      callback(requestValue[0]);
+    else {
+     var srvTime = (new Date().getTime())-eTimeT;
+     console.log('sc_pp (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
+     res.set('Content-Type', 'text/javascript');
+     if (cb === undefined || cb === null)
+       res.send(JSON.stringify(requestValue[0]));
+     else
+       res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
+    }
+    return;
+  }
+
+  //not found in cache: run query
+  f3MonCache.set(requestKey, "requestPending", ttl);
+
+  //connection and query to Oracle DB
+  oracledb.getConnection(
+    {
+       user          : dbInfo[setup][0],//"CMS_DAQ2_HW_CONF_R",
+       password      : dbInfo[setup][1],//"mickey2mouse",	//change this before any git push!
+       connectString : dbInfo[setup][2]//"cmsonr1-v.cms:10121/cms_rcms.cern.ch"
+    },
+    function(err, connection)
+    {
+      if (err) {
+        	console.error(err.message);
+		//equiv to (if (!$conn), err at oci_connect)
+                if (!reply)
+                  callback(null);
+                else
+		  excpEscOracle(res,err);
+    		return;
+      }
+
+      //TODO:support daq2val query & DB params
+      console.log(setuptag)
+
+      connection.execute(
+        "select attr_name, attr_value, d.dnsname from "+
+        "DAQ_EQCFG_HOST_ATTRIBUTE ha,"+
+        "DAQ_EQCFG_HOST_NIC hn,"+
+        "DAQ_EQCFG_DNSNAME d "+
+        "where "+                                                 
+        "ha.eqset_id=hn.eqset_id AND "+
+        "hn.eqset_id=d.eqset_id AND "+                          
+        "ha.host_id = hn.host_id AND "+                           
+        "ha.attr_name like 'myBU!_%' escape '!' AND "+
+        "hn.nic_id = d.nic_id AND "+           
+        "d.dnsname like :fuprefix "+                             
+        "AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET "+
+        "where tag=:setuptag AND "+
+        "ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag=:setuptag))",
+//        "where tag='DAQ2' AND "+
+//        "ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag='DAQ2'))",
+        {'setuptag':setuptag,'fuprefix':fuprefix},
+        function(err, result){
+    	  if (err) {
+      	    console.error(err.message);
+            //clear key on error?
+	    //f3MonCache.set(requestKey, [{},ttl], ttl);
+            if (!reply)
+              callback(null);
+            else
+              excpEscOracle(res, err);
+      	    return;
+   	  }
+	  var tuples = result.rows;
+	  retObj = {
+          };
+
+          for (var i=0;i<tuples.length;i++) {
+            var bu = tuples[i].ATTR_VALUE;
+            bu = bu.substring(0,bu.indexOf('.'));
+            var fu = tuples[i].DNSNAME;
+            fu = fu.substring(0,fu.indexOf('.'));
+            //if (fu.indexOf('.')!==fu.indexOf('.cms')) continue; //skip data addr
+
+            if (retObj.hasOwnProperty(bu)) {
+              var mybu = retObj[bu];
+              var found=false;
+              for (var myfu in mybu) {
+                if (mybu[myfu]===fu) {
+                  found=true;
+                  break;
+                }
+              }
+              if (!found)
+                mybu.push(fu)
+            }
+            else
+              retObj[bu] = [fu];
+          }
+          //overwrite obj, put in cache
+	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
+          if (!reply)
+            callback(retObj);
+          else
+            sendResult();
+        }); //oracle query callback
+
+    });//connection
+
+  }//query function
 
 }//end exports
 

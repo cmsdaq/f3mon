@@ -160,8 +160,9 @@ var totalTimes = {
 
 //10. load f3mon specific modules and define f3mon web callbacks
 //F3Mon DB query module
+var dbinfo = require('./dbinfo')
 var smdb = require('./src/smdb')
-smdb.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes)
+smdb.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,dbinfo)
 
 //redirect
 app.get('/node-f3mon', function (req, res) {  res.redirect('/f3mon');});
@@ -270,17 +271,23 @@ var esGetConfig =  require('./src/esGetConfig');
 esGetConfig.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("config.json"));
 app.get('/f3mon/api/getConfig', esGetConfig.query);
 
-//***TRANSFER STATUS CALLBACK***
+//callback 20
+var esBigPic =  require('./src/esBigPic');
+esBigPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
+app.get('/sc/api/bigPic', esBigPic.query);
+
+//***DB callbacks (TRANSFER STATUS and BIGPIC HWCFG)***
+
 //callback 20
 app.get('/sc/api/transfer', function (req, res) {
   smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
 });
 
+//callback 21
+app.get('/sc/api/pp', function (req, res) {
+  smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
+});
 
-//callback 19
-var esBigPic =  require('./src/esBigPic');
-esBigPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
-app.get('/sc/api/bigPic', esBigPic.query);
 
 
 

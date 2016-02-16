@@ -12,7 +12,8 @@
 		"minimacroperbu":1,
 		"streamhist":1,
 		"getstreamlist":2,
+                "bigpic":2,
 		"sctransfer":60,
-                "bigpic":2
+		"pp":60
 	}
 }
