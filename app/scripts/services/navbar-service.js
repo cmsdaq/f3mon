@@ -371,8 +371,9 @@
             var runInfo = runInfoService.data;
             var d = service.data;
 
-            d.isWorking = (d.main && d.collector) ? 'btn-success' : 'btn-danger';
-            if (d.main) {
+            d.isWorking = (d.main && d.collector && d.main.status==="running" && d.collector.status==="running") ? 'btn-success' : 'btn-danger';
+            if (d.main && d.main.status=="running") {
+
                 d.messages[0] = {
                     msg: "Main role running on server: " + d.main.host,
                     isWorking: true
@@ -384,7 +385,7 @@
                 }
             }
             if (d.collector) {
-                if (d.collector.status) {
+                if (d.collector.status==="running") {
                     d.messages[1] = {
                         msg: "Collector for run " + runInfo.runNumber + " is running on server: " + d.collector.host,
                         isWorking: true
