@@ -108,6 +108,7 @@ var sendResult = function(){
         totalTimes.queried += srvTime;
         console.log('minimacroperhost (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
@@ -301,6 +302,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('minimacroperhost (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
         res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 

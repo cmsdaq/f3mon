@@ -22,7 +22,7 @@ var app = express();
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/sc/php",php.cgi("web/sc/php"));
-app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
+//app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
 app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
 //app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
@@ -198,7 +198,7 @@ app.get('/f3mon/api/getDisksStatus', esDisksStatus.query);
 
 //callback 6
 var esRunList = require('./src/esRunList')
-esRunList.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("runlist.json"));
+esRunList.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes);
 app.get('/f3mon/api/runList', esRunList.query);
 
 //callback 7
@@ -238,7 +238,7 @@ app.get('/f3mon/api/nstates-summary', esNstatesSummary.query);
 
 //callback 14
 var esRunInfo = require('./src/esRunInfo');
-esRunInfo.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("lastls.json"),getQuery("streamsinrun.json"),getQuery("runinfo.json"));
+esRunInfo.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("lastls.json"),getQuery("streamsinrun.json"));
 app.get('/f3mon/api/runinfo', esRunInfo.query);
 
 //callback 15
@@ -276,14 +276,16 @@ var esBigPic =  require('./src/esBigPic');
 esBigPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
 app.get('/sc/api/bigPic', esBigPic.query);
 
+//callback 21
+app.get('/sc/api/teols', esBigPic.teols);
 //***DB callbacks (TRANSFER STATUS and BIGPIC HWCFG)***
 
-//callback 20
+//callback 22
 app.get('/sc/api/transfer', function (req, res) {
   smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
 });
 
-//callback 21
+//callback 23
 app.get('/sc/api/pp', function (req, res) {
   smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
 });

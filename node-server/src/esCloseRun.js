@@ -39,6 +39,7 @@ module.exports = {
 
     var sendResult = function(){
       res.set('Content-Type', 'text/javascript');
+      res.header("Cache-Control", "no-cache, no-store");
       res.send(cb +' ('+JSON.stringify(retObj)+')');
     }
 

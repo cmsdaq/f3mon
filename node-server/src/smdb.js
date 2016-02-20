@@ -65,6 +65,7 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
      console.log('sc_transfer (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
      if (!reply) return;
      res.set('Content-Type', 'text/javascript');
+     res.header("Cache-Control", "no-cache, no-store");
      //res.send(cb +' ('+JSON.stringify(retObj)+')'); //f3mon response format
      if (cb === undefined)
        res.send(JSON.stringify(retObj));
@@ -311,6 +312,7 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
         else {
           if (nonblocking !== undefined) {
             res.set('Content-Type', 'text/javascript');
+            res.header("Cache-Control", "no-cache, no-store");
             if (cb === undefined)
               res.send(JSON.stringify({}));
             else
@@ -329,6 +331,7 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
           totalTimes.cached += srvTime;
           console.log('sc_transfer (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
           res.set('Content-Type', 'text/javascript');
+          res.header("Cache-Control", "no-cache, no-store");
           //res.send(cb + ' (' + JSON.stringify(requestValue)+')');  //f3mon format
           if (cb === undefined)
 	    res.send(JSON.stringify(requestValue[0]));
@@ -368,6 +371,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
      totalTimes.queried += srvTime;
      console.log('sc_pp (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
      res.set('Content-Type', 'text/javascript');
+     res.header("Cache-Control", "no-cache, no-store");
      if (cb === undefined || cb === null)
        res.send(JSON.stringify(retObj));
      else
@@ -382,6 +386,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
      var srvTime = (new Date().getTime())-eTimeT;
      console.log('sc_pp (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
      res.set('Content-Type', 'text/javascript');
+     res.header("Cache-Control", "no-cache, no-store");
      if (cb === undefined || cb === null)
        res.send(JSON.stringify(requestValue[0]));
      else

@@ -62,6 +62,7 @@ module.exports = {
       totalTimes.queried += srvTime;
       console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
+      res.header("Cache-Control", "no-cache, no-store");
       if (cb!==null)
         res.send(cb +' ('+JSON.stringify(retObj)+')');
       else
@@ -141,6 +142,7 @@ module.exports = {
         totalTimes.cached += srvTime;
 	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
         if (cb!==null)
           res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
         else

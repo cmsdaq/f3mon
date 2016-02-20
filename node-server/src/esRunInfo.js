@@ -7,7 +7,6 @@ var client;
 var totalTimes;
 var queryJSON1;
 var queryJSON2;
-var queryJSON3;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -15,9 +14,14 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var checkDefault = function(value,defaultValue) {
+    if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
+    else return value;
+}
+
 module.exports = {
 
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2,queryJSN3) {
+  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2) {
     f3MonCache = cache;
     f3MonCacheSec =  cacheSec;
     client=cl;
@@ -25,23 +29,19 @@ module.exports = {
     totalTimes = totTimes;
     queryJSON1 = queryJSN1;
     queryJSON2 = queryJSN2;
-    queryJSON3 = queryJSN3;
   },
 
   query : function (req, res) {
 
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
     var eTime = new Date().getTime();
-    var cb = req.query.callback;
-
+    var cb = checkDefault(req.query.callback,null);
     //GET query string params
-    var qparam_runNumber = req.query.runNumber;
-    var qparam_sysName = req.query.sysName;
+    var qparam_runNumber = checkDefault(req.query.runNumber,null);
+    var qparam_sysName = checkDefault(req.query.sysName,"cdaq");
+    var qparam_activeRuns  = checkDefault(req.query.activeRuns,false);
 
-    if (qparam_runNumber == null){qparam_runNumber = 700032;}
-    if (qparam_sysName == null){qparam_sysName = 'cdaq';}
-
-    var requestKey = 'runInfo?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
+    var requestKey = 'runInfo?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName+'&active='+qparam_activeRuns;
     var requestValue = f3MonCache.get(requestKey);
     var ttl = ttls.runInfo; //cached ES response ttl (in seconds)
 
@@ -54,7 +54,11 @@ module.exports = {
 	    totalTimes.queried += srvTime;
 	    console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	    res.set('Content-Type', 'text/javascript');
-	    res.send(cb +' ('+JSON.stringify(retObj)+')');
+            res.header("Cache-Control", "no-cache, no-store");
+            if (cb!==null)
+	      res.send(cb +' ('+JSON.stringify(retObj)+')');
+            else
+	      res.send(JSON.stringify(retObj));
     }
 
     //last LS number
@@ -107,11 +111,16 @@ module.exports = {
     //start and end time
     var q1 = function (callback){
 
-      queryJSON3.filter.term._id = qparam_runNumber;
+      var queryJSON = {"size":1,"sort":{"startTime":"desc"}}
+      if (qparam_runNumber!==null)
+        queryJSON["filter"]={"term":{"_id": qparam_runNumber }}
+      if (qparam_activeRuns)
+        queryJSON["query"]= {"constant_score":{"filter":{"missing":{"field":"endTime"}}}};
+
       client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'run',
-        body : JSON.stringify(queryJSON3)
+        body : JSON.stringify(queryJSON)
       }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (results.length === 0){
@@ -119,6 +128,7 @@ module.exports = {
           return;
         }
 	retObj = results[0]._source; 	//throws cannot read property error if result list is empty (no hits found) because results[0] is undefined
+        if (qparam_runNumber===null) qparam_runNumber = results[0]._id;
 	callback(q3);
       }, function (error){
 	excpEscES(res,error);
@@ -141,7 +151,11 @@ module.exports = {
         totalTimes.cached += srvTime;
         console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+        res.header("Cache-Control", "no-cache, no-store");
+        if (cb!==null)
+          res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+        else
+	  res.send(JSON.stringify(requestValue[0]));
     }
   }
 }

@@ -69,6 +69,7 @@ module.exports = {
 	  totalTimes.queried += srvTime;
 	  console.log('bigpic (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.set('Content-Type', 'text/javascript');
+          res.header("Cache-Control", "no-cache, no-store");
           if (cb!==null)
 	    res.send(cb +' ('+JSON.stringify(retObj)+')');
           else
@@ -417,11 +418,156 @@ module.exports = {
       totalTimes.cached += srvTime;
       console.log('bigpic (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
+      res.header("Cache-Control", "no-cache, no-store");
       if (cb!==null)
         res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
       else
         res.send(JSON.stringify(requestValue[0]));
     }
-  }
+  },
+
+
+
+  teols : function (req, res) {
+
+    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'bigpic request');
+
+    var eTime = new Date().getTime();
+    var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
+
+    //GET query string params
+    var cb = checkDefault(req.query.callback,null);
+    var qparam_sysName = checkDefault(req.query.setup,'cdaq');
+    var qparam_runNumber = req.query.runNumber;
+    //var qparam_to = req.query.to;
+
+    var requestKey = 'bigpic_teols?sysName='+qparam_sysName+'&rn='+qparam_runNumber;//+'&to='+qparam_to;
+
+
+    var requestValue = f3MonCache.get(requestKey);
+    if (requestValue=="requestPending"){
+      requestValue = f3MonCacheSec.get(requestKey);
+    }
+
+    var retObj = {
+    };
+
+    var sendResult = function(cached,obj) {
+	  var srvTime = (new Date().getTime())-eTime;
+	  totalTimes.queried += srvTime;
+          if (cached) {
+	    console.log('bigpic_teols (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+          } else {
+	    f3MonCache.set(requestKey, [obj,ttl], ttl);
+	    console.log('bigpic_teols (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+          }
+	  res.set('Content-Type', 'text/javascript');
+          res.header("Cache-Control", "no-cache, no-store");
+          if (cb!==null)
+	    res.send(cb +' ('+JSON.stringify(obj)+')');
+          else
+	    res.send(JSON.stringify(obj));
+    }
+
+    var retObj = {
+    };
+
+    var maxls;
+
+    var qmaxls = function() {
+
+      var queryJSON = {
+        "size":0,
+        "query":{"bool":{"must":[{"term":{"_parent":qparam_runNumber}}]}},
+        "aggregations":{
+          "maxls":{
+            "max":{"field":"ls"}
+          }
+        }
+      };
+
+      client.search({
+        index: 'runindex_'+qparam_sysName+'_read',
+        type: 'eols',
+        body: JSON.stringify(queryJSON)
+      }).then (function(body){
+        maxls = body.aggregations.maxls.value
+        q(); 
+      }, function (error){
+        excpEscES(res,error);
+        console.trace(error.message);
+      });
+
+    }
+
+    var q = function() {
+
+      var queryJSON = {
+        "size":0,
+        "query":{"bool":{"must":[{"term":{"_parent":qparam_runNumber}}]}},
+        "aggregations":{
+          "streams":{
+            "terms":{"field":"stream","size":0},
+            "aggs":{
+              "complete":{
+                "filter":{
+                  "range":{"completion":{"lte":1.0000000001,"gte":0.9999999999}}}},
+              "incomplete":{
+                "filter":{
+                  "bool":{
+                    "must_not":[{"range":{ "completion":{"lte":1.0000000001,"gte":0.9999999999}  }}]
+                  }
+                }
+              }
+            }
+          }
+        }
+      };
+
+
+
+      client.search({
+        index: 'runindex_'+qparam_sysName+'_read',
+        type: 'stream-hist',
+        body: JSON.stringify(queryJSON)
+      }).then (function(body){
+
+        var buckets = body.aggregations.streams.buckets;
+        for (var i=0;i<buckets.length;i++) {
+          var bucket = buckets[i]
+          var tot_ls = bucket.complete.doc_count+bucket.incomplete.doc_count;
+          var diff=0;
+          if (maxls>tot_ls) diff = maxls-tot_ls;
+
+          if (bucket.doc_count===0)
+            retObj[bucket.key] = [bucket.complete.doc_count,bucket.incomplete.doc_count+diff,Math.floor(((tot_ls-diff)/tot_ls)*100)];
+          else  
+            retObj[bucket.key] = [bucket.complete.doc_count,bucket.incomplete.doc_count+diff,Math.floor((((tot_ls-diff)/tot_ls)*100)*bucket.complete.doc_count/bucket.doc_count)];
+        }
+        sendResult(false,retObj);
+
+      }, function (error){
+        excpEscES(res,error);
+        console.trace(error.message);
+      });
+
+    }
+
+    var requestValue = f3MonCache.get(requestKey);
+    if (requestValue=="requestPending"){
+      requestValue = f3MonCacheSec.get(requestKey);
+    }
+
+    var retObj = {
+    };
+
+    if (requestValue == undefined) {
+      f3MonCache.set(requestKey, "requestPending", ttl);
+      qmaxls();
+    }else {
+      sendResult(true,requestValue[0]);
+    }
+    
+  }//end
 }
 

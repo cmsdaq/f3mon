@@ -160,6 +160,10 @@ module.exports = {
           totalTimes.queried += srvTime;
 	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.set('Content-Type', 'text/javascript');
+          //res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+          res.header("Cache-Control", "no-cache, no-store");
+          //res.header("Pragma", "no-cache");
+          //res.header("Expires", 0);
           res.send(cb +' ('+JSON.stringify(retObj)+')');
 	}
 
@@ -186,6 +190,10 @@ module.exports = {
       totalTimes.cached += srvTime;
       console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
+      //res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.header("Cache-Control", "no-cache, no-store");
+      //res.header("Pragma", "no-cache");
+      //res.header("Expires", 0);
       res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
     }
   }

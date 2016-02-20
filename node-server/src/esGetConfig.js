@@ -31,6 +31,7 @@ module.exports = {
   // var eTime = new Date().getTime();
   var cb = req.query.callback;
   res.set('Content-Type', 'text/javascript');
+  res.header("Cache-Control", "no-cache, no-store");
   res.send(cb +' ('+JSON.stringify(queryJSON)+')');
 
 /*
@@ -46,6 +47,7 @@ client.indices.refresh({
   index: qparam_indexAlias
   }).then (function(body){
 	res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
         res.send('('+JSON.stringify(body)+')');
   }, function (error){
 	excpEscES(res,error);
@@ -66,6 +68,7 @@ if (qparam_token == acceptToken){
   //retObj["keys"] = f3MonCache.keys(); //appends list of keys in the response
   //retObj["pairs"] = f3MonCache.mget(f3MonCache.keys()); //appends full cache pairs
   res.set('Content-Type', 'text/javascript');
+  res.header("Cache-Control", "no-cache, no-store");
   res.send(cb +' ('+JSON.stringify(retObj)+')');
 }else{
   res.send('not allowed request');
@@ -85,6 +88,7 @@ if (qparam_token == acceptToken){
   f3MonCache.flushAll();
   retObj["new stats"] = f3MonCache.getStats();
   res.set('Content-Type', 'text/javascript');
+  res.header("Cache-Control", "no-cache, no-store");
   res.send(cb +' ('+JSON.stringify(retObj)+')');
 }else{
   res.send('not allowed request');

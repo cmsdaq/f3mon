@@ -164,6 +164,7 @@ var sendResult = function(){
         totalTimes.queried += srvTime;
         console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
         res.send(cb +' ('+JSON.stringify(retObj)+')');
 }
 
@@ -174,7 +175,7 @@ var q6 = function (callback) {
   if( lsList.length==0) {callback();return;}
 
   var trReqObj = {"run": qparam_runNumber, "binary":true , "aggregate":true}
-  var transferInfo = smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false);
+  var transferInfo = smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false,null);
   if (transferInfo===null) {
     callback();
     return;
@@ -861,6 +862,7 @@ if (requestValue == undefined) {
         totalTimes.cached += srvTime;
         console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
         res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
 }
 

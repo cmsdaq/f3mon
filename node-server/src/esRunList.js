@@ -5,7 +5,6 @@ var f3MonCacheSec;
 var ttls;
 var client;
 var totalTimes;
-var queryJSON
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -13,33 +12,33 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var checkDefault = function(value,defaultValue) {
+    if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
+    else return value;
+}
+
 module.exports = {
 
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN) {
+  setup : function(cache,cacheSec,cl,ttl,totTimes) {
     f3MonCache = cache;
     f3MonCacheSec =  cacheSec;
     client=cl;
     ttls = ttl;
     totalTimes = totTimes;
-    queryJSON = queryJSN;
   },
 
   query : function (req, res) {
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runList request');
     var eTime = new Date().getTime();
-    var cb = req.query.callback;
+    var cb = checkDefault(req.query.callback,null);
 
     //GET query string params
-    var qparam_from = req.query.from;
-    var qparam_to = req.query.to;
-    var qparam_size = req.query.size;
-    var qparam_sysName = req.query.sysName;
-    if (qparam_from == null){qparam_from = 0;}
-    if (qparam_to == null){qparam_to = 'now';}
-    if (qparam_size == null){qparam_size = 1000;}
-    if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+    var qparam_sysName = checkDefault(req.query.sysName,"cdaq");
+    var qparam_size = checkDefault(req.query.size,10);
+    var qparam_from=checkDefault(req.query.from,"0");
+    var qparam_to=checkDefault(req.query.to,"now");
 
-    var requestKey = 'runList?from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size+'&sysName='+qparam_sysName;
+    var requestKey = 'runList?sysName='+qparam_sysName+'&from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size;
     var requestValue = f3MonCache.get(requestKey);
     var ttl = ttls.runList; //cached ES response ttl (in seconds)
 
@@ -50,10 +49,22 @@ module.exports = {
     if (requestValue == undefined) {
       f3MonCache.set(requestKey, "requestPending", ttl);
 
+      var queryJSON = {
+        "fields": ["_source","startTime"],
+        "filter": {
+          "missing": {
+            "field": "endTime"
+          }
+        },
+        "size": qparam_size,
+        "sort": {"startTime": "desc"}
+      }
+
       //parameterize query fields
       queryJSON.size = qparam_size;
-      queryJSON.query.range.startTime.from = qparam_from;
-      queryJSON.query.range.startTime.to = qparam_to;
+      //optional query
+      if (!(qparam_from==="0" && qparam_to==="now"))
+        queryJSON["query"] = {"range":{"startTime":{"from":qparam_from,"to":qparam_to}}}
 
       //search ES
       client.search({
@@ -64,31 +75,29 @@ module.exports = {
 	var results = body.hits.hits; //hits for query
 
 	//format response content from query results, then send it
+	var retObj;
 	if (results.length==0){
-	  //send empty response if hits list is empty
-	  f3MonCache.set(requestKey, ["empty",ttl], ttl);
-	  var srvTime = (new Date().getTime())-eTime;
-	  totalTimes.queried += srvTime;
-	  console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	  res.send();
+	  retObj = {"runlist":[]}
 	}else{
-	  var lasttime = results[0].fields.startTime;
-	  var index;
 	  var arr = [];
-	  for (index = 0 ; index < results.length; index++){
+	  for (var index = 0 ; index < results.length; index++){
 	    arr[index] = results[index]._source;
 	  }
-	  var retObj = {
-	    "lasttime" : lasttime,
+	  retObj = {
+	    "lasttime" : results[0].fields.startTime,
 	    "runlist" : arr
 	  };
-	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
-	  var srvTime = (new Date().getTime())-eTime;
-	  totalTimes.queried += srvTime;
-	  console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	  res.set('Content-Type', 'text/javascript');
-	  res.send(cb +' ('+JSON.stringify(retObj)+')');
         }
+	f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	var srvTime = (new Date().getTime())-eTime;
+	totalTimes.queried += srvTime;
+	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+	res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
+        if (cb!==null)
+	  res.send(cb +' ('+JSON.stringify(retObj)+')');
+        else
+	  res.send(JSON.stringify(retObj));
       },function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -102,7 +111,12 @@ module.exports = {
         res.send();
       }else{
 	res.set('Content-Type', 'text/javascript');
-        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+        res.header("Cache-Control", "no-cache, no-store");
+        if (cb!==null) {
+          res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
+        }
+        else
+          res.send(JSON.stringify(requestValue[0]));
       }
     }
   }
