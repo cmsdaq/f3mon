@@ -262,8 +262,13 @@
             }, false);
         }
 
-        $scope.selectorModeChanged = function() {
-            currentRangeMode=$scope.selectorMode;
+        //$scope.selectorModeChanged = function() {
+        //    currentRangeMode=$scope.selectorMode;
+        //}
+
+        $scope.selectorModeSet = function(newmode) {
+            currentRangeMode=newmode;
+            $scope.selectorMode=newmode;
         }
 
         var setEvents = function() {

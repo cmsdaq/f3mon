@@ -5,7 +5,7 @@
         <!--<div id='srPanel' class='panel' style='height:60%'>-->
             <div class="panel panel-primary" style='height:100%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
                 <!-- Default panel contents -->
-                <div class="panel-heading" >
+                <div class="panel-heading" style="overflow:visible">
                     <span ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
@@ -37,25 +37,21 @@
                     <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'>
 
                         <button type="button" class="btn btn-primary" disabled>
-                          <i class="fa fa-area-chart-o"></i> Range Mode:
+                          <!--<i class="fa fa-area-chart-o"></i> Range Mode:-->
+                          Range Mode:
                         </button>
+
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                          <span id="abcde">{{selectorMode}}</span>
+                          <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu" id="selector-mode-list">
+                          <li ng-repeat="item in selectorModes" class="list-group-item" ng-click="selectorModeSet(item)"><a href="">{{item}}</a>
+                          </li>
+                        </ul>
                         <!-- todo: understand why unit/Event names in first button are needed to have it selected on page load -->
-                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'stream'" ng-change='selectorModeChanged()'>Stream</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'micro'" ng-change='selectorModeChanged()'>Micro</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'mini'" ng-change='selectorModeChanged()'>Mini</label>
-                        <label class="btn btn-primary" ng-model="selectorMode" uib-btn-radio="'macro'" ng-change='selectorModeChanged()'>Macro</label>
                     </div>
 
-                    <!--<div class="pull-right" style="width:170px;" id='sr-divisor'>
-                      streamSelector:
-                    </div>-->
-                    <!--<div>
-                    <select>
-                    <option value="volvo">stream</option>
-                    <option value="volvo">minimerge</option>
-                    <option value="volvo">macromerge</option>
-                    </select>
-                    </div>-->
                     <!-- /.col-lg-6 -->
                     <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Stream Rates</h3>
 
