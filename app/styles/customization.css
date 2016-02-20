@@ -31,6 +31,12 @@
   border-color: #8c3a30;
 }
 
+.btn-primary.active:hover, .btn-primary:active:hover, .open > .dropdown-toggle.btn-primary:hover,.open > .dropdown-toggle.btn-primary:focus {
+  color: #fff;
+  background-color: #81352d;
+  border-color: #5f2721;
+}
+
 .panel-primary > .panel-heading .badge {
   color: #62401E;
   background-color: #FFF;
@@ -63,6 +69,11 @@
 .navbar-btn-blue.disabled, .navbar-btn-blue.disabled.active, .navbar-btn-blue.disabled:active, .navbar-btn-blue.disabled:focus, .navbar-btn-blue.disabled:hover, .navbar-btn-blue[disabled], .navbar-btn-blue.active[disabled], .navbar-btn-blue[disabled]:active, .navbar-btn-blue[disabled]:focus, .navbar-btn-blue[disabled]:hover, fieldset[disabled] .navbar-btn-blue, fieldset[disabled] .navbar-btn-blue.active, fieldset[disabled] .navbar-btn-blue:active, fieldset[disabled] .navbar-btn-blue:focus, fieldset[disabled] .navbar-btn-blue:hover {
   background-color: #3071A9;
   border-color: #285E8E;
+}
+
+.navbar-btn-blue:active:hover,.open > .dropdown-toggle.navbar-btn-blue:hover,.open > .dropdown-toggle.navbar-btn-blue:focus {
+  background-color: #204d74;
+  border-color: #122b40;
 }
 
 .navbar-inverse .navbar-nav > .active > a, .navbar-inverse .navbar-nav > .active > a:focus, .navbar-inverse .navbar-nav > .active > a:hover {
