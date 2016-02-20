@@ -32,9 +32,15 @@
 	<td style="width:15%;vertical-align:top">
 	  <h1>F<sup>3</sup> General Status</h1>
 	  Last Updated at <div id="timestamp"></div> 
-	  Query time <div id="querytime"></div> 
-	  <div id="updatenotice">(this page updates every 3 seconds)</div>
+	  <div id="updatenotice">(this page updates automatically)</div>
+	  <!--Query time <div id="querytime"></div> -->
 	  <br><form id="updates"><input type="checkbox" id="autoupdate" checked><label for="autoupdate">Auto Update</label></form>
+	  <br><form id="updatetime">Update interval<div id="radio0">
+	    <input type=radio name=refreshint value=1000 id=int1s><label>1 s</label>
+	    <input type=radio name=refreshint value=3000 id=int3s checked=checked><label>3 s</label>
+	    <input type=radio name=refreshint value=10000 id=int10s><label>10 s</label>
+	    <input type=radio name=refreshint value=30000 id=int30s><label>30 s</label>
+          </div></form>
 	</td>
 	<td style="width:75%;margin-left:15px;margin-right:15px">
 	  run: <h1 id="currentRun"></h1>

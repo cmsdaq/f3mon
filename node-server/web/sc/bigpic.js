@@ -21,53 +21,74 @@ function get_node_tree(callback,callback2) {
 }
 
 function run_data_format(){
-    $.get("/sc/php/brun.php?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
-	    //console.log("called brun");
-	    var run=0;
-	    if(!isNaN(parseInt(data.number)) && data.ended==""){
-		run=parseInt(data.number);
-	    }
+
+    //$.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=1",function(adata){
+    $.getJSON("/f3mon/api/runInfo?sysName="+$('input[name=setup]:checked', '#setups').val()+"&activeRuns=true",function(adata){
+            var run;
 	    var ls = 0;
-	    if(run!=0 && $("#autoupdate").is(":checked")){
+	    if (adata.runNumber && !isNaN(run = parseInt(adata.runNumber)) &&  $("#autoupdate").is(":checked")) {
 		$('#currentRun').html(run);
+                if (adata.lastLs!==0)
+		  $('#currentLs').html(ls = adata.lastLs[0]);
+                else $('#currentLs').html(0);
 		//		console.log("current run is "+run);
-		$.get("/sc/php/lastls.php?setup="+$('input[name=setup]:checked', '#setups').val()+"&run="+run,function(data2){ls=data2; $('#currentLs').html(ls);
+		//$.get("/sc/php/lastls.php?setup="+$('input[name=setup]:checked', '#setups').val()+"&run="+run,function(data2){
+		//	ls=data2;
+		//	$('#currentLs').html(ls);
 			//console.log("got after lastls");
-			$.getJSON("/sc/php/streamsinrun.php?run="+run+'&setup='+$('input[name=setup]:checked', '#setups').val(),function(data3){
+			/*
+			$.getJSON("/sc/php/streamsinrun.php?run="+run+'&setup='+$('input[name=setup]:checked', '#setups').val(),function(data3){ */
 				//console.log(data3);
-				var streams=data3;//.split(" ");
+				var streams=adata.streams;//.split(" ");
 
 				var content = ["<tr><td>micro<br>complete/incomplete</td>"];
 				var heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.splice(0,10).join("</th><th valign=\"top\">")  +"</th>";
-                                //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
 				$('#streams1').html(heading);
 				if (streams.length) {
 				  heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.splice(0,10).join("</th><th valign=\"top\">")  +"</th>";
-                                  //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
 				  $('#streams2').html(heading);
 				  content.push(content[0]);
 				}
 				if (streams.length) {
 				  heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.join("</th><th valign=\"top\">")  +"</th>";
-                                  //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
 				  $('#streams3').html(heading);
 				  content.push(content[0]);
 				}
 
-				$.getJSON("/sc/php/teols.php?runNumber="+run+"&to="+ls+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
-                                      var keys = Object.keys(data).sort();
+				$.getJSON("/sc/api/teols?runNumber="+run+"&to="+ls+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+
+                                      var streams = Object.keys(data).sort();
+
+/*				      //fill table
+				      var content = ["<tr><td>micro<br>complete/incomplete</td>"];
+				      var heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.splice(0,10).join("</th><th valign=\"top\">")  +"</th>";
+                                      //if (heading.endsWith("<th valign=\"top\"></th>")) heading = heading.substr(0,heading.length-22);
+				      $('#streams1').html(heading);
+				      if (streams.length) {
+				        heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.splice(0,10).join("</th><th valign=\"top\">")  +"</th>";
+				        $('#streams2').html(heading);
+				        content.push(content[0]);
+				      }
+				      if (streams.length) {
+				        heading = "<th>Streams>>>><br>Completeness@@@@</th><th valign=\"top\">"+  streams.join("</th><th valign=\"top\">")  +"</th>";
+				        $('#streams3').html(heading);
+				        content.push(content[0]);
+				      }
+*/
 				      //console.log("keys:"+keys)
 				      $.each(data,function(j,val){
-                                                var keyidx=keys.indexOf(j);
+                                                var keyidx=streams.indexOf(j);
 						var contidx = 0;
 						if (keyidx>=10)  contidx++;
 						if (keyidx>=20)  contidx++;
-						var complete=0;
-						var incomplete=0;
-						$.each(val,function(k,frac){
-							if(frac==100)complete=complete+1;
-							else incomplete=incomplete+1
-								 });
+						var complete = val[0];
+						var incomplete = val[1];
+						//var complete=0;
+						//var incomplete=0;
+						//$.each(val,function(k,frac){
+						//	if(frac==100)complete=complete+1;
+						//	else incomplete=incomplete+1
+						//		 });
 						if(incomplete < 3){
 						    content[contidx]+="<td>"+complete+"/"+incomplete+"</td>";
 						}
@@ -89,13 +110,15 @@ function run_data_format(){
 				        $('#streamvalues3').html(content[2]);
 				      }
 
-                                      setTimeout(run_data_format,3000);
+                                      var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
+                                      setTimeout(run_data_format,refreshint);
 				    });
-			    });
-		    });
+			    //});
+		    //});
 	    }
 	    else{
-                setTimeout(run_data_format,3000);
+                var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
+                setTimeout(run_data_format,refreshint);
 		$('#currentRun').html("NO RUN ONGOING");
 	    }
 
@@ -459,8 +482,9 @@ function cluster_data_format(callback){
         });
     }
     else { 
+            var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
             callback(post_set);
-            setTimeout(cluster_data_format,3000);
+            setTimeout(cluster_data_format,refreshint);
     }
 }
 
@@ -492,14 +516,15 @@ var show_hide=function(){
 }
 
 var uruns=function(callback) {
-    $.getJSON("/sc/php/uruns.php?setup="+$('input[name=setup]:checked', '#setups').val(),function(adata){
+    //console.log('uruns.. '+"/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=100");
+    $.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=100",function(adata){
 	    var content;
-	    var ldata = adata.hits.hits;
+	    var ldata = adata.runlist;
 	    $.getJSON("/f3mon/api/runRiverListTable",function(bdata){
 	       jQuery.each(ldata, function(i,val){
                     for (var index = 0;index<bdata.list.length;index++) {
                       var found;
-                      if (bdata.list[index].name===val._source.runNumber) {
+                      if (bdata.list[index].name===val.runNumber) {
 			found=index;
 			break
                       }
@@ -509,15 +534,15 @@ var uruns=function(callback) {
 			river=" RIVER:("+bdata.list[found].host+" "+bdata.list[found].status+") ";
 		    else
 		        river=" RIVER:(none)";
-		    content+="<tr><td>"+val._source.runNumber+" started at "+val._source.startTime+"</td><td>"+river+"</td><tr>";
+		    content+="<tr><td>"+val.runNumber+" started at "+val.startTime+"</td><td>"+river+"</td><tr>";
 		});
 
 	      $('#runlist').html(content);
               if (callback) callback();
-              setTimeout(cluster_data_format,3000);
+              var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
+              setTimeout(cluster_data_format,refreshint);
 	    });
 	});
-        //    setTimeout(cluster_data_format,30000)
 }
 
 var post_set = function() {
