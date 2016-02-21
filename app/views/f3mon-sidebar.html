@@ -7,8 +7,8 @@
                 <div class="panel-heading">
                     <span ng-click='selectTour("runInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
 
-                    <button ng-click='restartCollectorDialog(data.runNumber)' type="button" class="btn btn-xs btn-primary pull-right" data-toggle="tooltip" title="Restart data collector."><i class="fa fa-retweet"></i>
-                    </button>
+                    <!--<button ng-click='restartCollectorDialog(data.runNumber)' type="button" class="btn btn-xs btn-primary pull-right" data-toggle="tooltip" title="Restart data collector."><i class="fa fa-retweet"></i>
+                    </button> -->
 
                     <h3 class="panel-title">Run Info: {{data.runNumber ? data.runNumber : "no run ongoing"}}</h3>
                 </div>
@@ -53,8 +53,17 @@
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("disksInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
-                    <h3 class="panel-title">Disks Information</h3>
+                    <h3 class="panel-title">
+
+                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
+                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#disks-panel-body-collapse"><i class="fa fa-power-off"></i></button>
+                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                    </div>
+                    Disks Information
+                    </h3>
                 </div>
+                <!--<div class="panel-collapse collapse in" id="disks-panel-body-collapse">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
                 <div class="panel-body">
                     <!-- Table -->
                     <div class="table-responsive">
@@ -76,6 +85,7 @@
                         </table>
                     </div>
                 </div>
+                </div>
             </div>
         </div>
 
@@ -86,8 +96,17 @@
                 <div class="panel-heading">
                     <span ng-click='selectTour("runListPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <span class="badge pull-right"># Runs: {{data.numRuns}}</span>
-                    <h3 class="panel-title">Run List</h3>
+                    <h3 class="panel-title">
+
+                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
+                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#runlist-panel-body-collapse"><i class="fa fa-power-off"></i></button>
+                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                    </div>
+                    Run List
+                    </h3>
                 </div>
+                <!--<div class="panel-collapse collapse in" id="runlist-panel-body-collapse">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
                 <div class="panel-body">
                     <!-- Table -->
                     <div class="table-responsive">
@@ -138,6 +157,7 @@
                         </table>
                     </div>
                 </div>
+                </div>
             </div>
         </div>
         <div id='riverListPanel' class='panel'>
@@ -146,9 +166,19 @@
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span ng-click='selectTour("riverListPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
-                    <h3 class="panel-title">River List</h3>
+                    <h3 class="panel-title">
+
+                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
+                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#rivers-panel-body-collapse"><i class="fa fa-power-off"></i></button>
+                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                    </div>
+                    River List
+                    <!--<a href="" data-toggle="collapse" data-target="#rivers-panel-body-collapse" >River List</a>-->
+                    </h3>
                 </div>
-                <div class="panel-body">
+                <!--<div class="panel-collapse collapse in" id="rivers-panel-body-collapse">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
+                  <div class="panel-body" id="rivers-panel-body">
                     <!-- Table -->
                     <div class="table-responsive" style="height:100%;overflow-y: auto;overflow-x: auto;">
                         <table class="table table-striped table-hover table-condensed" >
@@ -192,6 +222,7 @@
                             </tfoot>
                         </table>
                     </div>
+                  </div>
                 </div>
             </div>
         </div>

@@ -192,6 +192,8 @@
 
 
         var service = {
+            active:false,
+            paused:false,
             data: {
                 buRamDisk: {
                     total: false,
@@ -218,6 +220,8 @@
         };
 
         service.start = function() {
+            service.active = true;
+            if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
                 mypoller = poller.get(resource, {
@@ -252,6 +256,30 @@
                 });
             }
         };
+
+        service.stop = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.active = false;
+        }
+
+        service.pause = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.paused = true;
+        }
+
+        service.resume = function() {
+          if (service.paused && service.active) {
+             if (!angular.isUndefined(mypoller)) {//make sure existing poller is restarted
+               mypoller.start();
+             }
+          }
+          service.paused = false;
+        }
+
         $rootScope.$on('runInfo.selected', function(event) {
             service.start();
         });
@@ -280,6 +308,8 @@
 
 
         var service = {
+            active:false,
+            paused:false,
             data: {
                 numRuns: 0,
                 displayTotal: 0,
@@ -296,6 +326,8 @@
         };
 
         service.start = function() {
+            service.active=true;
+            if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
                 mypoller = poller.get(resource, {
@@ -334,8 +366,31 @@
             }
         };
 
+        service.stop = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.active = false;
+        }
+
+        service.pause = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.paused = true;
+        }
+
+        service.resume = function() {
+          if (service.paused && service.active) {
+             if (!angular.isUndefined(mypoller)) {//make sure existing poller is restarted
+               mypoller.start();
+             }
+          }
+          service.paused = false;
+        }
+
         service.pageChanged = function(newPageNumber) {
-            mypoller.stop();
+            service.stop();
             service.data.currentPage = newPageNumber;
             service.start();
         }
@@ -349,7 +404,7 @@
         };
 
         service.changeSorting = function(field) {
-            mypoller.stop();
+            service.stop();
             if (field != service.data.sortBy) {
                 service.data.sortBy = field;
                 service.data.sortOrder = 'desc';
@@ -360,7 +415,7 @@
         };
 
         service.search = function() {
-            mypoller.stop();
+            service.stop();
             service.start();
         };
 
@@ -409,7 +464,10 @@
 
 
         var start = function() {
-            mypoller = poller.get(resource, {
+            service.active = true;
+            if (service.paused) return;
+            if (angular.isUndefined(mypoller)) {
+              mypoller = poller.get(resource, {
                 action: 'jsonp_get',
                 delay: config.fastPollingDelay,
                 smart: true,
@@ -419,18 +477,31 @@
                     sortBy: service.data.sortBy,
                     sortOrder: service.data.sortOrder,
                 }]
-            });
-            mypoller.promise.then(null, null, function(data) {
+              });
+              mypoller.promise.then(null, null, function(data) {
                 if (JSON.stringify(data.list) != cache) {
                     cache = JSON.stringify(data.list);
                     service.data.displayed = data.list;
                     service.data.total = data.total;
                 }
-            })
+              });
+            } else {
+                //Restart poller
+                mypoller = poller.get(resource, {
+                  argumentsArray: [{
+                    size: service.data.itemsPerPage,
+                    from: (service.data.currentPage - 1) * service.data.itemsPerPage,
+                    sortBy: service.data.sortBy,
+                    sortOrder: service.data.sortOrder,
+                  }]
+                });
+            }
         }
 
 
         var service = {
+            active:false,
+            paused:false,
             data: {
                 total: 0,
                 currentPage: 1,
@@ -442,7 +513,30 @@
             }
         };
 
+        service.stop = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.active = false;
+        }
 
+        service.pause = function() {
+          if (!angular.isUndefined(mypoller)) {
+              console.log('service3 paused')
+              mypoller.stop();
+          }
+          service.paused = true;
+        }
+
+        service.resume = function() {
+          if (service.paused && service.active) {
+             if (!angular.isUndefined(mypoller)) {//make sure existing poller is restarted
+               mypoller.start();
+               console.log('service3 resumed')
+             }
+          }
+          service.paused = false;
+        }
 
         service.closeCollector = function(selected) {
             var runNumber = selected.runNumber;
@@ -464,6 +558,7 @@
 
         }
 
+        /*
         service.restart = function() {
             //Restart poller
             //console.log((service.data.currentPage - 1) * service.data.itemsPerPage);
@@ -476,23 +571,24 @@
                 }]
             });
         };
+        */
 
         service.pageChanged = function(newPageNumber) {
             //console.log('pageChange');
-            mypoller.stop();
+            service.stop();
             service.data.currentPage = newPageNumber;
-            service.restart();
+            service.start();
         }
 
         service.changeSorting = function(field) {
-            mypoller.stop();
+            service.stop();
             if (field != service.data.sortBy) {
                 service.data.sortBy = field;
                 service.data.sortOrder = 'desc';
             } else {
                 service.data.sortOrder = (service.data.sortOrder == 'desc') ? 'asc' : 'desc';
             }
-            this.restart();
+            service.start();
         };
 
         service.sortedClass = function(field) {

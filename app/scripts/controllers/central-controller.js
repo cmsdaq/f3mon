@@ -149,6 +149,21 @@
     })
 
     .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, microStatesService, colors) {
+
+        $scope.isCollapsed = false;
+        $scope.collapseChanged = function() {
+          if ($scope.isCollapsed) {
+            //schedule this immediately after setting visible
+            if (chart) setTimeout(function(){ 
+              if (chart) initChart(false);
+              streamRatesService.resume()
+            }, 1);
+            else streamRatesService.resume();
+          }
+          else streamRatesService.pause()
+          $scope.isCollapsed=!$scope.isCollapsed;
+        }
+
         var config;
 
         $scope.$on('config.set', function(event) {
@@ -252,8 +267,10 @@
             }
             else $scope.queryParams.useDivisor=false;
 
-
+            var isPaused  = streamRatesService.paused;
+            if (!isPaused) streamRatesService.pause()
             $scope.paramsChanged();
+            if (!isPaused) streamRatesService.resume()
             //streamRatesChartConfig.yAxis[0].title.text = axisTitle; //waiting for fix https://github.com/pablojim/highcharts-ng/issues/247
             chart.yAxis[0].update({
                 title: {
@@ -368,6 +385,7 @@
             $scope.queryParams.from = min;
             $scope.queryParams.to = max;
             $scope.paramsChanged();
+            streamRatesService.start();
 
             //propagate to microstate service
             microStatesService.updateRange(runInfoService.data.runNumber,min>0?min:1,lastLs<max?lastLs:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
@@ -586,6 +604,25 @@
     })
 
     .controller('microStatesCtrl', function($scope, $rootScope, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
+        $scope.isCollapsed = false;
+        $scope.collapseChanged = function() {
+          if ($scope.isCollapsed) {
+            //schedule this immediately after setting visible
+            if (chart) setTimeout(function(){ 
+              if (chart || !cleared) { 
+                var isDirty_ = isDirty;
+                var cleared_ = cleared;
+                //destroyChart();
+                resetChart();
+                if (isDirty_ || !cleared_) processUpdate();  }
+                microStatesService.resume()
+            }, 500);
+            else microStatesService.resume()
+          }
+          else
+            microStatesService.pause()
+          $scope.isCollapsed=!$scope.isCollapsed;
+        }
 
         //defaults
         $scope.chartLib = "highcharts";
@@ -612,7 +649,8 @@
              chartEnabled=false;
              $scope.isDisabledNvd3 = true;
              $scope.isDisabledHc = true;
-             microStatesService.pause("nvd3")
+             microStatesService.pause()
+             //microStatesService.pause("nvd3")
           }
           lastChartLib=$scope.chartLib;
         }
@@ -702,6 +740,9 @@
         });
 
         $scope.$on('msChart.updated', function(event) {
+            processUpdate()
+        });
+        var processUpdate = function() {
             if (!chartEnabled) {
               console.log('micro chart disabled');
               return;
@@ -731,7 +772,7 @@
               if (cleared) $scope.api.refresh();
               cleared = false;
             }
-        })
+        }
     })
 
 

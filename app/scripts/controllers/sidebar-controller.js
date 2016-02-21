@@ -58,10 +58,24 @@
     })
 
     .controller('disksInfoCtrl', function($scope, disksInfoService) {
+        $scope.isCollapsed = false;
+        $scope.collapseChanged = function() {
+          if ($scope.isCollapsed) disksInfoService.resume()
+          else disksInfoService.pause()
+          $scope.isCollapsed=!$scope.isCollapsed;
+        }
+
         $scope.data = disksInfoService.data;
     })
 
     .controller('runListCtrl', function($scope, runListService, runRangerService, runInfoService, globalService) {
+        $scope.isCollapsed = false;
+        $scope.collapseChanged = function() {
+          if ($scope.isCollapsed) runListService.resume()
+          else runListService.pause()
+          $scope.isCollapsed=!$scope.isCollapsed;
+        }
+
         //$scope.noData = true;
         $scope.data = runListService.data;
         var service = runListService;
@@ -86,6 +100,13 @@
     })
 
     .controller('riverListCtrl', function($scope, $modal, riverListService) {
+        $scope.isCollapsed = false;
+        $scope.collapseChanged = function() {
+          if ($scope.isCollapsed) riverListService.resume()
+          else riverListService.pause()
+          $scope.isCollapsed=!$scope.isCollapsed;
+        }
+
         var modal = $modal({
             scope: $scope,
             templateUrl: 'views/closeModal.tpl.html',

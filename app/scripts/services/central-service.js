@@ -68,6 +68,9 @@
         }
 
         var service = {
+            active:false,
+            ready:false,
+            paused:false,
             data: {
                 micromerge: {},
                 minimerge: {},
@@ -105,13 +108,17 @@
                 //console.log('service stop')
                 mypoller.stop();
             }
+            service.active=false;
+            service.ready=false;
         };
 
         service.start = function() {
-
+            service.active=true;
             if (!runInfo.lastLs || !runInfo.streams) {
                 return;
             };
+            service.ready=true;
+            if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
                 mypoller = poller.get(resource, {
@@ -154,9 +161,24 @@
             }
         }
 
+        service.pause = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.paused = true;
+        }
+
+        service.resume = function() {
+          if (service.paused) {
+             if (service.ready && !angular.isUndefined(mypoller)) {//make sure existing poller is restarted
+               mypoller.start();
+             }
+          }
+          service.paused = false;
+        }
+
         service.paramsChanged = function(msg) {
             service.data.lastTime = false;
-            service.start();
         }
 
         var broadcast = function(msg) {
@@ -171,9 +193,8 @@
             var q = service.queryParams;
             var info = service.queryInfo;
 
-            if (!angular.isUndefined(mypoller)) {
-                mypoller.stop()
-            }
+            service.stop();
+
             q.runNumber = runInfo.runNumber;
 
             var nbinsp = configService.nbins+1;
@@ -548,11 +569,12 @@
         }
 
         service.reconfigureFormat = function(format) {
-             service.pause();
+             var isPaused=service.paused;
+             if (!isPaused) service.pause();
              service.queryParams.format = format;
              service.queryInfo.lastTime = false;
              console.log('reconfigured with..'+format)
-             service.resume();
+             id (!isPaused) service.resume();
         }
 
         var broadcast = function(msg) {

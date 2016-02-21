@@ -1,9 +1,8 @@
 <div class="col-md-9 full-height" ng-controller="mainViewCtrl" id='central'>
     <div class="panel-group full-height" ng-show='globalStatus.isTabSelected(0)'>
         <!-- Stream rates chart panel -->
-        <div id='srPanel' class='panel' style='height:650px'>
-        <!--<div id='srPanel' class='panel' style='height:60%'>-->
-            <div class="panel panel-primary" style='height:100%' ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
+        <div id='srPanel' class='panel'>
+            <div class="panel panel-primary" ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
                 <!-- Default panel contents -->
                 <div class="panel-heading" style="overflow:visible">
                     <span ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
@@ -53,15 +52,28 @@
                     </div>
 
                     <!-- /.col-lg-6 -->
-                    <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> Stream Rates</h3>
+                    <h3 class="panel-title">
+                    <i class="fa fa-bar-chart-o"></i>
+                    
+                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
+                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sr-panel-body-collapse,#sr-panel-body-collapse-2"><i class="fa fa-power-off"></i></button>
+                      <button type="button" class="btn btn-primary" ng-click="isCollapsed = !isCollapsed; collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                    </div>
+
+                    Stream Rates
+                    </h3>
 
                 </div>
-                <div class="panel-body" style='height:90%;'>
-                    <div id="srchart" style='height:100%;width:99%' ></div>
+                <!--<div class="panel-collapse collapse in" id="sr-panel-body-collapse">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
+                  <div class="panel-body" style='height:600px;'>
+                     <div id="srchart" style='height:95%;width:99%' ></div>
+                  </div>
                 </div>
             </div>
             <!-- Drill down table panel -->
-            <div class="panel panel-primary marginless" ng-controller='drillDownCtrl' style='height:100%' ng-show='panelSelected(2)'>
+            <div class="panel panel-primary marginless" ng-controller='drillDownCtrl' ng-show='panelSelected(2)'>
                 <!-- Default panel contents -->
                 <div class="panel-heading">
                     <span style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
@@ -70,10 +82,14 @@
                         <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
                     </div>
 
-                    <h3 class="panel-title"><i class="fa fa-bar-chart-o"></i> {{queryParams.type }} LS range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
+                    <h3 class="panel-title">
+                    <i class="fa fa-bar-chart-o"></i> {{queryParams.type }} LS range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
                 </div>
-                <div class="panel-body" style='height:88%;'>
-                    <div id="ddchart" style='height:100%'></div>
+                <!--<div class="panel-collapse collapse in" id="sr-panel-body-collapse-2">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
+                <div class="panel-body" style='height:600px'>
+                    <div id="ddchart" style='height:95%'></div>
+                </div>
                 </div>
             </div>
         </div>
@@ -98,13 +114,26 @@
                         <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'disabled'" ng-change='switchChartLib()'>Disabled</label>
                     </div>
 
-                    <h3 class="panel-title"><i class="fa fa-area-chart"></i> Microstates Time chart</h3>
+                    <h3 class="panel-title">
+
+                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
+                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#micro-panel-body-collapse-1,#micro-panel-body-collapse-2"><i class="fa fa-power-off"></i></button>
+                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                    </div>
+ 
+                    <i class="fa fa-area-chart"></i> Microstates Time chart</h3>
                 </div>
+                <!--<div class="panel-collapse collapse in" id="micro-panel-body-collapse-1">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
                 <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:20px;' disable-all="isDisabledHc">
                      <div id="mschart" style='height:95%;width:99%'></div>
                 </div>
+                </div>
+                <!--<div class="panel-collapse collapse in" id="micro-panel-body-collapse-2">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
                 <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:20px;' disable-all="isDisabledNvd3">
                      <nvd3 options='options' data='data' api='api'></nvd3>
+                </div>
                 </div>
             </div>
 
