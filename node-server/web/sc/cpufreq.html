@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+  <title>FU CPU frequency monitor</title>
+
+  <link rel="stylesheet" href="css/pure-min.css">
+  <link rel="stylesheet" href="css/jquery-ui.css">
+
+  <script src="js/jquery.min.js"></script>
+  <script src="js/jquery-ui.min.js"></script>
+
+  <script src="js/highcharts/highcharts.js"></script>
+  <!--<script src="js/highcharts/themes/dark-unica.js"></script>-->
+  <script src="js/highcharts/themes/sand-signika.js"></script>
+  <script src="js/highcharts-histogram.js"></script>
+  
+  <script src="cpufreq.js"></script>
+
+</head>
+<body onload="bootstrap_all()" style="background-color:whitesmoke;">
+
+
+  <table class="pure-table" id="plotsh">
+    <tr>
+      <td>
+
+  <div class="pure-u-1-1" id="servicestatus" style="margin-left:10px;margin-right:10px;font-size: 90%;">
+    <form id="setups">Setup
+      <div id="radio2">
+	<input type=radio name=setup value=cdaq    id=cdaq checked=checked onclick="start()"><label for="cdaq"   >cdaq</label>
+	<input type=radio name=setup value=minidaq id=minidaq onclick="start()">             <label for="minidaq">minidaq</label>
+	<input type=radio name=setup value=dv      id=dv onclick="start()">                  <label for="dv"     >daqval</label>
+      </div>
+    </form>
+  </div>
+  </td>
+
+  <td>
+  <div class="pure-u-1-1" id="servicevariables" style="margin-left:10px;margin-right:10px; font-size: 90%;">
+    <form id="variables">Variable
+      <div id="radio3">
+	<input type=radio name=variable value=cpu_MHz_nominal     id=cpu_MHz_nominal onclick="start()">                 <label for="cpu_MHz_nominal"     >Nominal Freq.</label></input>
+	<input type=radio name=variable value=cpu_MHz_avg         id=cpu_MHz_avg onclick="start()">                     <label for="cpu_MHz_avg">Claimed Freq.</label></input>
+	<input type=radio name=variable value=cpu_MHz_avg_real    id=cpu_MHz_avg_real checked=checked onclick="start()"><label for="cpu_MHz_avg_real"   >Boost Freq.</label></input>
+	<input type=radio name=variable value=cpu_usage_frac      id=cpu_usage_frac                   onclick="start()"><label for="cpu_usage_frac"   >CPU%</label></input>
+	<input type=radio name=variable value=dataNetIn           id=dataNetIn                        onclick="start()"><label for="dataNetIn"   >Data In</label></input>
+	<input type=radio name=variable value=dataNetOut          id=dataNetOut                       onclick="start()"><label for="dataNetOut"   >Data Out</label></input>
+      </div>
+    </form>
+  </div>
+  </td>
+
+  <td>
+  <div class="pure-u-1-1" id="anothersrv" style="margin-left:10px;margin-right:10px; font-size: 90%;">
+    <form id="axistypes">Y-Axis
+      <div id="radio4">
+	  <input type=radio name=axistype value=linear        id=linear_axis checked=checked onclick="start()"> <label for="linear_axis"     >Linear</label></input>
+	  <input type=radio name=axistype value=logarithmic   id=logarithmic_axis onclick="start()">            <label for="logarithmic_axis">Log</label></input>
+      </div>
+    </form>
+  </div>
+  </td>
+
+
+  <td>
+  <div class="pure-u-1-1" id="binsize" style="margin-left:10px;margin-right:10px; font-size: 90%;">
+    #Bins
+  <div>
+	  <input type=button id=biggerbins  onclick="biggerbins()" style="" value="<"></input>
+	  <input type=button  id=smallerbins onclick="smallerbins()" value=">"></input>
+  </div>
+  </div>
+  </td>
+
+
+  <td>
+    <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+      <input type="button" id="start" onclick="start()"value="Reset"></input>
+    </div>
+  </td>
+  </tr>
+  </table>
+
+  <table class="pure-table" id="plots0">
+    <tr>
+      <td>
+        <div  id="cpuplot1" style="height:21%;width:42%"></div>
+      </td>
+      <td>
+        <div  id="cpuplot2" style="height:21%;width:42%"></div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="pure-table" id="plots1">
+    <tr>
+      <td>
+        <div  id="percpuplot0" style="height:21%;width:42%"></div>
+      </td>
+      <td>
+        <div  id="percpuplotcloud0" style="height:21%;width:42%"></div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="pure-table" id="plots2">
+    <tr>
+      <td>
+        <div  id="percpuplot1" style="height:21%;width:42%"></div>
+      </td>
+      <td>
+        <div  id="percpuplotcloud1" style="height:21%;width:42%"></div>
+      </td>
+    </tr>
+  </table>
+
+
+  <table class="pure-table" id="plots3" >
+    <tr>
+      <td>
+        <div  id="percpuplot2" style="height:21%;width:42%"></div>
+      </td>
+      <td>
+        <div  id="percpuplotcloud2" style="height:21%;width:42%"></div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="pure-table" id="plots4" >
+    <tr>
+      <td>
+        <div  id="percpuplot3" style="height:21%;width:42%"></div>
+      </td>
+      <td>
+        <div  id="percpuplotcloud3" style="height:21%;width:42%"></div>
+      </td>
+    </tr>
+  </table>
+
+
+  <table class="pure-table" id="plotsbu" >
+    <tr>
+      <td>
+        <div  id="perbuplot" style="height:42%;width:85.8%" align="center"></div>
+      </td>
+    </tr>
+  </table>
+
+
+
+  <!-- placeholder
+  <table class="pure-table" id="plots5">
+    <tr>
+      <td>
+        <div  id="percpuplot3" style=""></div>
+      </td>
+      <td>
+        <div  id="percpuplothlt3" style=""></div>
+      </td>
+    </tr>
+  -->
+
+  </table>
+</body>
