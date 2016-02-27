@@ -19,7 +19,22 @@
         };
     })
 
-    .controller('mainViewCtrl', function($scope, drillDownService, globalService) {
+    .controller('mainViewCtrl', function($scope, $rootScope, $window, drillDownService, globalService) {
+
+        $scope.paddingDefault='0';
+	$scope.classDefault='col-md-9';
+        var setPadding=function() {
+          if ($window.innerWidth<992) {
+	      //console.log('set padding-right:0')
+              $scope.style='padding-left: 0px;padding-right: 0px'
+          }
+          else {
+               $scope.style='padding-left: 6px'
+          }
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
+ 
         var service = drillDownService;
         var queryParams = drillDownService.queryParams;
         $scope.globalStatus = globalService.status;
@@ -68,9 +83,22 @@
     })
 
     //this controller is really fragile, be careful if u need to change
-    .controller('drillDownCtrl', function($scope, drillDownChartConfig, drillDownService, secondDrillDownService) {
+    .controller('drillDownCtrl', function($rootScope, $scope, $window, drillDownChartConfig, drillDownService, secondDrillDownService) {
         var chart;
         var chartConfig;
+
+        $scope.hpxdd=600;
+        var setPadding=function() {
+          if ($window.innerWidth<992) {
+            $scope.hpxdd=450;
+          }
+          else {
+            $scope.hpxdd=600;
+          }
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
+
         $scope.queryParams = drillDownService.queryParams;
 
         var dd2Event,ddserie,dd2serie;
@@ -90,8 +118,6 @@
             setEvents();
             chart = new Highcharts.Chart(chartConfig);
         };
-
-        initChart();
 
         var secondDrillDown = function(event) {
             dd2Event = event;
@@ -125,6 +151,8 @@
         }
 
         $scope.$on('ddChart.updated', function(event) {
+            if (!chart) initChart();
+            //chart.reflow();
             ddserie = chart.series[0];
             ddserie.update({
                 data: drillDownService.data
@@ -132,6 +160,8 @@
         })
 
         $scope.$on('dd2Chart.updated', function(event) {
+            if (!chart) initChart();
+            //chart.reflow();
             if (!dd2serie) {
                 var newSerie = {
                     type: 'column',
@@ -148,8 +178,8 @@
         })
     })
 
-    .controller('streamRatesCtrl', function($scope, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, microStatesService, colors) {
 
+    .controller('streamRatesCtrl', function($scope, $rootScope, $window, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, microStatesService, colors) {
         $scope.isCollapsed = false;
         $scope.collapseChanged = function() {
           if ($scope.isCollapsed) {
@@ -171,6 +201,45 @@
             initChart(true);
         });
 
+        $scope.simplifiedView=false;
+
+        var calcView=function() {
+          if ($scope.simplifiedView) {
+            configService.nbins=8
+            streamRatesService.intervalNum=8
+            $scope.tooltip = false;
+            $scope.displayAux=false;
+            $scope.hpx=450;
+          } else {
+            configService.nbins=25
+            streamRatesService.intervalNum=25
+            $scope.tooltip = true;
+            $scope.displayAux=true;
+            $scope.hpx=600;
+          }
+        }
+
+        var setPadding=function() {
+          //console.log($window.innerWidth);
+          if ($window.innerWidth<992) {
+              if (!$scope.simplifiedView) {
+                $scope.simplifiedView=true;
+                calcView()
+                if (chart) {initChart(false);streamRatesService.pause();streamRatesService.resume();updateChart();}
+              }
+          }
+          else {
+              if ($scope.simplifiedView) {
+                $scope.simplifiedView=false;
+                calcView()
+                if (chart) {initChart(false);streamRatesService.pause();streamRatesService.resume();updateChart();}
+              }
+          }
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
+
+        calcView();
 
         $scope.paramsChanged = streamRatesService.paramsChanged;
         $scope.queryParams = streamRatesService.queryParams;
@@ -205,7 +274,6 @@
           runInfoService.updateMaskedStreams(maskedStreamList);
         }
 
-        $scope.tooltip = true;
         $scope.tooltipToggle = function() {
           runInfoService.updateMaskedStreams([]);
           lastStackedState=false;
@@ -415,6 +483,26 @@
 
             streamRatesChartConfig.xAxis[0].minRange = configService.nbins;
             streamRatesChartConfig.tooltip.enabled = $scope.tooltip;
+            if ($scope.simplifiedView) {
+              streamRatesChartConfig.yAxis[0].height="37%";
+              streamRatesChartConfig.yAxis[0].top="0%";
+              streamRatesChartConfig.yAxis[1].height="18%";
+              streamRatesChartConfig.yAxis[1].top="40%";
+              streamRatesChartConfig.yAxis[2].height="18%";
+              streamRatesChartConfig.yAxis[2].top="60%";
+              streamRatesChartConfig.yAxis[3].height="18%";
+              streamRatesChartConfig.yAxis[3].top="80%";
+            }
+            else {
+              streamRatesChartConfig.yAxis[0].height="70%";
+              streamRatesChartConfig.yAxis[0].top="0%";
+              streamRatesChartConfig.yAxis[1].height="8%";
+              streamRatesChartConfig.yAxis[1].top="74%";
+              streamRatesChartConfig.yAxis[2].height="8%";
+              streamRatesChartConfig.yAxis[2].top="83%";
+              streamRatesChartConfig.yAxis[3].height="8%";
+              streamRatesChartConfig.yAxis[3].top="92%";
+            }
             chartConfig = jQuery.extend({}, streamRatesChartConfig);
             setEvents();
             chart = new Highcharts.StockChart(chartConfig);
@@ -533,7 +621,9 @@
         })
 
         $scope.$on('srChart.updated', function(event) {
-
+            updateChart();
+        });
+        var updateChart = function() {
             var updatedUstates = false;
             var lastLS = runInfoService.data.lastLs;
             if (!axisSet) {
@@ -597,14 +687,14 @@
               var min = data.lsList[0];
               microStatesService.updateRange(runInfoService.data.runNumber,min>0?min:1,lastLS<max?lastLS:max,$scope.queryInfo.isFromSelected,$scope.queryInfo.isToSelected);
             }
-
-        });
+        }
 
         //initChart(true);
     })
 
-    .controller('microStatesCtrl', function($scope, $rootScope, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
+    .controller('microStatesCtrl', function($scope, $rootScope, $window, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
         $scope.isCollapsed = false;
+
         $scope.collapseChanged = function() {
           if ($scope.isCollapsed) {
             //schedule this immediately after setting visible
@@ -622,6 +712,41 @@
           else
             microStatesService.pause()
           $scope.isCollapsed=!$scope.isCollapsed;
+        }
+
+        $scope.showLegend=true;
+        $scope.showLegendView=true;
+        microStatesChartConfig.legend.enabled = $scope.showLegend;
+        var initial=true;
+        var setPadding=function() {
+          //console.log($window.innerWidth);
+          if ($window.innerWidth<992) {
+              if ($scope.showLegend) {
+                $scope.showLegend=false;
+                $scope.showLegendView=false;
+                if (!initial) {resetChart2();processUpdate();}
+              }
+              $scope.simplifiedView=true;
+          }
+          else {
+              if (!$scope.showLegend) {
+                $scope.showLegend=true;
+                $scope.showLegendView=true;
+                if (!initial) {resetChart2();processUpdate();}
+              }
+              $scope.simplifiedView=false;
+          }
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
+        var initial=false;
+
+
+        $scope.toggleLegend=function() {
+          $scope.showLegend=!$scope.showLegend;
+          $scope.showLegendView=$scope.showLegend;
+          resetChart2();
+          processUpdate(); 
         }
 
         //defaults
@@ -685,6 +810,7 @@
           $scope.isDisabledNvd3 = true;
           $scope.isDisabledHc = false;
           chartConfigHc = jQuery.extend({}, microStatesChartConfig);
+          chartConfigHc.legend.enabled = $scope.showLegend;
           chart = new Highcharts.Chart(chartConfigHc);
           chart.showLoading(config.chartWaitingMsg);
           isDirty = false;
@@ -706,6 +832,15 @@
             destroyChart(); 
             startHC();
           }}
+        }
+
+        //always reset
+        var resetChart2 = function() {
+          destroyChart(); 
+          if (!$scope.isDisabledNvd3)
+            startNvd3()
+          else if (!$scope.isDisabledHc) 
+            startHC();
         }
 
         //init nvd3 chart config
@@ -740,7 +875,7 @@
         });
 
         $scope.$on('msChart.updated', function(event) {
-            processUpdate()
+            processUpdate();
         });
         var processUpdate = function() {
             if (!chartEnabled) {

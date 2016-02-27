@@ -19,7 +19,21 @@
         };
     })
 
-    .controller('sidebarCtrl', function($scope) {
+    .controller('sidebarCtrl', function($scope,$rootScope,$window) {
+
+        var setPadding=function() {
+          console.log($window.innerWidth);
+          if ($window.innerWidth<992) {
+              $scope.style='padding-left: 0;padding-right: 0;'
+              //console.log('padding 0')
+          }
+          else {
+              $scope.style='padding-right: 0;'
+          }
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
+
         $scope.selectTour = function(id) {
             console.log(tourConfig.tour)
             if (!tourConfig.tour.__inited) {
@@ -38,6 +52,7 @@
     })
 
     .controller('runInfoCtrl', function($scope, $modal, runInfoService) {
+        $scope.isCollapsed = false;
 
         var modal = $modal({
             scope: $scope,
@@ -99,13 +114,33 @@
 
     })
 
-    .controller('riverListCtrl', function($scope, $modal, riverListService) {
+    .controller('riverListCtrl', function($scope, $rootScope, $window, $modal, riverListService) {
         $scope.isCollapsed = false;
+
         $scope.collapseChanged = function() {
           if ($scope.isCollapsed) riverListService.resume()
           else riverListService.pause()
           $scope.isCollapsed=!$scope.isCollapsed;
         }
+
+        var collapsedWithResize = false;
+        var setPadding=function() {
+          if ($window.innerWidth<992) {
+            if (!$scope.isCollapsed) {
+              console.log('collapsing!')
+              collapsedWithResize=true;
+              $scope.collapseChanged();
+            }
+          }
+          else {
+            if ($scope.isCollapsed && collapsedWithResize) {
+              $scope.collapseChanged();
+            }
+            collapsedWithResize=false;
+          }
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
 
         var modal = $modal({
             scope: $scope,

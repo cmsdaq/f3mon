@@ -260,6 +260,7 @@ module.exports = {
           var fu_hits = buagg[i].fu_hits.hits.hits;
           for (var j=0;j<fu_hits.length;j++) {
             var fu_id = fu_hits[j]._id; 
+            var fu_src = fu_hits[j]._source; 
             var blacklisted = false;
             for (var k=0;k<target.blacklisted_nodes.length;k++) {
               if (target.blacklisted_nodes[k]===fu_id) {
@@ -274,10 +275,12 @@ module.exports = {
               if (fu_hits[j]._source.cloudState==="on")
                 cloud_fu_list.push(fu_id);
             }
-            target.fus.push(fu_id);
+            //target.fus.push(fu_id);
+            target.fus[fu_id]={"effGHz":(fu_src.cpu_MHz_avg_real*0.001).toFixed(2),"nomGHz":(fu_src.cpu_MHz_nominal*0.001).toFixed(2),
+                               "memPerc":(fu_src.memUsedFrac*100).toFixed(0),"cpuPerc":(fu_src.cpu_usage_frac*100).toFixed(0)};
               //fu_map[fu_id]={};//todo:fill (blacklist info, stale etc.)
           }
-          target.fus.sort();
+          //target.fus.sort();
           target.cloud_nodes = cloud_fu_list;
           target.fu_count_nbl = fu_count_nbl;
           target.fu_count_all = fu_count_all;
@@ -330,12 +333,14 @@ module.exports = {
             var source = results[index]._source
             var age = ((unix_time - new Date(source.fm_date).getTime())/1000.).toFixed(1); //todo:maybe have to add +0000 for GMT)
 
+            console.log(source.activeRuns);
+
             bumap[bu] = {
                          "age":age,
                          "cpu_name":"",
                          "active_runs":source.activeRuns,
 			 "connected":"connected",
-                         "fus":[],
+                         "fus":{},
                          "fus_nbl":[],
                          "fu_count_nbl":0,
                          "fu_count_all":0,
@@ -551,11 +556,6 @@ module.exports = {
         console.trace(error.message);
       });
 
-    }
-
-    var requestValue = f3MonCache.get(requestKey);
-    if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
     }
 
     var retObj = {

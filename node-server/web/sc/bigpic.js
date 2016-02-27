@@ -11,7 +11,7 @@ function get_node_tree(callback,callback2) {
 //
 	var setup = $('input[name=setup]:checked', '#setups').val();
         console.log('setup='+setup);
-	$.getJSON("/sc/api/pp?setup="+setup,function(data){
+	$.getJSON("api/pp?setup="+setup,function(data){
 		node_tree = data;
                 if (callback!==null) callback(callback2)
 		else
@@ -23,7 +23,7 @@ function get_node_tree(callback,callback2) {
 function run_data_format(){
 
     //$.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=1",function(adata){
-    $.getJSON("/f3mon/api/runInfo?sysName="+$('input[name=setup]:checked', '#setups').val()+"&activeRuns=true",function(adata){
+    $.getJSON("api/runInfo?sysName="+$('input[name=setup]:checked', '#setups').val()+"&activeRuns=true",function(adata){
             var run;
 	    var ls = 0;
 	    if (adata.runNumber && !isNaN(run = parseInt(adata.runNumber)) &&  $("#autoupdate").is(":checked")) {
@@ -55,7 +55,7 @@ function run_data_format(){
 				  content.push(content[0]);
 				}
 
-				$.getJSON("/sc/api/teols?runNumber="+run+"&to="+ls+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+				$.getJSON("api/teols?runNumber="+run+"&to="+ls+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
 
                                       var streams = Object.keys(data).sort();
 
@@ -144,13 +144,13 @@ function cluster_data_format(callback){
     var fumap = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
 
     if(update_funct){
-    $.getJSON("/sc/api/bigPic?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+    $.getJSON("api/bigPic?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
 	    var content="";
             if (data.setup!==$('input[name=setup]:checked', '#setups').val()) return;
 	    if (data.hasOwnProperty("appliance_clusters")) {
                         var i = "appliance_clusters";
                         var val = data["appliance_clusters"];
-			content+="<tr><td style='font-size:16pt;'>"+i+"</td></tr>";
+			content+="<tr class='forhiding'><td style='font-size:16pt;'>"+i+"</td></tr>";
 			//console.log("val.length ="+Object.keys(val).length);
 			var total_bu_factor=40./Object.keys(val).length;
 			var bus_with_zero_fus=0;
@@ -169,6 +169,12 @@ function cluster_data_format(callback){
                                     var zero_fus = !window.node_tree.hasOwnProperty(j);
                                     var pp_node_length = 0;
                                     var pp_fu_nodes = [];
+
+				    if(vval.fus!==undefined){
+                                      var fu_keys = Object.keys(vval.fus);
+                                      fu_keys.sort();
+                                    }
+
                                     if (!zero_fus) {
                                       pp_node_length=window.node_tree[j].length;
                                       pp_fu_nodes=window.node_tree[j];
@@ -179,24 +185,24 @@ function cluster_data_format(callback){
 				    fu_racks = Object.keys(fu_racks);//convert to array
 
 				    if(zero_fus){
-					content+='<tr class="unused-bu ordinal'+placeholder_ordinal+'" style="display:none">';
+					content+='<tr class="forhiding unused-bu ordinal'+placeholder_ordinal+'" style="display:none">';
 					bus_with_zero_fus+=1;
                                         //continue?
 				    }
 				    else{
                                         //found fus (last 20s window of fu-box-status)
-					if(vval.fus!==undefined){
+					if(fu_keys!==undefined){
 					    //diff = $(pp_fu_nodes).not(Object.keys(vval.fus)).get();
-					    diff = $(pp_fu_nodes).not(vval.fus).get();
+					    diff = $(pp_fu_nodes).not(fu_keys).get();
 					    diff.sort();
 					}
 					if(bus_with_zero_fus!=0){ //end zero-fu collapse
-					    content+='<tr class="unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+					    content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
 					    content+='<td colspan=14 style="background-color:grey;"></td></tr>';
 					    bus_with_zero_fus=0;
 					    placeholder_ordinal+=1;
 					}
-					content+='<tr style="display:table-row">'; //new bu row
+					content+='<tr class="forhiding" style="display:table-row">'; //new bu row
 				    }
 				    content+="<td>"+j+" ("+vval.active_runs+")<br>"; //name column with active runs
 				    content+="<div style='font-size:9pt;'>[age="+vval.age+" s ; fuCPU="+vval.cpu_name+"]</div>";//and doc age
@@ -288,7 +294,7 @@ function cluster_data_format(callback){
 				        }
 				    if(vval.quarantined_nodes.length!=0){ //quarantined column
 					content+="<td style='background-color:orange;' title="+vval.quarantined_nodes.toString()+" ondblclick='doubleClick(event)'>"
-                                                 +vval.quarantined.length+"/"+vval.quarantined_nodes.length+"</td>";
+                                                 +vval.quarantined+"/"+vval.quarantined_nodes.length+"</td>";
 				    }
 				    else
 					{
@@ -332,7 +338,7 @@ function cluster_data_format(callback){
 				    else
 				      fulist="<td style='font-size:9pt;' id="+j+">";//fu detail column (optional)
 				    //for(var index in vval.fus){
-				    for(var index=0;index<vval.fus.length;index++){
+				    for(var index=0;index<fu_keys.length;index++){
 					//(if(vval.fus[index].stale_status==1){
 					//    fulist += '<em style="color:yellow; background-color:black;font-weight:bolder">'+index+"</em><br>";
 					//}
@@ -345,7 +351,7 @@ function cluster_data_format(callback){
 					//else
 					{
 					    //fulist += index+"<br>";
-                                            var detail_fu_name = vval.fus[index];
+                                            var detail_fu_name = fu_keys[index];
 					    var in_bl=false;
                                             for (var blidx = 0;blidx<vval.blacklisted_nodes.length;blidx++) {
                                               if (vval.blacklisted_nodes[blidx]===detail_fu_name) {in_bl=true;break}
@@ -358,11 +364,30 @@ function cluster_data_format(callback){
                                               for (var clidx = 0;clidx<vval.cloud_nodes.length;clidx++) {
                                                 if (vval.cloud_nodes[clidx]===detail_fu_name) {in_cl=true;break}
 					      }
+					      var fu_detail = vval.fus[detail_fu_name];
+					      if (fu_detail.cpuPerc>50)
+                                                var detail_append = ':CPU=<span style="color:white;font-weight:bold;background-color:black;">'+fu_detail.cpuPerc+'%</span>:';//+
+  //                                                                  fu_detail.effGHz+'/'+fu_detail.nomGHz+'GHz:';
+					      else if (fu_detail.cpuPerc>10)
+                                                var detail_append = ':CPU=<span style="font-weight:bold">'+fu_detail.cpuPerc+'%</span>:';//+
+//                                                                    fu_detail.effGHz+'/'+fu_detail.nomGHz+'GHz:';
+					      else
+                                                var detail_append = ':CPU='+fu_detail.cpuPerc+'%:';//+fu_detail.effGHz+'/'+fu_detail.nomGHz+'GHz:';
+					      if (fu_detail.effGHz>=fu_detail.nomGHz)
+                                                                    detail_append+="<span style='font-weight:bold'>"+fu_detail.effGHz+'</span>/'+fu_detail.nomGHz+'GHz:';
+					      else
+                                                                    detail_append+=fu_detail.effGHz+'/'+fu_detail.nomGHz+'GHz:';
+					      if (fu_detail.memPerc>90)
+                                                detail_append+='RAM=<span style="color:red;background-color:black">'+fu_detail.memPerc+'%</span>';
+					      else if (fu_detail.memPerc>75)
+                                                detail_append+='RAM=<span style="color:yellow;background-color:grey">'+fu_detail.memPerc+'%</span>';
+					      else
+                                                detail_append+="RAM="+fu_detail.memPerc+'%';
 					      if (in_cl)
-					        fulist += '<span style="color:white; background-color:blue;font-weight:bolder">'+ detail_fu_name+"</span><br>";
+					        fulist += '<span style="color:white; background-color:blue;font-weight:bolder">'+ detail_fu_name+"</span>"+detail_append+"<br>";
 					      else
 					        //fulist += '<em style="font-weight:bolder">'+ detail_fu_name+"</em><br>";
-					        fulist += '<span style="font-weight:bolder">'+ detail_fu_name+"</span><br>";
+					        fulist += '<span style="font-weight:bolder">'+ detail_fu_name+"</span>"+detail_append+"<br>";
 					        //fulist += detail_fu_name+"<br>";
 					    }
 					}
@@ -424,12 +449,12 @@ function cluster_data_format(callback){
 				}//);
 			    // complete the table with the last placeholder in case the last BU was an unused one
 			    if(bus_with_zero_fus!=0){
-				content+='<tr class="unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+				content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
 				content+='<td colspan=14 style="background-color:grey;"></td></tr>';
 			    }
 			    content+="</tr></tr>";//sm:why this??
 		}//);
-
+                content+="</div>"
 		if (true ||data.hasOwnProperty("fumap")) {
                     var val = fumap;
 		    content+="<tr><td style='font-size:16pt;'>fu_statistics</td>";
@@ -489,8 +514,8 @@ function cluster_data_format(callback){
 }
 
 var show_hide=function(){
-	    if($("#details :radio:checked").val()=="off"){
-		//$('#esstatus tr td:nth-child(12),th:nth-child(12)').hide();
+	    if($("#details :radio:checked").val()=="some"){
+                $('.forhiding').show();
 		$('#esstatus tr td:nth-child(12)').hide();
 		$('#esstatus tr td:nth-child(14)').hide();
 		$('#esstatus tr td:nth-child(16)').hide();
@@ -500,8 +525,8 @@ var show_hide=function(){
                 $('#thide3').hide();
                 $('#thide4').hide();
 	    }
-	    else{
-		//$('#esstatus tr td:nth-child(12),th:nth-child(12)').show();
+	    else if ($("#details :radio:checked").val()=="on") {
+                $('.forhiding').show();
 		$('#esstatus tr td:nth-child(12)').show();
 		$('#esstatus tr td:nth-child(14)').show();
 		$('#esstatus tr td:nth-child(16)').show();
@@ -510,17 +535,18 @@ var show_hide=function(){
                 $('#thide2').show();
                 $('#thide3').show();
                 $('#thide4').show();
-
-
-	    }			    
+	    }
+            else if ($("#details :radio:checked").val()=="off") {
+              $('.forhiding').hide();
+            } 
 }
 
 var uruns=function(callback) {
     //console.log('uruns.. '+"/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=100");
-    $.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=100",function(adata){
+    $.getJSON("api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=100",function(adata){
 	    var content;
 	    var ldata = adata.runlist;
-	    $.getJSON("/f3mon/api/runRiverListTable",function(bdata){
+	    $.getJSON("api/runRiverListTable",function(bdata){
 	       jQuery.each(ldata, function(i,val){
                     for (var index = 0;index<bdata.list.length;index++) {
                       var found;

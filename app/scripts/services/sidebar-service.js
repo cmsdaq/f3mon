@@ -558,21 +558,6 @@
 
         }
 
-        /*
-        service.restart = function() {
-            //Restart poller
-            //console.log((service.data.currentPage - 1) * service.data.itemsPerPage);
-            mypoller = poller.get(resource, {
-                argumentsArray: [{
-                    size: service.data.itemsPerPage,
-                    from: (service.data.currentPage - 1) * service.data.itemsPerPage,
-                    sortBy: service.data.sortBy,
-                    sortOrder: service.data.sortOrder,
-                }]
-            });
-        };
-        */
-
         service.pageChanged = function(newPageNumber) {
             //console.log('pageChange');
             service.stop();

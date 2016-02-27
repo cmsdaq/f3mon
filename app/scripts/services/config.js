@@ -394,8 +394,8 @@
             maxPadding: 0,
             max: 100,
             min: 0,
-            height: "8%",
             id: "macropercent",
+            height: "8%",
             top: "92%",
             lineWidth: 1,
             offset: 0,
@@ -447,7 +447,8 @@
                 text: ''
             },
             tickmarkPlacement: 'on',
-            type: "category"
+            type: "category",
+            labels:{rotation: -45}
         }],
         yAxis: [{
             title: {

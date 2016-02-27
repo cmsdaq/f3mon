@@ -1,16 +1,16 @@
-<div class="col-md-9 full-height" ng-controller="mainViewCtrl" id='central'>
+<div class="{{classDefault}} full-height" style='padding-top:{{paddingDefault}}px;{{style}}' ng-controller="mainViewCtrl" id='central'>
     <div class="panel-group full-height" ng-show='globalStatus.isTabSelected(0)'>
         <!-- Stream rates chart panel -->
         <div id='srPanel' class='panel'>
             <div class="panel panel-primary" ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
                 <!-- Default panel contents -->
                 <div class="panel-heading" style="overflow:visible">
-                    <span ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <span ng-show="displayAux" ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
                         <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
                     </div>
-                    <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px'><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
+                    <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px' ng-show="displayAux"><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
                     </div>
                     <div class="pull-right" style="width:30px;margin-right:110px" id='sr-divisor'>
                         <div class="input-group input-group-xs ">
@@ -25,7 +25,7 @@
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
                     </div>
 
-                    <div class="pull-right" style="width:120px;" id='sr-divisor'>
+                    <div class="pull-right" style="width:120px;" id='sr-divisor' ng-show="displayAux">
                         <div class="input-group input-group-xs ">
                             <span class="input-group-addon primary"> <input ng-change='tooltipToggle()' ng-model="tooltip" type="checkbox" aria-label="..." style='vertical-align: middle'> tooltip </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle'> sec/LS </span>
@@ -35,12 +35,12 @@
 
                     <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'>
 
-                        <button type="button" class="btn btn-primary" disabled>
+                        <button type="button" class="btn btn-primary" disabled ng-show="displayAux">
                           <!--<i class="fa fa-area-chart-o"></i> Range Mode:-->
                           Range Mode:
                         </button>
 
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-show="displayAux">
                           <span id="abcde">{{selectorMode}}</span>
                           <span class="caret"></span>
                         </button>
@@ -67,7 +67,8 @@
                 </div>
                 <!--<div class="panel-collapse collapse in" id="sr-panel-body-collapse">-->
                 <div class="nav-collapse" uib-collapse="isCollapsed">
-                  <div class="panel-body" style='height:600px;'>
+                  <!--<div class="panel-body" style='height:200px;'>-->
+                  <div class="panel-body" style='height:{{hpx}}px;'>
                      <div id="srchart" style='height:95%;width:99%' ></div>
                   </div>
                 </div>
@@ -87,7 +88,7 @@
                 </div>
                 <!--<div class="panel-collapse collapse in" id="sr-panel-body-collapse-2">-->
                 <div class="nav-collapse" uib-collapse="isCollapsed">
-                <div class="panel-body" style='height:600px'>
+                <div class="panel-body" style='height:{{hpxdd}}px'>
                     <div id="ddchart" style='height:95%'></div>
                 </div>
                 </div>
@@ -113,6 +114,13 @@
                         <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'nvd3'" ng-change='switchChartLib()'>NVD3</label>
                         <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'disabled'" ng-change='switchChartLib()'>Disabled</label>
                     </div>
+
+                    <div class="pull-right" style="width:120px;" id='ms-legendctrl'>
+                        <div class="input-group input-group-xs ">
+                            <span class="input-group-addon primary"> <input ng-model="showLegendView" ng-click="toggleLegend()" type="checkbox" aria-label="..." style='vertical-align: middle'> legend </input></span>
+                        </div>
+                    </div>
+
 
                     <h3 class="panel-title">
 

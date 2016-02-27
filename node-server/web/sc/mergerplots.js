@@ -26,7 +26,7 @@ function doPlots(run,xaxis,yaxis,stream){
     }
     else if($('#process').val()=="BW"){
 	console.log("doing transfer b/w");
-	$.getJSON("php/transfer-test2.php?setup=cdaq&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
+	$.getJSON("php/transfer-test.php?setup=cdaq&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
 		var points=[];
 		for(var stream in data){
 		    var entries = [];

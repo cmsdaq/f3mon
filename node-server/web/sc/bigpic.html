@@ -87,13 +87,14 @@
     </form>
     <form id="details">Details
       <div id="radio1">
-	<input type=radio name=detail value=on id=detailOn><label for="detailOn">Show</label>
-	<input type=radio name=detail value=off id=detailOff checked=checked><label for="detailOff">Hide</label>
+	<input type=radio name=detail value=off id=detailOff checked=checked><label for="detailOff">None</label>
+	<input type=radio name=detail value=some id=detailSome checked=checked><label for="detailSome">Partial</label>
+	<input type=radio name=detail value=on id=detailOn><label for="detailOn">All</label>
       </div>
     </form>
     <br>
     <table id="esstatus" class="pure-table pure-table-bordered">
-      <thead>
+      <thead class="forhiding">
 	<tr>
 	  <th>Service</th>
 	  <th>Alive FUs:<br>hltd<br> heartbeat<br>(+blacklist) <br>/<br> FUs in DB</th>

@@ -200,6 +200,7 @@ app.get('/f3mon/api/getDisksStatus', esDisksStatus.query);
 var esRunList = require('./src/esRunList')
 esRunList.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes);
 app.get('/f3mon/api/runList', esRunList.query);
+app.get('/sc/api/runList', esRunList.query);
 
 //callback 7
 var esRunListTable = require('./src/esRunListTable')
@@ -215,6 +216,7 @@ app.get('/f3mon/api/riverStatus', esRiverStatus.query);
 var esRiverListTable = require('./src/esRiverListTable')
 esRiverListTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("runrivertable-status.json"),getQuery("runrivertable-meta.json"));
 app.get('/f3mon/api/runRiverListTable', esRiverListTable.query);
+app.get('/sc/api/runRiverListTable', esRiverListTable.query);
 
 //callback 10
 var esCloseRun = require('./src/esCloseRun')
@@ -239,7 +241,8 @@ app.get('/f3mon/api/nstates-summary', esNstatesSummary.query);
 //callback 14
 var esRunInfo = require('./src/esRunInfo');
 esRunInfo.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("lastls.json"),getQuery("streamsinrun.json"));
-app.get('/f3mon/api/runinfo', esRunInfo.query);
+app.get('/f3mon/api/runInfo', esRunInfo.query);
+app.get('/sc/api/runInfo', esRunInfo.query);
 
 //callback 15
 var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
@@ -289,6 +292,13 @@ app.get('/sc/api/transfer', function (req, res) {
 app.get('/sc/api/pp', function (req, res) {
   smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
 });
+
+
+//callback 22
+var esSmallPic =  require('./src/esSmallPic');
+esSmallPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
+app.get('/sc/api/fuhistos', esSmallPic.fuhistos);
+
 
 
 
