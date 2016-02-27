@@ -574,7 +574,7 @@
              service.queryParams.format = format;
              service.queryInfo.lastTime = false;
              console.log('reconfigured with..'+format)
-             id (!isPaused) service.resume();
+             if (!isPaused) service.resume();
         }
 
         var broadcast = function(msg) {
