@@ -8,7 +8,6 @@
                     <span ng-show="displayAux" ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
-                        <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
                     </div>
                     <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px' ng-show="displayAux"><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
                     </div>
@@ -80,13 +79,11 @@
                     <span style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <div class="btn-group btn-group-xs pull-right">
                         <button type="button" ng-click='exitDD(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
-                        <button type="button" ng-click='selectPanel(2)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(2),'disabled': !status.showDrillDown}">&rarr;</button>
                     </div>
 
                     <h3 class="panel-title">
                     <i class="fa fa-bar-chart-o"></i> {{queryParams.type }} LS range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
                 </div>
-                <!--<div class="panel-collapse collapse in" id="sr-panel-body-collapse-2">-->
                 <div class="nav-collapse" uib-collapse="isCollapsed">
                 <div class="panel-body" style='height:{{hpxdd}}px'>
                     <div id="ddchart" style='height:95%'></div>

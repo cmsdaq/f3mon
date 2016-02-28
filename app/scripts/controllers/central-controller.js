@@ -62,6 +62,7 @@
             queryParams.type = type;
             queryParams.from = x;
             queryParams.to = x + interval - 1;
+            service.stop();
             service.start();
             $scope.selectPanel(2);
         }
@@ -69,6 +70,7 @@
             $scope.status.showDrillDown = false;
         }
         $scope.panelSelected = function(num) {
+            if (num===1) $scope.disableDrillDown();
             return $scope.status.currentPanel === num;
         }
 
@@ -102,6 +104,7 @@
         $scope.queryParams = drillDownService.queryParams;
 
         var dd2Event,ddserie,dd2serie;
+        var isSecondLevel=false;
 
         var setEvents = function(){
            
@@ -119,6 +122,14 @@
             chart = new Highcharts.Chart(chartConfig);
         };
 
+        var destroyChart = function() {
+            if (chart) {
+                chart.destroy();
+                chart = false;
+                $("#" + chartConfig.chart.renderTo).empty().unbind();
+            }
+        }
+
         var secondDrillDown = function(event) {
             dd2Event = event;
             if ($scope.queryParams.type === 'macromerge')
@@ -127,6 +138,7 @@
               $scope.queryParams.stream = event.point.name;
             drillDownService.stop();
             secondDrillDownService.start();
+            isSecondLevel = true;
 
         }
 
@@ -146,13 +158,24 @@
         $scope.exitDD = function() {
             drillDownService.stop();
             secondDrillDownService.stop();
-            secondDrillUp();
+            if (isSecondLevel) {
+              dd2serie = false;
+              $scope.queryParams.stream = false;
+              destroyChart();
+              isSecondLevel=false;
+            }
+            //secondDrillUp();
             $scope.$parent.selectPanel(1);
         }
 
+        $scope.$on('global.reset', function(event) {
+            $scope.exitDD()
+            destroyChart();
+        });
+
         $scope.$on('ddChart.updated', function(event) {
             if (!chart) initChart();
-            //chart.reflow();
+            chart.xAxis[0].update({labels:{rotation:0}});
             ddserie = chart.series[0];
             ddserie.update({
                 data: drillDownService.data
@@ -161,6 +184,7 @@
 
         $scope.$on('dd2Chart.updated', function(event) {
             if (!chart) initChart();
+            chart.xAxis[0].update({labels:{rotation:-60}});
             //chart.reflow();
             if (!dd2serie) {
                 var newSerie = {

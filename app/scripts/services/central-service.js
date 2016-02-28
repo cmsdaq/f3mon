@@ -282,6 +282,9 @@
             if (!angular.isUndefined(mypoller)) {
                 mypoller.stop();
             }
+            //mypoller=undefined;
+            cache=undefined;
+
         }
 
         service.broadcast = function(msg) {
