@@ -448,7 +448,7 @@
             },
             tickmarkPlacement: 'on',
             type: "category",
-            labels:{rotation: -60}
+            labels:{rotation: 0}
         }],
         yAxis: [{
             title: {
