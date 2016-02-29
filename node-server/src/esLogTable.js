@@ -47,7 +47,8 @@ module.exports = {
     if (qparam_sortOrder == null){qparam_sortOrder = '';}
     if (qparam_search == null){qparam_search = '*';}
     if (qparam_startTime == null || qparam_startTime == 'false'){qparam_startTime = 0;}
-    if (qparam_endTime == null || qparam_endTime == 'false'){qparam_endTime = 'now';}
+    if (qparam_startTime==='NaN') qparam_startTime = now;
+    if (qparam_endTime == null || qparam_endTime == 'false' || qparam_endTime==='NaN'){qparam_endTime = 'now';}
     if (qparam_sysName == null || qparam_sysName == 'false'){qparam_sysName = 'cdaq';}
 
     var requestKey = 'logtable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='+qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;

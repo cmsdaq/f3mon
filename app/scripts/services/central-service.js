@@ -741,19 +741,33 @@
 
         })
 
+        var isSafari=false;
+        if (navigator.appVersion.indexOf('Safari/')!==-1) var isSafari=true;
+
         $rootScope.$on('runInfo.updated', function(event) {            
             var q = service.queryParams;
             service.stop();
             if (runInfo.startTime===false) return;
+
             //convert to unix millis time
-            var dts = new Date(runInfo.startTime+'+0000');
-            q.startTime = dts.getTime();
-            if (runInfo.endTime!==false) {
-              var dte = new Date(runInfo.endTime+'+0000');
-              q.endTime = dte.getTime();
+            if (isSafari) {
+              var dts = new Date(runInfo.startTime);
+              q.startTime = dts.getTime();
+              if (runInfo.endTime!==false) {
+                var dte = new Date(runInfo.endTime);
+                q.endTime = dte.getTime();
+              }
+              else delete q.endTime;
             }
-            else
-              delete q.endTime;
+            else {
+              var dts = new Date(runInfo.startTime+'+0000');
+              q.startTime = dts.getTime();
+              if (runInfo.endTime!==false) {
+                var dte = new Date(runInfo.endTime+'+0000');
+                q.endTime = dte.getTime();
+              }
+              else delete q.endTime;
+            }
             q.sysName = indexInfo.subSystem;
 
             service.start();
