@@ -70,11 +70,11 @@
             $scope.status.showDrillDown = false;
         }
         $scope.panelSelected = function(num) {
-            if (num===1) $scope.disableDrillDown();
             return $scope.status.currentPanel === num;
         }
 
         $scope.selectPanel = function(num) {
+            if (num===1) $scope.disableDrillDown();
             $scope.status.currentPanel = num;
         }
 
