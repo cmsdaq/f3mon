@@ -133,10 +133,10 @@ module.exports = {
         };
  
         var data = [];
-        for (var i=0;i<afreq.length;i++) data.push([afreq[i].key,afreq[i].doc_count]);
+        for (var i=0;i<afreq.length;i++) {if (afreq[i].key<10000) data.push([afreq[i].key,afreq[i].doc_count]);}
         retObj['all']['cpufreqcloud']=data;
         data = [];
-        for (var i=0;i<afreqhlt.length;i++) data.push([afreqhlt[i].key,afreqhlt[i].doc_count]);
+        for (var i=0;i<afreqhlt.length;i++) {if (afreqhlt[i].key<10000) data.push([afreqhlt[i].key,afreqhlt[i].doc_count]);}
         retObj['all']['cpufreqhlt']=data;
 
         var apercpu = body.aggregations.cloud.percpu.buckets;
@@ -144,7 +144,7 @@ module.exports = {
           var cpu = apercpu[j];
           afreq = cpu.cpufreq.buckets;
           data = [];
-          for (var i=0;i<afreq.length;i++) data.push([afreq[i].key,afreq[i].doc_count]);
+          for (var i=0;i<afreq.length;i++) {if (afreq[i].key<10000) data.push([afreq[i].key,afreq[i].doc_count])};
           retObj[cpu.key]={'cpufreqcloud':data};
         }
 
@@ -153,7 +153,8 @@ module.exports = {
           var cpu = apercpu[j];
           afreq = cpu.cpufreq.buckets;
           data = [];
-          for (var i=0;i<afreq.length;i++) data.push([afreq[i].key,afreq[i].doc_count]);
+          //temporary: limit key value until wrapping management is in hltd
+          for (var i=0;i<afreq.length;i++) {if (afreq[i].key<10000) data.push([afreq[i].key,afreq[i].doc_count]);}
           if (retObj.hasOwnProperty(cpu.key))
             retObj[cpu.key]['cpufreqhlt']=data;
           else
@@ -163,7 +164,11 @@ module.exports = {
         if (perbuv) {
           var bubuckets = body.aggregations.hlt.perbu.buckets
           for (var i=0;i<bubuckets.length;i++) {
-            retObj.perbu.push([bubuckets[i].key,bubuckets[i].total.value])
+            //temporary: limit key value until wrapping management is in hltd
+            if (bubuckets[i].total.value<10000)
+              retObj.perbu.push([bubuckets[i].key,bubuckets[i].total.value])
+            else
+              retObj.perbu.push([bubuckets[i].key,0])
           }
         }
 
@@ -263,7 +268,10 @@ module.exports = {
         if (perbuv) {
           var bubuckets = body.aggregations.hlt.perbu.buckets
           for (var i=0;i<bubuckets.length;i++) {
-            retObj.perbu.push([bubuckets[i].key,bubuckets[i].total.value])
+            if (bubuckets[i].total.value<10000)
+              retObj.perbu.push([bubuckets[i].key,bubuckets[i].total.value])
+            else
+              retObj.perbu.push([bubuckets[i].key,0])
           }
         }
 
