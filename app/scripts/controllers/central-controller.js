@@ -722,7 +722,7 @@
         $scope.collapseChanged = function() {
           if ($scope.isCollapsed) {
             //schedule this immediately after setting visible
-            if (chart) setTimeout(function(){ 
+            if (chart || !cleared) setTimeout(function(){ 
               if (chart || !cleared) { 
                 var isDirty_ = isDirty;
                 var cleared_ = cleared;
@@ -788,11 +788,11 @@
           }
           if ($scope.chartLib === "highcharts") {
             startHC();
-            microStatesService.reconfigureFormat("hc")
+            microStatesService.reconfigureFormat("hc",!$scope.isCollapsed)
           }
           if ($scope.chartLib === "nvd3") {
 	    startNvd3();
-            microStatesService.reconfigureFormat("nvd3")
+            microStatesService.reconfigureFormat("nvd3",!$scope.isCollapsed)
           }
           if ($scope.chartLib == "disabled") {
              chartEnabled=false;
@@ -837,7 +837,7 @@
           chartConfigHc.legend.enabled = $scope.showLegend;
           chart = new Highcharts.Chart(chartConfigHc);
           chart.showLoading(config.chartWaitingMsg);
-          isDirty = false;
+          isDirty = false || $scope.isCollapsed;//set dirty if panel is collapsed
         }
 
         var startNvd3 = function() {

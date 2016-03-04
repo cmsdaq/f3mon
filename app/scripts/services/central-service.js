@@ -571,13 +571,13 @@
           service.paused = false;
         }
 
-        service.reconfigureFormat = function(format) {
+        service.reconfigureFormat = function(format,forceResume) {
              var isPaused=service.paused;
              if (!isPaused) service.pause();
              service.queryParams.format = format;
              service.queryInfo.lastTime = false;
              console.log('reconfigured with..'+format)
-             if (!isPaused) service.resume();
+             if (!isPaused || forceResume) service.resume();
         }
 
         var broadcast = function(msg) {
@@ -601,7 +601,7 @@
             var fmt  = service.queryParams.format;
             service.resetParams();
             service.queryParams.format = fmt;
-            service.start();
+            //service.start(); --> is be started in updateRange when all parameters are set
         });
 
         service.resetParams();
