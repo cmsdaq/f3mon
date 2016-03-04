@@ -22,7 +22,7 @@
     .controller('sidebarCtrl', function($scope,$rootScope,$window) {
 
         var setPadding=function() {
-          console.log($window.innerWidth);
+          //console.log($window.innerWidth);
           if ($window.innerWidth<992) {
               $scope.style='padding-left: 0;padding-right: 0;'
               //console.log('padding 0')
