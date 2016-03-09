@@ -1,21 +1,7 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var smdb;
-var totalTimes;
-var queryJSON1;
-var queryJSON2;
-var queryJSON3;
-
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
-
+var Common = require('./esCommon')
+module.exports = new Common()
 
 //percColor function
 var percColor = function (percent){
@@ -49,93 +35,96 @@ var percColor2 = function (percent,hasErrors){
 }
 
 
-module.exports = {
+var Common = require('./esCommon')
 
-  setup : function(cache,cacheSec,cl,smdb_,ttl,totTimes,queryJSN1,queryJSN2,queryJSN3) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    smdb = smdb_;
-    ttls = ttl;
-    totalTimes = totTimes;
-    queryJSON1 = queryJSN1;
-    queryJSON2 = queryJSN2;
-    queryJSON3 = queryJSN3;
-  },
+module.exports = new Common()
 
-  query : function (req, res) {
+module.exports.query = function (req, res) {
+
+  var qname = 'streamhist'
+  //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
+  var eTime = new Date().getTime();
+  var cb = req.query.callback;
+
+  //GET query string params
+  var qparam_runNumber = req.query.runNumber;
+  var qparam_from = parseInt(req.query.from);
+  var qparam_to = parseInt(req.query.to);
+  var qparam_lastLs = parseInt(req.query.lastLs);
+  var qparam_intervalNum = parseInt(req.query.intervalNum);
+  var qparam_sysName = req.query.sysName;
+  var qparam_streamList = req.query.streamList;
+  var qparam_timePerLs = req.query.timePerLs;
+  var qparam_useDivisor = req.query.useDivisor;
+  var qparam_accum = req.query.accum;
+
+  if (qparam_runNumber == null){qparam_runNumber = 0;}
+  if (qparam_from == null){qparam_from = 1;}
+  if (qparam_to == null){qparam_to = 1;}
+  if (qparam_lastLs == null){qparam_lastLs = 1;}
+  if (qparam_intervalNum == null){qparam_intervalNum = 25;}
+  if (qparam_sysName == null){qparam_sysName = 'cdaq';}
+  if (qparam_streamList == null){qparam_streamList = '';}
+  if (qparam_timePerLs == null){qparam_timePerLs = 23.31;}
+  if (qparam_useDivisor == null){qparam_useDivisor = false;} else {qparam_useDivisor = (req.query.useDivisor === 'true');}
+
+  //calculate interval length taking into account integer rounding
+  var interval = Math.round((qparam_to - qparam_from)/qparam_intervalNum) || 1;
+  //get bin edges (real interval that elastic decides to use) for interval and range //TODO:fix this using offset
+  qparam_from = qparam_from - (qparam_from%interval)//gets rounded down to multiple of interval
+  if (interval>1) qparam_from++;
+  //if (interval===1) qparam_from++;
+  qparam_to = qparam_to + interval -1 - ((qparam_to-1)%interval);//sum up to the one-before-next element ( 2nd -1 is aggOffset)
+
+  //2nd pass to get better matched interval number
+  var interval = Math.round((qparam_to - qparam_from)/qparam_intervalNum) || 1;
+  qparam_from = qparam_from - (qparam_from%interval)
+  if (interval>1) qparam_from++;
+  qparam_to = qparam_to + interval - 1 - ((qparam_to-1)%interval);
+
+  var aggOffset = 1;//binning offset for histogram aggregation (LS starts at 1)
+
+  var qparam_from_before = 0;
+  if (qparam_accum === null || qparam_accum===undefined || qparam_accum === false || qparam_accum==='false') {qparam_accum=false} else {
+    qparam_accum=true;
+    qparam_useDivisor=false;
+    qparam_from_before=  qparam_from -1;
+  }
+
+  if (parseInt(qparam_from)>parseInt(qparam_to)) {
+    console.log('invalid range: from ' + qparam_from + " to " + qparam_to);
+    qparam_from=qparam_to;
+  }
+
+  var streamListArray = qparam_streamList.split(',');
+  if (qparam_lastLs<21){qparam_lastLs = 21;}
+  if (!qparam_useDivisor){qparam_timePerLs = 1;}
 
 
-console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'streamhist request');
-var eTime = new Date().getTime();
-var cb = req.query.callback;
+  var allDQM=true;
+  streamListArray.forEach(function(s) {
+    if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')) allDQM=false;
+  });
 
-//GET query string params
-var qparam_runNumber = req.query.runNumber;
-var qparam_from = req.query.from;
-var qparam_to = req.query.to;
-var qparam_lastLs = req.query.lastLs;
-var qparam_intervalNum = req.query.intervalNum;
-var qparam_sysName = req.query.sysName;
-var qparam_streamList = req.query.streamList;
-var qparam_timePerLs = req.query.timePerLs;
-var qparam_useDivisor = req.query.useDivisor;
-var qparam_accum = req.query.accum;
+  var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&='+qparam_from+'&='+qparam_to
+                   +'&='+qparam_lastLs+'&='+qparam_intervalNum+'&='+qparam_sysName
+                   +'&='+qparam_streamList+'&='+qparam_timePerLs+'&='
+                   +qparam_useDivisor+'&='+qparam_accum;
 
-if (qparam_runNumber == null){qparam_runNumber = 124029;}
-if (qparam_from == null){qparam_from = 1;}
-if (qparam_to == null){qparam_to = 1;}
-if (qparam_lastLs == null){qparam_lastLs = 58;}
-if (qparam_intervalNum == null){qparam_intervalNum = 28;}
-if (qparam_sysName == null){qparam_sysName = 'cdaq';}
-if (qparam_streamList == null){qparam_streamList = '';}
-if (qparam_timePerLs == null){qparam_timePerLs = 23.4;}
-if (qparam_useDivisor == null){qparam_useDivisor = false;}else{qparam_useDivisor = (req.query.useDivisor === 'true');}
+  var ttl = this.ttls.streamhist; //cached ES response ttl (in seconds)
 
-//test
-//qparam_accum=true;
+  //helper variables with cb-wide scope
+  var lastTimes = [];
+  var tsList = {};
+  var streamTotals;
+  var streamBeforeTotal = 0;
+  var streamBeforeTotal_b = 0;
+  var took = 0;
+  var streamNum;
+  var postOffSt;
+  var maxls = 0;
 
-var qparam_from_before = 0;
-if (qparam_accum === null || qparam_accum===undefined || qparam_accum === false || qparam_accum==='false') {qparam_accum=false} else {
-  qparam_accum=true;
-  qparam_useDivisor=false;
-  qparam_from_before=  qparam_from -1;
-}
-
-if (parseInt(qparam_from)>parseInt(qparam_to)) {
-  console.log('invalid range: from ' + qparam_from + " to " + qparam_to);
-  qparam_from=qparam_to;
-}
-
-
-var streamListArray = qparam_streamList.split(',');
-if (qparam_lastLs<21){qparam_lastLs = 21;}
-if (!qparam_useDivisor){qparam_timePerLs = 1;}
-var x = (parseInt(qparam_to) - parseInt(qparam_from))/parseInt(qparam_intervalNum);
-var interval = Math.round(x); 
-if (interval == 0){interval = 1;}
-
-
-var allDQM=true;
-streamListArray.forEach(function(s) {
-  if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')) allDQM=false;
-});
-
-var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&from='+qparam_from+'&to='+qparam_to+'&lastLs='+qparam_lastLs+'&intervalNum='+qparam_intervalNum+'&sysName='+qparam_sysName+'&streamList='+qparam_streamList+'&timePerLs='+qparam_timePerLs+'&useDivisor='+qparam_useDivisor+'&accum='+qparam_accum;
-var requestValue = f3MonCache.get(requestKey);
-var ttl = ttls.streamhist; //cached ES response ttl (in seconds)
-
-//helper variables with cb-wide scope
-var lastTimes = [];
-var tsList = {};
-var streamTotals;
-var streamBeforeTotal = 0;
-var took = 0;
-var streamNum;
-var postOffSt;
-var maxls = 0;
-
-var retObj = {
+  var retObj = {
 	"streams" : "",
 	"took" : "",
 	"lsList" : "",
@@ -146,144 +135,127 @@ var retObj = {
 	"navbar" : "",
 	"interval" : "",
 	"lastTime" : ""
-};
+  };
+  retObj.interval = interval;
 
-var sendResult = function(){
-	//set lastTime to max(lastTimes)
-	var maxLastTime = Math.max.apply(Math, lastTimes);
-	retObj.lastTime = maxLastTime;
-	//console.log(JSON.stringify(lastTimes));
-	retObj.interval = interval;
+  //Get transfer (from cache only)
+  var q6 = function (callback) {
 
-        //adaptive ttl because of large variation in query time
-        var usettl = ttl;
-        var tookSec = took/1000.;
-        if (tookSec>ttl) usettl=ttl+tookSec;
-	f3MonCache.set(requestKey, [retObj,usettl], usettl);
-	var srvTime = (new Date().getTime())-eTime;
-        totalTimes.queried += srvTime;
-        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	res.set('Content-Type', 'text/javascript');
-        res.header("Cache-Control", "no-cache, no-store");
-        res.send(cb +' ('+JSON.stringify(retObj)+')');
-}
+    var lsList = streamTotals.lsList;
+    if( lsList.length==0) {callback();return;}
 
-//Get transfer (from cache only)
-var q6 = function (callback) {
+    var trReqObj = {"run": qparam_runNumber, "binary":true , "aggregate":true}
+    var transferInfo = smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false,null);
+    if (transferInfo===null) {
+      callback();
+      return;
+    }
+    //for (var i=0;i<transferInfo.length;i++) {console.log(transferInfo[i]);}
+    var transferInfoLen = transferInfo.length;
 
-  var lsList = streamTotals.lsList;
-  if( lsList.length==0) {callback();return;}
+    var lsIndex = 0;
+    var currentLs = lsList[lsIndex] - postOffSt;
+    var nextLs=null;
+    if( lsList.length>1)
+      var nextLs = lsList[lsIndex+1] - postOffSt;
+    if (currentLs<=0) {
+      callback(); // sendResult
+      return;
+    }
+    var beginIndex = currentLs-1;
+    var step = 1;
+    //search for beginning of the interval
+    while (beginIndex < transferInfoLen && transferInfo[beginIndex].ls > currentLs) {
+      beginIndex-=step;
+      step*=2;
+      if (beginIndex<=0) {beginIndex=0;break;}
+    }
 
-  var trReqObj = {"run": qparam_runNumber, "binary":true , "aggregate":true}
-  var transferInfo = smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false,null);
-  if (transferInfo===null) {
-    callback();
-    return;
-  }
-  //for (var i=0;i<transferInfo.length;i++) {console.log(transferInfo[i]);}
-  var transferInfoLen = transferInfo.length;
-
-  var lsIndex = 0;
-  var currentLs = lsList[lsIndex] - postOffSt;
-  var nextLs=null;
-  if( lsList.length>1)
-    var nextLs = lsList[lsIndex+1] - postOffSt;
-  if (currentLs<=0) {
-    callback();
-    return;
-  }
-  var beginIndex = currentLs-1;
-  var step = 1;
-  //search for beginning of the interval
-  while (beginIndex < transferInfoLen && transferInfo[beginIndex].ls > currentLs) {
-    beginIndex-=step;
-    step*=2;
-    if (beginIndex<=0) {beginIndex=0;break;}
-  }
-
-  transStatus = {"percents":[]};
+    transStatus = {"percents":[]};
   
-  //lsobj = {"ls":tls,"cop":(copied!==null), "s":1, "c":0}
-  var tsObj = undefined;
-  var nC = undefined;
-  var nS = undefined;
+    //lsobj = {"ls":tls,"cop":(copied!==null), "s":1, "c":0}
+    var tsObj = undefined;
+    var nC = undefined;
+    var nS = undefined;
 
-  for (var i=beginIndex;i<transferInfoLen;i++)
-  {
-        if (transferInfo[i].ls < currentLs) continue;
-        tInfo = transferInfo[i];
-        if (tInfo.ls == currentLs) {
-          //new bin
+    for (var i=beginIndex;i<transferInfoLen;i++)
+    {
+      if (transferInfo[i].ls < currentLs) continue;
+      tInfo = transferInfo[i];
+      if (tInfo.ls == currentLs) {
+        //new bin
+        tsObj = {"x":currentLs,"y":0}
+        nC = tInfo.copy;
+        nS = tInfo.s;
+        //console.log( nC +' '+nS)
+      }
+      else if (lsIndex+1>=lsList.length) { //exceeded eols LS count
+        if (tsObj!==undefined) {
+          tsObj.y = nC / nS;
+          //console.log('pushingA '+tsObj.x +' ' + tsObj.y);
+          transStatus.percents.push(tsObj);
+          tsObj = undefined;
+        }
+        break;
+      }
+      //accumulate
+      else if (tInfo.ls<nextLs) {
+        if (tsObj===undefined) {
           tsObj = {"x":currentLs,"y":0}
           nC = tInfo.copy;
           nS = tInfo.s;
-          //console.log( nC +' '+nS)
+          //console.log('tsObj '+ tsObj.x);
+        } else {
+          nC += tINfo.copy;
+          nS += tINfo.s;
         }
-        else if (lsIndex+1>=lsList.length) { //exceeded eols LS count
-          if (tsObj!==undefined) {
-            tsObj.y = nC / nS;
-            //console.log('pushingA '+tsObj.x +' ' + tsObj.y);
-            transStatus.percents.push(tsObj);
-            tsObj = undefined;
-          }
-          break;
-        }
-        //accumulate
-        else if (tInfo.ls<nextLs) {
-          if (tsObj===undefined) {
-            tsObj = {"x":currentLs,"y":0}
-            nC = tInfo.copy;
-            nS = tInfo.s;
-            //console.log('tsObj '+ tsObj.x);
-          } else {
-            nC += tINfo.copy;
-            nS += tINfo.s;
-          }
-        }
-        else { //exceeded of skipped over nextLs
-          if (tsObj!==undefined) {
-            tsObj.y = nC / nS;
-            //console.log('pushingB '+tsObj.x +' ' + tsObj.y);
-            transStatus.percents.push(tsObj);
-            tsObj = undefined;
-          }
-          while (nextLs && tInfo.ls>=nextLs) {
-              currentLs=nextLs;
-              lsIndex+=1;
-              if (lsIndex<lsList.length)
-                nextLs=lsList[lsIndex]-postOffSt;
-              else nextLs=null;
-          }
-          if (tInfo.ls==currentLs || (nextLs && tInfo.ls<nextLs)) {
-            tsObj = {"x":currentLs,"y":0}
-            nC = tInfo.copy;
-            nS = tInfo.s;
-          }
-        }
-        //exceeded either length
-        if (i === transferInfoLen-1 && tsObj!==undefined) {
+      }
+      else { //exceeded of skipped over nextLs
+        if (tsObj!==undefined) {
           tsObj.y = nC / nS;
-          //console.log('pushingC '+tsObj.x +' ' + tsObj.y);
+          //console.log('pushingB '+tsObj.x +' ' + tsObj.y);
           transStatus.percents.push(tsObj);
           tsObj = undefined;
-          break;
         }
+        while (nextLs && tInfo.ls>=nextLs) {
+          currentLs=nextLs;
+          lsIndex+=1;
+          if (lsIndex<lsList.length)
+            nextLs=lsList[lsIndex]-postOffSt;
+          else nextLs=null;
+        }
+        if (tInfo.ls==currentLs || (nextLs && tInfo.ls<nextLs)) {
+          tsObj = {"x":currentLs,"y":0}
+          nC = tInfo.copy;
+          nS = tInfo.s;
+        }
+      }
+      //exceeded either length
+      if (i === transferInfoLen-1 && tsObj!==undefined) {
+        tsObj.y = nC / nS;
+        //console.log('pushingC '+tsObj.x +' ' + tsObj.y);
+        transStatus.percents.push(tsObj);
+        tsObj = undefined;
+        break;
+      }
+    }
+    transStatus.took=0;
+
+    retObj.transfer=transStatus;
+    callback();//sendResult(...)
+
   }
-  transStatus.took=0;
 
-  retObj.transfer=transStatus;
-  callback();
-
-}
-
-//Get macromerge
-var q5 = function (callback){
+  //Get macromerge
+  var q5 = function (_this){
+        var queryJSON1 = _this.queryJSON1;
         queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
 	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
 
         queryJSON1.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
@@ -292,14 +264,13 @@ var q5 = function (callback){
            queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
         });
 
-	client.search({
+	_this.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'macromerge',
          body : JSON.stringify(queryJSON1)
     	}).then (function(body){
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-                  //console.log(JSON.stringify('results[0] macro:'+results[0]))
                   var fm_date_val = results[0].fields.fm_date[0];
                   if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
                   else lastTimes.push(results[0].fields.fm_date[0]);
@@ -378,26 +349,29 @@ var q5 = function (callback){
 		}
 		retObj.macromerge = macromerge;
 		retObj.took = took;
-		callback(); //sendResult()
-                //uncomment instead of previous for transfer completeness strip (here and in q4)
-		//callback(sendResult); //q6(sendResult)
+	        var maxLastTime = Math.max.apply(Math, lastTimes);
+	        retObj.lastTime = maxLastTime;
+                //reply
+                _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
 	}, function (error){
-		excpEscES(res,error);
+		_this.excpEscES(res,error,requestKey);
         	console.trace(error.message);
   	 });
 
-}//end q5
+  }//end q5
 
 
-//Get minimerge
-var q4 = function (callback){
+  //Get minimerge
+  var q4 = function (_this){
 
+        var queryJSON1 = _this.queryJSON1;
         queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
 	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
 
         queryJSON1.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
@@ -405,7 +379,7 @@ var q4 = function (callback){
          if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
            queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
         });
-	client.search({
+	_this.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'minimerge',
          body : JSON.stringify(queryJSON1)
@@ -484,20 +458,21 @@ var q4 = function (callback){
                         minimerge.percents.push(entry);
 		}
 		retObj.minimerge = minimerge;
-		callback(sendResult); // q5(sendResult)
+                q5(_this)
                 //uncomment instead of previous for stream completeness info (here and in q5)
 		//callback(q6); //q5(q6)
 	}, function (error){
-		excpEscES(res,error);
+		_this.excpEscES(res,error,requestKey);
         	console.trace(error.message);
   	 });
 
-}//end q4
+  }//end q4
 
 
-//Get stream out
-var q3 = function (callback){
+  //Get stream out
+  var q3 = function (_this){
 
+    var queryJSON2 = _this.queryJSON2;
 	//queryJSON2.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
 	//queryJSON2.query.prefix._id = qparam_runNumber;
 	queryJSON2.query.term._parent = parseInt(qparam_runNumber);
@@ -505,7 +480,8 @@ var q3 = function (callback){
 	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.interval = parseInt(interval);
+	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
 	queryJSON2.aggs.stream.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
 
         if (qparam_accum) {
@@ -517,31 +493,30 @@ var q3 = function (callback){
           queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"avg": { "field": "filesize"}}
        }
 
-
-   client.search({
-    index: 'runindex_'+qparam_sysName+'_read',
-    type: 'stream-hist',
-    body : JSON.stringify(queryJSON2)
+    _this.client.search({
+      index: 'runindex_'+qparam_sysName+'_read',
+      type: 'stream-hist',
+      body : JSON.stringify(queryJSON2)
     }).then (function(body){
-        var results = body.hits.hits; //hits for query
-	if (results.length>0){
+      var results = body.hits.hits; //hits for query
+      if (results.length>0){
                 //is unix timestamp
 		lastTimes.push(results[0].fields.date);
-	}
-	took += body.took;
+      }
+      took += body.took;
 	
-	var streams = body.aggregations.stream.buckets;
+      var streams = body.aggregations.stream.buckets;
 	
-	var streamData = {
+      var streamData = {
 		"streamList" : [],
 		"data" : []
-	};
+      };
 
-        var totSumIn={};
-        var totSumError={};
-        var nStreamsMicro=0;
+      var totSumIn={};
+      var totSumError={};
+      var nStreamsMicro=0;
 
-	for (var i=0;i<streams.length;i++){
+      for (var i=0;i<streams.length;i++){
 		 if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
                         continue;
                 }
@@ -724,29 +699,32 @@ var q3 = function (callback){
 	}
 	streamNum = mmStreamList.length;
 	
-	callback(q5); //q4(q5)
-   }, function (error){
-	excpEscES(res,error);
+	q4(_this); //q4(q5)
+    }, function (error){
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
-   });
+    });
 
-}//end q3
+  }//end q3
 
-//Get totals
-var q2 = function (callback){
+  //Get totals
+  var q2 = function (_this){
 
-  queryJSON3.aggregations.ls.histogram.interval = parseInt(interval);
-  queryJSON3.aggregations.ls.histogram.extended_bounds.min = qparam_from;
-  queryJSON3.aggregations.ls.histogram.extended_bounds.max = qparam_to;
-  queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-  queryJSON3.query.filtered.query.range.ls.from = qparam_from;
-  queryJSON3.query.filtered.query.range.ls.to = qparam_to;
-  queryJSON3.aggregations.sumbefore.filter.range.ls.to = 0;
+    var queryJSON3 = _this.queryJSON3;
+    queryJSON3.aggregations.ls.histogram.interval = interval;
+    queryJSON3.aggregations.ls.histogram.offset = 1;
+    queryJSON3.aggregations.ls.histogram.extended_bounds.min = qparam_from
+    queryJSON3.aggregations.ls.histogram.extended_bounds.max = qparam_to;
+    queryJSON3.aggregations.ls.histogram.offset = aggOffset; 
+    queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+    queryJSON3.query.filtered.query.range.ls.from = qparam_from;
+    queryJSON3.query.filtered.query.range.ls.to = qparam_to;
+    queryJSON3.aggregations.sumbefore.filter.range.ls.to = 0;//not used, taken from previous agg
 
- client.search({
-    index: 'runindex_'+qparam_sysName+'_read',
-    type: 'eols',
-    body : JSON.stringify(queryJSON3)
+    _this.client.search({
+      index: 'runindex_'+qparam_sysName+'_read',
+      type: 'eols',
+      body : JSON.stringify(queryJSON3)
     }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
@@ -754,120 +732,170 @@ var q2 = function (callback){
         	lastTimes.push(eoltimes.getTime());
 	}
 	var buckets = body.aggregations.ls.buckets;
-	var postOffset = buckets[buckets.length-1];
-        postOffset = qparam_to - postOffset.key;
-	postOffSt = postOffset; //pass to wider scope
+
+//        var postOffset = Math.round(interval/2-1); //set to show median of the interval
+        postOffSt = Math.round(interval/2-1); //set to show median of the interval
+//	var postOffset = buckets[buckets.length-1];
+//        postOffset = qparam_to - postOffset.key;
+
+	//postOffSt = postOffset; //pass to wider scope
 	var ret = {
 		"lsList" : [],
                 "events" : {},		//obj repres. associative array (but order not guaranteed!)
-                "files" : [],
+                "bytes" : {},
+                "files" : {},
 		"doc_counts" : {}	//obj repres. associative array (but order not guaranteed!)
         };	
 
+        var retInput = {
+          "events":[],
+          "bytes":[],
+          "bytesPerEvt":[]
+        }
+
 	took += body.took;
+        var ls_accum   = streamBeforeTotal;
+        var ls_accum_b   = streamBeforeTotal_b;
 	for (var i=0;i<buckets.length;i++){
 		var ls = buckets[i].key + postOffSt;
                 var events = buckets[i].events.value;
+                var bytes = buckets[i].bytes.value;
 		var doc_count = buckets[i].doc_count;
 		ret.events[ls] = events;
+		//ret.bytes[ls] = bytes;
 		ret.doc_counts[ls] = doc_count;
-		//ret.events.push(ev_entry);	//old impl. using indxd array and intermediate obj for entry
-		//ret.doc_counts.push(dc_entry); //same as above
+                if (doc_count>0) {
+                  if (qparam_accum) {
+                    ls_accum+=events;
+                    ls_accum_b+=bytes;
+                    retInput.events.push([ls,Math.round((ls_accum/qparam_timePerLs)*100)/100]);
+                    retInput.bytes.push([ls,Math.round((ls_accum_b/qparam_timePerLs)*100)/100]);
+                  } 
+                  else {
+                    retInput.events.push([ls,Math.round((events/qparam_timePerLs)*100)/100]);
+                    retInput.bytes.push([ls,Math.round((bytes/qparam_timePerLs)*100)/100]);
+                    if (events>0) retInput.bytesPerEvt.push([ls,Math.round(bytes/events)]);
+                  }
+                }
 		ret.lsList.push(ls);
                 tsList[ls] = buckets[i].time.value;
 	}
-	streamTotals = ret;	
-	callback(q4); //q3(q4)
-   }, function (error){
-	excpEscES(res,error);
+	streamTotals = ret;
+        retObj["input"]=retInput;
+
+        q3(_this);
+    }, function (error){
+	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
-   });
+    });
 
-}//end q2
+  }//end q2
 
-//Navbar full range totals
-var q1 = function (callback){
-  var x = (parseInt(qparam_lastLs) - parseInt(1))/parseInt(qparam_intervalNum);
-  var navInterval = Math.round(x);
-  if (navInterval == 0){navInterval = 1;}
-  
-  queryJSON3.aggregations.ls.histogram.interval = parseInt(navInterval);
-  queryJSON3.aggregations.ls.histogram.extended_bounds.min = 1;
-  queryJSON3.aggregations.ls.histogram.extended_bounds.max = qparam_lastLs;
-  queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-  queryJSON3.query.filtered.query.range.ls.from = 1;
-  queryJSON3.query.filtered.query.range.ls.to = qparam_lastLs;
-  queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
+  //Navbar full range totals
+  var q1 = function (_this){
+    var x = (qparam_lastLs - parseInt(1))/parseInt(qparam_intervalNum);
+    var navInterval = Math.round(x);
+    if (navInterval == 0){navInterval = 1;}
+ 
+    var nav_to = qparam_lastLs + navInterval -1 - (qparam_lastLs%navInterval);//sum up to the one-before-next element interval
+ 
+    var queryJSON3 = _this.queryJSON3;
+    queryJSON3.aggregations.ls.histogram.interval = parseInt(navInterval);
+    queryJSON3.aggregations.ls.histogram.offset = 1;
+    queryJSON3.aggregations.ls.histogram.extended_bounds.min = 1;
+    queryJSON3.aggregations.ls.histogram.extended_bounds.max = nav_to;//qparam_lastLs;
+    queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
+    queryJSON3.query.filtered.query.range.ls.from = 1;
+    queryJSON3.query.filtered.query.range.ls.to = nav_to;//qparam_lastLs;
+    queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
 
-
-  client.search({
-    index: 'runindex_'+qparam_sysName+'_read',
-    type: 'eols',
-    body : JSON.stringify(queryJSON3)
+    _this.client.search({
+      index: 'runindex_'+qparam_sysName+'_read',
+      type: 'eols',
+      body : JSON.stringify(queryJSON3)
     }).then (function(body){
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
-                //console.log(JSON.stringify(results[0]));
                 var eoltimes = new Date(results[0].fields.fm_date);
 		lastTimes.push(eoltimes.getTime());
 	}
 	var ret = {
 		"events" : [],
+		"bytes" : [],
 		"files" : []
 	};
 	took = body.took;
         maxls = body.aggregations.maxls.value;
         streamBeforeTotal = body.aggregations.sumbefore.events.value;
+        streamBeforeTotal_b = body.aggregations.sumbefore.bytes.value;
 	var buckets = body.aggregations.ls.buckets;
 
-	var postOffset = buckets[buckets.length-1];
-	postOffset = qparam_lastLs - postOffset.key;
-
-	if (buckets[0].key>0){
-		var arr = [0,0];
-		ret.events.push(arr);
-		ret.files.push(arr);
-	}
-	
+        var postOffset = Math.round(navInterval/2-1); //set to show median of the interval
+	if (buckets.length) {
+          if (postOffset>0) { //add 1 to navigator if needed
+            var arr = [1,0];
+            ret.events.push(arr);
+            ret.bytes.push(arr);
+            ret.files.push(arr);
+          }
+        }
+        var lastBinMedian = 0;
 	for (var i=0;i<buckets.length;i++){
 		var ls = buckets[i].key;
 		var events = buckets[i].events.value;
+		//var bytes = buckets[i].bytes.value; 
 		var files = buckets[i].files.value; 
-		var add = ls + postOffset; 
+                if (ls+postOffset>qparam_lastLs)
+                  var add = qparam_lastLs;
+                else
+		  var add = ls + postOffset;
+                lastBinMedian = add;
 		var arr_e = [add,events];
+		//var arr_b = [add,bytes];
 		var arr_f = [add,files];
 		ret.events.push(arr_e);
+                //ret.bytes.push(arr_b);
                 ret.files.push(arr_f);
 	}
-	retObj.navbar = ret;
-	callback(q3); //q2(q3)
-  }, function (error){
-	excpEscES(res,error);
-        console.trace(error.message);
-  });
 
-}//end q1
+      //add max LS to navigator if not present
+      if (lastBinMedian && lastBinMedian<qparam_lastLs) {
+        var arr = [qparam_lastLs,0];
+        ret.events.push(arr);
+        ret.bytes.push(arr);
+        ret.files.push(arr);
+      }
 
-if (requestValue=="requestPending"){
-  requestValue = f3MonCacheSec.get(requestKey);
-}
+      retObj.navbar = ret;
+      //callback(q3); //q2(q3)
+      q2(_this);
+    }, function (error){
+      _this.excpEscES(res,error,requestKey);
+      console.trace(error.message);
+    });
 
-if (requestValue == undefined) {
- f3MonCache.set(requestKey, "requestPending", ttl); 
+  }//end q1
 
- q1(q2); //call q1 with q2 as its callback
+  var requestValue = this.f3MonCache.get(requestKey);
+  var pending=false;
 
-}else{
-	var srvTime = (new Date().getTime())-eTime;
-        totalTimes.cached += srvTime;
-        console.log('streamhist (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-        res.set('Content-Type', 'text/javascript');
-        res.header("Cache-Control", "no-cache, no-store");
-        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-}
-
-
-
+  if (requestValue=="requestPending") {
+    //console.log('pending...')
+    requestValue = this.f3MonCacheSec.get(requestKey);
+    pending=true;
   }
+
+  if (requestValue === undefined) {
+    if (pending) {
+      this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+      return;
+    }
+    this.f3MonCache.set(requestKey, "requestPending", ttl);
+    q1(this);
+  }else{
+    this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+  }
+
+
 }
 

@@ -143,6 +143,7 @@
                         service.data.minimerge = data.minimerge;
                         service.data.macromerge = data.macromerge;
                         service.data.navbar = data.navbar;
+                        service.data.input = data.input;
                         broadcast('updated');
                     //} else {
                     //    if (!runInfoService.data.isRunning()) {
@@ -170,11 +171,11 @@
 
         service.resume = function() {
           if (service.paused) {
+             service.paused = false;
              if (service.ready && !angular.isUndefined(mypoller)) {//make sure existing poller is restarted
                mypoller.start();
              }
           }
-          service.paused = false;
         }
 
         service.paramsChanged = function(msg) {
@@ -481,7 +482,7 @@
               var range = (max-min)*23.31;//todo increase intervals if large range
               service.queryParams.timeRange=range>300?range:300;
               service.queryParams.numIntervals=300;
-              console.log(JSON.stringify(service.queryParams));
+              //console.log(JSON.stringify(service.queryParams));
               //if (range>300)
               //  service.queryParams.numIntervals=Math.Round(1.*range/6.);
               delete service.queryParams.maxLs;
@@ -563,6 +564,7 @@
 
         service.resume = function() {
           if (service.paused && service.active) {
+             service.paused = false;
              if (!angular.isUndefined(mypoller)) //make sure existing poller is restarted
                mypoller.start();
                //mypoller.restart();
@@ -571,13 +573,13 @@
           service.paused = false;
         }
 
-        service.reconfigureFormat = function(format,forceResume) {
+        service.reconfigureFormat = function(format,alwaysResume) {
              var isPaused=service.paused;
              if (!isPaused) service.pause();
              service.queryParams.format = format;
              service.queryInfo.lastTime = false;
              console.log('reconfigured with..'+format)
-             if (!isPaused || forceResume) service.resume();
+             if (!isPaused || alwaysResume) service.resume();
         }
 
         var broadcast = function(msg) {
@@ -601,7 +603,6 @@
             var fmt  = service.queryParams.format;
             service.resetParams();
             service.queryParams.format = fmt;
-            //service.start(); --> is be started in updateRange when all parameters are set
         });
 
         service.resetParams();
@@ -778,6 +779,116 @@
 
     })
 
+
+    .factory('streamSummaryService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+        var mypoller,config;
+        var runInfo = runInfoService.data;
+        var indexInfo = indexListService.selected;
+
+        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
+        //var resource = $resource(prePath+'/api/nstates-summary.php', {
+	var resource = $resource('api/teols', {
+            callback: 'JSON_CALLBACK',
+        }, {
+            jsonp_get: {
+                method: 'JSONP',
+            }
+        });
+
+        $rootScope.$on('config.set', function(event) {
+            config = configService.config;
+            service.pollingDelay = config.fastPollingDelay;
+            //service.pollingDelay = config.slowPollingDelay;
+        });
+
+        var service = {
+            data: {},
+            queryParams: {},
+            pollingDelay:false,
+            active:false,
+            paused:false
+        };
+
+        service.resetParams = function() {
+            service.data = {};
+            service.queryParams = {
+              runNumber: false,
+              ls: 0,
+              setup: false
+            };
+            if (config) //or call resetParams in on.config
+              service.pollingDelay = config.slowPollingDelay;
+        }
+
+        service.stop = function() {
+            if (!angular.isUndefined(mypoller)) {
+                mypoller.stop();
+            }
+            service.active=false;
+        };
+
+        service.start = function() {
+            service.active=true;
+            if (service.paused) return;
+            if (angular.isUndefined(mypoller)) {
+                // Initialize poller and its callback
+                mypoller = poller.get(resource, {
+                    action: 'jsonp_get',
+                    delay: service.pollingDelay,
+                    smart: true,
+                    argumentsArray: [service.queryParams]
+                });
+                mypoller.promise.then(null, null, function(data) {
+                        service.data = data;
+                        delete service.data['$promise']
+                        delete service.data['$resolved']
+                        broadcast('updated');
+                })
+            } else {
+                mypoller = poller.get(resource, {
+                    argumentsArray: [service.queryParams],
+                    delay: service.pollingDelay
+                });
+            }
+        }
+
+        service.pause = function() {
+          if (!angular.isUndefined(mypoller)) {
+              mypoller.stop();
+          }
+          service.paused = true;
+        }
+
+        service.resume = function() {
+          if (service.paused && service.active) {
+             service.paused = false;
+             if (!angular.isUndefined(mypoller))
+               mypoller.start();
+             service.start();
+          }
+          service.paused = false;
+        }
+
+        var broadcast = function(msg) {
+            $rootScope.$broadcast('ssTable.' + msg);
+        };
+
+        $rootScope.$on('runInfo.updated', function(event) {
+            if (runInfoService.data.runNumber==false) {
+              service.stop();
+              service.data = {}
+              return;
+            }
+            service.queryParams.runNumber = runInfoService.data.runNumber;
+            service.queryParams.ls = runInfoService.data.lastLs | 0;
+            service.queryParams.setup = indexListService.selected.subSystem;
+            service.start();
+        });
+
+        service.resetParams();
+        return service;
+
+    })
 
 
 })();

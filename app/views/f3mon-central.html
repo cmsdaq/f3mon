@@ -9,12 +9,14 @@
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
                     </div>
-                    <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px' ng-show="displayAux"><span class="badge" style='width:120px'>query-time:{{queryInfo.took}}</span>
+                    <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px;margin-right:6px' ng-show="displayAux"><span class="badge" style='width:120px'>query: {{queryInfo.took}} ms</span>
                     </div>
-                    <div class="pull-right" style="width:30px;margin-right:110px" id='sr-divisor'>
+                    <div class="pull-right" style="width:30px;margin-right:210px" id='sr-divisor'>
                         <div class="input-group input-group-xs ">
+                            <span class="input-group-addon primary"> <input ng-change='toggleAxis()' ng-disabled='isStacked' ng-model="logAxis" type="checkbox" aria-label="..." style='vertical-align: middle'> log </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='stackedDisabled' ng-model="isStacked" type="checkbox" aria-label="..." style='vertical-align: middle'> stacked </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='accumDisabled' ng-model="isAccum" type="checkbox" aria-label="..." style='vertical-align: middle'> accum </span>
+                            <span class="input-group-addon primary"> <input ng-change='toggleInputRate()' ng-model="showInputRate" type="checkbox" aria-label="..." style='vertical-align: middle'> input </span>
                         </div>
                     </div>
 
@@ -28,14 +30,12 @@
                         <div class="input-group input-group-xs ">
                             <span class="input-group-addon primary"> <input ng-change='tooltipToggle()' ng-model="tooltip" type="checkbox" aria-label="..." style='vertical-align: middle'> tooltip </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle'> sec/LS </span>
-                            <!--<input type="number" class="form-control" ng-model="queryParams.timePerLs" ng-change='paramsChanged()'>-->
                         </div>
                     </div>
 
                     <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'>
 
                         <button type="button" class="btn btn-primary" disabled ng-show="displayAux">
-                          <!--<i class="fa fa-area-chart-o"></i> Range Mode:-->
                           Range Mode:
                         </button>
 
@@ -47,29 +47,31 @@
                           <li ng-repeat="item in selectorModes" class="list-group-item" ng-click="selectorModeSet(item)"><a href="">{{item}}</a>
                           </li>
                         </ul>
-                        <!-- todo: understand why unit/Event names in first button are needed to have it selected on page load -->
                     </div>
 
-                    <!-- /.col-lg-6 -->
                     <h3 class="panel-title">
                     <i class="fa fa-bar-chart-o"></i>
                     
                     <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sr-panel-body-collapse,#sr-panel-body-collapse-2"><i class="fa fa-power-off"></i></button>
-                      <button type="button" class="btn btn-primary" ng-click="isCollapsed = !isCollapsed; collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                      <button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
                     </div>
 
                     Stream Rates
                     </h3>
 
                 </div>
-                <!--<div class="panel-collapse collapse in" id="sr-panel-body-collapse">-->
                 <div class="nav-collapse" uib-collapse="isCollapsed">
-                  <!--<div class="panel-body" style='height:200px;'>-->
                   <div class="panel-body" style='height:{{hpx}}px;'>
-                     <div id="srchart" style='height:95%;width:99%' ></div>
+                 <div id="srchart" style='height:95%;width:99%' ></div>
+
+<!--                     <div id="inrchart" style='height:25%;width:95%;margin-left:8px'></div>
+                     <div id="srchart"  style='height:55%;width:99%'></div> -->
+
+       <!--           </div> -->
+
+                  <!--<div class="panel-body" style='height:{{400}}px;'>-->
                   </div>
+ 
                 </div>
             </div>
             <!-- Drill down table panel -->
@@ -143,7 +145,114 @@
             </div>
 
         </div>
+
+
+
+        <div id='ssPanel' class='panel' style='height:auto'>
+            <!-- Microstate chart panel -->
+            <div class="panel panel-primary" ng-controller='streamSummaryCtrl' style='height:100%'>
+                <!-- Default panel contents -->
+                <div class="panel-heading">
+ 
+                    <h3 class="panel-title">
+                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
+                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#micro-panel-body-collapse-1,#micro-panel-body-collapse-2"><i class="fa fa-power-off"></i></button>
+                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
+                    </div>
+ 
+                    <i class="fa fa-table"></i> Stream Completeness</h3>
+                </div>
+
+                <!--<div class="panel-collapse collapse in" id="micro-panel-body-collapse-1">-->
+                <div class="nav-collapse" uib-collapse="isCollapsed">
+                    <div class="panel-body" style='height:90%;padding:0px; border:0px; margin:20px;'>
+                    <!--<table class="" style="font-size:9pt;">-->
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head1"></tr></thead>
+                    <tbody ng-bind-html="body1"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head2"></tr></thead>
+                    <tbody ng-bind-html="body2"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head3"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body3"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head4"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body4"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head5"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body5"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head6"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body6"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head7"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body7"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head8"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body8"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head9"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body9"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head10"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body10"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head11"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body11"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head12"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body12"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head13"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body13"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head14"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body14"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head15"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body15"></tbody>
+                    </table>
+                    <table class="table table-hover table-condensed">
+                    <thead><tr ng-bind-html="head16"></tr>
+                    </thead>
+                    <tbody ng-bind-html="body16"></tbody>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
     </div>
+
 
 
 

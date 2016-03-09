@@ -26,7 +26,7 @@ module.exports = {
 
   query : function (req, res) {
 
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runListTable request');
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runListTable request');
     var eTime = new Date().getTime();
     var cb = req.query.callback;
 

@@ -202,8 +202,9 @@
         })
     })
 
-
-    .controller('streamRatesCtrl', function($scope, $rootScope, $window, configService, runInfoService, streamRatesChartConfig, angularMomentConfig, streamRatesService, microStatesService, colors) {
+    .controller('streamRatesCtrl', function($scope, $rootScope, $window, configService, runInfoService, streamRatesChartConfig,
+                                            angularMomentConfig, streamRatesService, microStatesService, colors)
+    {
         $scope.isCollapsed = false;
         $scope.collapseChanged = function() {
           if ($scope.isCollapsed) {
@@ -269,6 +270,25 @@
         $scope.queryParams = streamRatesService.queryParams;
         $scope.queryInfo = streamRatesService.queryInfo;
 
+        $scope.showInputRate = false;
+        var lastRateText = "Built Events";
+
+        $scope.toggleInputRate = function() {
+          if (chart) {
+            //$scope.showInputRate = !$scope.showInputRate;
+            if (inputSerie) {
+              inputSerie.setVisible($scope.showInputRate, false)
+              chart.yAxis[4].update({
+                title: {
+                 text: $scope.showInputRate ? lastRateText : ""
+                }
+              }, false);
+
+              chart.redraw();
+            }
+          }
+        }
+
         $scope.streams = {};
 
 
@@ -294,6 +314,14 @@
         $scope.accumDisabled = false;
         $scope.useAccum = false;
 
+        $scope.logAxis=false;
+        var axisType="linear";
+
+        $scope.toggleAxis = function() {
+          $scope.unitChanged();
+          initChart(false);
+        }
+
         $scope.updateMaskedStreams = function(maskedStreamList) {
           runInfoService.updateMaskedStreams(maskedStreamList);
         }
@@ -307,10 +335,16 @@
 
         $scope.unitChanged = function() {
             var axisTitle = $scope.unit;
+            axisType = $scope.logAxis===true ? "logarithmic":"linear";
 
             if ($scope.unit=='Bytes') {
               $scope.stackedDisabled=false;
               if (!lastStackedState && $scope.isStacked) {
+
+                //deactivate log axis
+                $scope.logAxis = false;
+                axisType= "linear";
+
                 streamRatesChartConfig.plotOptions.column.stacking = 'normal';
                 lastStackedState=true;
                 runInfoService.updateMaskedStreams([]);
@@ -364,11 +398,20 @@
             $scope.paramsChanged();
             if (!isPaused) streamRatesService.resume()
             //streamRatesChartConfig.yAxis[0].title.text = axisTitle; //waiting for fix https://github.com/pablojim/highcharts-ng/issues/247
+
             chart.yAxis[0].update({
                 title: {
                     text: axisTitle
                 }
             }, false);
+
+            lastRateText = 'Built '+ axisTitle;
+            chart.yAxis[4].update({
+                title: {
+                    text: $scope.showInputRate ? lastRateText : ""
+                }
+            }, false);
+
         }
 
         //$scope.selectorModeChanged = function() {
@@ -501,9 +544,20 @@
                 chartConfig = false;
             };
 
+            inputSerie = false;
             microSerie = false;
             miniSerie = false;
             macroSerie = false;
+
+            streamRatesChartConfig.yAxis[0].type = axisType;
+            streamRatesChartConfig.yAxis[4].type = axisType;//todo: move this axis to be index 1
+            if (axisType==='logarithmic') {
+              streamRatesChartConfig.yAxis[0].min = 0.01;
+              streamRatesChartConfig.yAxis[4].min = 0.01;
+            } else {
+              delete streamRatesChartConfig.yAxis[0].min;
+              delete streamRatesChartConfig.yAxis[4].min;
+            }
 
             streamRatesChartConfig.xAxis[0].minRange = configService.nbins;
             streamRatesChartConfig.tooltip.enabled = $scope.tooltip;
@@ -516,6 +570,9 @@
               streamRatesChartConfig.yAxis[2].top="60%";
               streamRatesChartConfig.yAxis[3].height="18%";
               streamRatesChartConfig.yAxis[3].top="80%";
+              streamRatesChartConfig.yAxis[4].height="37%";
+              streamRatesChartConfig.yAxis[4].top="0%";
+
             }
             else {
               streamRatesChartConfig.yAxis[0].height="70%";
@@ -526,6 +583,8 @@
               streamRatesChartConfig.yAxis[2].top="83%";
               streamRatesChartConfig.yAxis[3].height="8%";
               streamRatesChartConfig.yAxis[3].top="92%";
+              streamRatesChartConfig.yAxis[4].height="70%";
+              streamRatesChartConfig.yAxis[4].top="0%";
             }
             chartConfig = jQuery.extend({}, streamRatesChartConfig);
             setEvents();
@@ -549,6 +608,7 @@
               data.macromerge.percents.forEach(function(s){
                 s.color="darkgreen"
               })
+              inputSerie.setData(data.input, false, false);
               microSerie.setData(data.micromerge.percents, false, false);
               miniSerie.setData(data.minimerge.percents, false, false);
               macroSerie.setData(data.macromerge.percents, false, false);
@@ -568,6 +628,19 @@
 
         //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
         var startChart = function() {
+
+           chart.addSeries({
+                showInLegend: false,
+                visible: true,
+                name: 'input',
+                id: 'input',
+                type: 'line',
+                yAxis: "ratesin",
+                color: 'grey',//silver
+                zIndex: 10
+                //type:area,
+                //id:'navigator',
+            });
 
             chart.addSeries({
                 showInLegend: false,
@@ -630,12 +703,14 @@
                 }
             })
 
+            inputSerie = chart.get('input');
             microSerie = chart.get('micromerge');
             miniSerie = chart.get('minimerge');
             macroSerie = chart.get('macromerge');
                         
             chart.hideLoading();
             isDirty = true;
+            inputSerie.setVisible($scope.showInputRate, false) //invisible by default
         }
 
         $scope.$on('runInfo.selected', function(event) {            
@@ -700,6 +775,8 @@
             var navSerie = chart.series[1];
             navSerie.setData(out, false, false);
 
+            var din = $scope.unit == 'Events' ? data.input.events : $scope.unit == 'Bytes' ? data.input.bytes : data.input.bytesPerEvt;
+            inputSerie.setData(din, false, false);
             microSerie.setData(data.micromerge.percents, false, false);
             miniSerie.setData(data.minimerge.percents, false, false);
             macroSerie.setData(data.macromerge.percents, false, false);
@@ -713,7 +790,6 @@
             }
         }
 
-        //initChart(true);
     })
 
     .controller('microStatesCtrl', function($scope, $rootScope, $window, configService, moment, amMoment, microStatesService, microStatesChartConfig, microStatesChartConfigNVD3, angularMomentConfig) {
@@ -837,7 +913,7 @@
           chartConfigHc.legend.enabled = $scope.showLegend;
           chart = new Highcharts.Chart(chartConfigHc);
           chart.showLoading(config.chartWaitingMsg);
-          isDirty = false || $scope.isCollapsed;//set dirty if panel is collapsed
+          isDirty = false || $scope.isCollapsed;//force reset after uncollapse
         }
 
         var startNvd3 = function() {
@@ -946,6 +1022,105 @@
         $scope.changeSorting = service.changeSorting;
 
     })
+
+
+    .controller('streamSummaryCtrl', function($scope, $rootScope, $window, configService, streamSummaryService)
+    {
+
+        var service = streamSummaryService;
+        var splitf;
+        var updatedOnce=false;
+        //var splitf = 10;
+
+        var setPadding=function() {
+          //console.log($window.innerWidth);
+          if ($window.innerWidth>=1700) splitf = 12;
+          else if ($window.innerWidth>=1500) splitf = 10;
+          else if ($window.innerWidth>=1250)
+              splitf = 8;
+          else if ($window.innerWidth>=1000)
+              splitf = 6;
+          else if ($window.innerWidth>=650)
+              splitf = 4;
+          else if ($window.innerWidth>=400)
+              splitf = 3;
+          else
+              splitf = 2;
+          if (updatedOnce) updateTable();
+        }
+        setPadding();
+        $rootScope.resizeList.push(setPadding);
+
+        $scope.isCollapsed = false;
+        if ($scope.isCollapsed) service.pause();
+
+        $scope.collapseChanged = function() {
+          if ($scope.isCollapsed) {service.resume();updateTable();}
+          else service.pause()
+          $scope.isCollapsed=!$scope.isCollapsed;
+        }
+
+        //var config;
+
+        //$scope.$on('config.set', function(event) {
+        //    config = configService.config;
+        //});
+
+        $scope.$on('ssTable.updated', function(event) {
+            updateTable();
+            updatedOnce=true;
+        });
+
+        var updateTable = function() {
+          var vvf = 'width="'+(100/splitf).toFixed(0)+'%"'
+          var streamsCopy;
+	  var streams = Object.keys(service.data).sort();
+
+          //reset last
+          for (var i=1;i<=16;i++) {
+            $scope["head"+i] = "";
+            $scope["body"+i] = "";
+          }
+
+          var splitlevel = Math.floor(streams.length/splitf) + ( streams.length % splitf > 0 )
+          if (!streams.length) return
+
+	  var contentTemplate = "<tr><td>micro LS<br>complete/incomplete</td>";
+          var content = []
+
+          var splitStreams = function() {
+	    if (!streams.length) return "";
+            var num = streams.length < splitf ? streams.length : splitf;
+            var heading = "<th>Stream</th><th "+vvf+" valign=\"top\">"+  streams.splice(0,splitf).join("</th><th "+vvf+" valign=\"top\">")  +"</th>";
+            for (var k=0;k<splitf-num;k++) heading+='<th '+vvf+' valign="top"/>'
+	    content.push(contentTemplate);
+            return heading
+          }
+          for (var i=1;i<=splitlevel;i++)
+            $scope["head"+i] = splitStreams();
+
+          streams = Object.keys(service.data).sort();
+
+          for (var j=0;j<streams.length;j++) {
+            var key=streams[j]
+            var val = service.data[key]
+            var contidx = Math.floor(j/splitf);
+	    var complete = val[0];
+	    var incomplete = val[1];
+	    if(incomplete < 3)
+	      content[contidx]+="<td class='text-left'>"+complete+"/"+incomplete+"</td>";
+	    else if(incomplete < 6)
+	      content[contidx]+="<td class='text-left warning'>"+complete+"/"+incomplete+"</td>";
+	    else 
+	      content[contidx]+="<td class='text-left danger'>"+complete+"/"+incomplete+"</td>";
+	  }
+          for (var i=0;i<splitlevel;i++) {
+            if (content[i] && content[i].length)
+              $scope['body'+(i+1)]=content[i]+"</tr>";
+            else break;
+          }
+        }
+    });
 
 
 })();

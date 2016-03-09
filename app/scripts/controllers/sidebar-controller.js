@@ -51,7 +51,7 @@
 
     })
 
-    .controller('runInfoCtrl', function($scope, $modal, runInfoService) {
+    .controller('runInfoCtrl', function($rootScope, $scope, $modal, runInfoService) {
         $scope.isCollapsed = false;
 
         var modal = $modal({
@@ -70,6 +70,13 @@
             $scope.selected = runNumber;
             modal.$promise.then(modal.show);
         };
+
+        $scope.minHeight="";
+        $rootScope.setMinHeight = function(val) {
+          if (val!=="")
+            $scope.minHeight = val+'px';
+            else $scope.minHeight=""
+        }
     })
 
     .controller('disksInfoCtrl', function($scope, disksInfoService) {

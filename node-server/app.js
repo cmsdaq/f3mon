@@ -39,7 +39,8 @@ var client = new elasticsearch.Client({
   //log: 'debug'
   log : [{
 	type : 'file', //outputs ES logging to a file in the app's directory
-	levels : ['debug'] //can put more logging levels here
+	//levels : ['debug'] //can put more logging levels here
+	levels : ['info'] //can put more logging levels here
 	}]
 });
 
@@ -50,7 +51,8 @@ var clientESlocal = new elasticsearch.Client({
   //log: 'debug'
   log : [{
 	type : 'file', //outputs ES logging to a file in the app's directory
-	levels : ['debug'] //can put more logging levels here
+	//levels : ['debug'] //can put more logging levels here
+	levels : ['info'] //can put more logging levels here
 	}]
 });
 
@@ -139,15 +141,28 @@ initializeQueries(); //load query declarations in memory for faster access
 
 //9.cache init
 var NodeCache = require('node-cache');
-var f3MonCache = new NodeCache(); //global cache container
+//use
+var f3MonCache = new NodeCache({checkperiod: 0.55}); //global cache container
 
-//secondary cache holds expired objects with the same ttl while server executes queries
-var f3MonCacheSec = new NodeCache();
+
 
 f3MonCache.on("expired", function(key,obj){
 	if (obj!=="requestPending"){
 		f3MonCacheSec.set(key,obj,obj[1]);
 	}
+});
+
+//secondary cache holds expired objects with the same ttl while server executes queries
+var f3MonCacheSec = new NodeCache();
+
+//tertiary cache holds reply objects for requests arrived while other same-key request was being handled
+var f3MonCacheTer = new NodeCache({useClones:false});
+
+f3MonCacheTer.on("expired", function(key,obj){
+        if (obj!==undefined)
+          obj.forEach(function(item) {
+          item.res.status(500).send("No query reply received");
+        });
 });
 
 //ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
@@ -174,7 +189,6 @@ app.get('/', function (req, res) {
 
 //callback 2 (test)
 app.get('/test', function (req, res) { setTimeout(function(){
-    console.log("timeout expired");
     res.send('Hello World after sleep!');
   }, 10000);
   console.log("dispatched timeout");
@@ -193,24 +207,25 @@ app.get('/f3mon/api/getIndices', esIndices.query);
 
 //callback 5
 var esDisksStatus = require('./src/esDisksStatus')
-esDisksStatus.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("disks.json"));
-app.get('/f3mon/api/getDisksStatus', esDisksStatus.query);
+esDisksStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("disks.json"));
+app.get('/f3mon/api/getDisksStatus', esDisksStatus.query.bind(esDisksStatus));
 
 //callback 6
 var esRunList = require('./src/esRunList')
-esRunList.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes);
-app.get('/f3mon/api/runList', esRunList.query);
-app.get('/sc/api/runList', esRunList.query);
+esRunList.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
+//added layer of redirection (bind) because express 'drops' this namespace
+app.get('/f3mon/api/runList', esRunList.query.bind(esRunList));
+app.get('/sc/api/runList', esRunList.query.bind(esRunList));
 
 //callback 7
-var esRunListTable = require('./src/esRunListTable')
-esRunListTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("rltable.json"));
-app.get('/f3mon/api/runListTable', esRunListTable.query);
-
-//callback 8
 var esRiverStatus = require('./src/esRiverStatus')
 esRiverStatus.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("riverstatus.json"));
 app.get('/f3mon/api/riverStatus', esRiverStatus.query);
+
+//callback 8
+var esRunListTable = require('./src/esRunListTable')
+esRunListTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("rltable.json"));
+app.get('/f3mon/api/runListTable', esRunListTable.query);
 
 //callback 9
 var esRiverListTable = require('./src/esRiverListTable')
@@ -249,11 +264,6 @@ var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
 esMiniMacroPerStream.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
 app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query); 
 
-////callback 16
-//var esMiniMacroPerBU = require('./src/esMiniMacroPerBU');
-//esMiniMacroPerBU.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("teolsperbu.json"));
-//app.get('/f3mon/api/minimacroperbu', esMiniMacroPerBU.query); 
-
 //callback 16
 var esMiniMacroPerHost = require('./src/esMiniMacroPerHost');
 esMiniMacroPerHost.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("macroperhost.json"),getQuery("teolsperbu.json"),getQuery("teolsperstream.json"));
@@ -261,8 +271,8 @@ app.get('/f3mon/api/minimacroperhost', esMiniMacroPerHost.query);
 
 //callback 17
 var esStreamHist = require('./src/esStreamHist');
-esStreamHist.setup(f3MonCache,f3MonCacheSec,client,smdb,ttls,totalTimes,getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"));
-app.get('/f3mon/api/streamhist', esStreamHist.query); 
+esStreamHist.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"));
+app.get('/f3mon/api/streamhist', esStreamHist.query.bind(esStreamHist)); 
 
 //callback 18
 var esGetStreamList =  require('./src/esGetStreamList');
@@ -281,6 +291,7 @@ app.get('/sc/api/bigPic', esBigPic.query);
 
 //callback 21
 app.get('/sc/api/teols', esBigPic.teols);
+app.get('/f3mon/api/teols', esBigPic.teols);
 //***DB callbacks (TRANSFER STATUS and BIGPIC HWCFG)***
 
 //callback 22
@@ -293,23 +304,10 @@ app.get('/sc/api/pp', function (req, res) {
   smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
 });
 
-
 //callback 22
 var esSmallPic =  require('./src/esSmallPic');
 esSmallPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
 app.get('/sc/api/fuhistos', esSmallPic.fuhistos);
-
-
-
-
-
-/*
-//escapes client hanging upon a nodejs code exception/error by sending http 500
-var excpEscJS = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Nodejs error)');
-}
-*/
 
 //11. start http server
 var server = app.listen(serverPort, function () {

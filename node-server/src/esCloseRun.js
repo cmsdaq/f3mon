@@ -1,8 +1,6 @@
 'use strict';
 
 var client;
-var JSONPath = '../src/json/'; //set in each deployment
-//var JSONPath = './json/'; //set in each deployment
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -25,8 +23,6 @@ module.exports = {
         "runDocument" : "",
         "riverDocument" : ""
     };
-    //var source;
-    //var mapping = {};
 
     //GET query string params
     var qparam_query = req.query.query;
@@ -42,12 +38,16 @@ module.exports = {
       res.header("Cache-Control", "no-cache, no-store");
       res.send(cb +' ('+JSON.stringify(retObj)+')');
     }
-
     
     var del = function(callback){
-      client.indices.deleteMapping({
-        index: '_river',
-        type: 'runriver_'+qparam_runNumber
+      //currently disabled (should be handled by river daemon)
+      callback();
+      return;
+    
+      client.indices.delete({
+        index: 'river',
+        type: 'instance',
+        id: 'river_'+qparam_sysName+'_'+qparam_runNumber
       }).then (function(body){
         retObj.riverDocument = body;
         callback();
@@ -58,13 +58,15 @@ module.exports = {
       });
     }//end del
 
-    var put = function (callback, ret){
+    var write_endtime = function (callback){
   
-      client.index({
+      var time = new Date().toISOString(); //current timestamp
+      client.update({
         index: 'runindex_'+qparam_sysName+'_write',
         type: 'run',
         id: qparam_runNumber,
-        body: ret
+        refresh:true, //make sure this is written when reply is received
+        body: {doc:{endTime : time}}
       }).then (function(body){
         retObj.runDocument = body;
         callback(sendResult);
@@ -74,36 +76,7 @@ module.exports = {
       });
     }//end put
 
-    var q1= function(callback){
-      //loads query definition from file
-      var queryJSON = require (JSONPath+qparam_query+'.json');
-      //var queryJSON = getQuery(qparam_query+".json");
-      queryJSON.filter.term._id = qparam_runNumber;
-      client.search({
-        index: 'runindex_'+qparam_sysName+'_write',
-        type: 'run',
-        body: JSON.stringify(queryJSON)
-      }).then (function(body){
-	var results = body.hits.hits; //hits for query 
-        if (results.length == 0){
-          res.send();
-        }else{
-          var time = new Date().toISOString(); //current timestamp
-          var ret = results[0]._source;
-          ret.endTime = time;
-          callback(del,ret); //passing control to its callback (here:put)
-        }
-      }, function (error){
-        excpEscES(res,error);
-        console.trace(error.message);
-      });
-    }//end q1
-
-    q1(put);
+    write_endtime(callback);
   }
 }
-
-
-
-
 

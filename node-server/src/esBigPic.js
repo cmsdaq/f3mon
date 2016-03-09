@@ -41,7 +41,7 @@ module.exports = {
     var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
-    var cb = checkDefault(req.query.callback,null);
+    var cb = req.query.callback;
     var qparam_sysName = checkDefault(req.query.setup,'cdaq');
 
     var requestKey = 'bigpic?sysName='+qparam_sysName;
@@ -70,7 +70,7 @@ module.exports = {
 	  console.log('bigpic (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.set('Content-Type', 'text/javascript');
           res.header("Cache-Control", "no-cache, no-store");
-          if (cb!==null)
+          if (cb!==undefined)
 	    res.send(cb +' ('+JSON.stringify(retObj)+')');
           else
 	    res.send(JSON.stringify(retObj));
@@ -333,7 +333,7 @@ module.exports = {
             var source = results[index]._source
             var age = ((unix_time - new Date(source.fm_date).getTime())/1000.).toFixed(1); //todo:maybe have to add +0000 for GMT)
 
-            console.log(source.activeRuns);
+            //console.log(source.activeRuns);
 
             bumap[bu] = {
                          "age":age,
@@ -424,7 +424,7 @@ module.exports = {
       console.log('bigpic (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
       res.header("Cache-Control", "no-cache, no-store");
-      if (cb!==null)
+      if (cb!==undefined)
         res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
       else
         res.send(JSON.stringify(requestValue[0]));
@@ -441,7 +441,7 @@ module.exports = {
     var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
-    var cb = checkDefault(req.query.callback,null);
+    var cb = req.query.callback;
     var qparam_sysName = checkDefault(req.query.setup,'cdaq');
     var qparam_runNumber = req.query.runNumber;
     //var qparam_to = req.query.to;
@@ -468,7 +468,7 @@ module.exports = {
           }
 	  res.set('Content-Type', 'text/javascript');
           res.header("Cache-Control", "no-cache, no-store");
-          if (cb!==null)
+          if (cb!==undefined)
 	    res.send(cb +' ('+JSON.stringify(obj)+')');
           else
 	    res.send(JSON.stringify(obj));

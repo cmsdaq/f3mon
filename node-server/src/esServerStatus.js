@@ -24,7 +24,7 @@ module.exports = {
   },
 
   query : function (req, res) {
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"serverStatus request");
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+"serverStatus request");
     var eTime = new Date().getTime();
     var cb = req.query.callback;
     //console.log(cb);

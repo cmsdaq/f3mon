@@ -33,9 +33,9 @@ module.exports = {
 
   query : function (req, res) {
 
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
     var eTime = new Date().getTime();
-    var cb = checkDefault(req.query.callback,null);
+    var cb = req.query.callback;
     //GET query string params
     var qparam_runNumber = checkDefault(req.query.runNumber,null);
     var qparam_sysName = checkDefault(req.query.sysName,"cdaq");
@@ -55,7 +55,7 @@ module.exports = {
 	    console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	    res.set('Content-Type', 'text/javascript');
             res.header("Cache-Control", "no-cache, no-store");
-            if (cb!==null)
+            if (cb!==undefined)
 	      res.send(cb +' ('+JSON.stringify(retObj)+')');
             else
 	      res.send(JSON.stringify(retObj));
@@ -152,7 +152,7 @@ module.exports = {
         console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.header("Cache-Control", "no-cache, no-store");
-        if (cb!==null)
+        if (cb!==undefined)
           res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
         else
 	  res.send(JSON.stringify(requestValue[0]));

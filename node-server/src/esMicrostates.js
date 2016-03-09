@@ -30,7 +30,7 @@ module.exports = {
 
   query : function (req, res) {
 
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'nstates-summary request');
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'nstates-summary request');
     var eTime = new Date().getTime();
     var cb = req.query.callback;
 

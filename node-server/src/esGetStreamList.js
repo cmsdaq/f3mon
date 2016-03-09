@@ -27,11 +27,9 @@ module.exports = {
   query : function (req, res) {
 
 
-
-//callback 18
 //queries runindex_cdaq/stream_label and populates a list with all stream names for a run
 //(further filtering by ls interval is also possible to implement by using the 'from' and 'to' arguments)
-console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getstreamlist request');
+//console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'getstreamlist request');
 var eTime = new Date().getTime();
 var cb = req.query.callback;
 

@@ -1,54 +1,51 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
+var Common = require('./esCommon');
+module.exports = new Common()
 
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
+module.exports.query = function (req, res) {
 
-var checkDefault = function(value,defaultValue) {
-    if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
-    else return value;
-}
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
-module.exports = {
-
-  setup : function(cache,cacheSec,cl,ttl,totTimes) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
-  },
-
-  query : function (req, res) {
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runList request');
+    //time
     var eTime = new Date().getTime();
-    var cb = checkDefault(req.query.callback,null);
+
+    //query const
+    var qname = 'runList';
+    var ttl = this.ttls.runList;
 
     //GET query string params
-    var qparam_sysName = checkDefault(req.query.sysName,"cdaq");
-    var qparam_size = checkDefault(req.query.size,10);
-    var qparam_from=checkDefault(req.query.from,"0");
-    var qparam_to=checkDefault(req.query.to,"now");
+    var cb = req.query.callback;
+    var qparam_sysName = this.checkDefault(req.query.sysName,"cdaq");
+    var qparam_size = this.checkDefault(req.query.size,10);
+    var qparam_from=this.checkDefault(req.query.from,"0");
+    var qparam_to=this.checkDefault(req.query.to,"now");
 
+    //build key and check in caches
     var requestKey = 'runList?sysName='+qparam_sysName+'&from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size;
-    var requestValue = f3MonCache.get(requestKey);
-    var ttl = ttls.runList; //cached ES response ttl (in seconds)
 
-    if (requestValue=="requestPending"){
-	    requestValue = f3MonCacheSec.get(requestKey);
+    var requestValue = this.f3MonCache.get(requestKey);
+    var pending=false;
+    if (requestValue=="requestPending") {
+      requestValue = this.f3MonCacheSec.get(requestKey);
+      pending=true;
     }
 
-    if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+    if (requestValue !== undefined) {
+      //respond from cache
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    }
+    else {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
 
+        return;//reply from other query will handle this
+      }
+      
+      //set cache pending
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
+
+      //set up and run query
       var queryJSON = {
         "fields": ["_source","startTime"],
         "filter": {
@@ -66,8 +63,10 @@ module.exports = {
       if (!(qparam_from==="0" && qparam_to==="now"))
         queryJSON["query"] = {"range":{"startTime":{"from":qparam_from,"to":qparam_to}}}
 
+      var _this = this;
+
       //search ES
-      client.search({
+      this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body: JSON.stringify(queryJSON)
@@ -88,37 +87,22 @@ module.exports = {
 	    "runlist" : arr
 	  };
         }
-	f3MonCache.set(requestKey, [retObj,ttl], ttl);
-	var srvTime = (new Date().getTime())-eTime;
-	totalTimes.queried += srvTime;
-	console.log('runList (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	res.set('Content-Type', 'text/javascript');
-        res.header("Cache-Control", "no-cache, no-store");
-        if (cb!==null)
-	  res.send(cb +' ('+JSON.stringify(retObj)+')');
-        else
-	  res.send(JSON.stringify(retObj));
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
+/*
+        //lookup for pending queries cached in the meantime
+        var cachedPending = _this.f3MonCacheTer.get(requestKey);
+        if (cachedPending) {
+          cachedPending.forEach(function(item) {
+            _this.sendResult(item.req,item.res,requestKey,item.cb,true,retObj,qname,item.eTime,ttl);
+          });
+          //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
+          _this.f3MonCacheTer.del(requestKey);
+        }
+*/
       },function (error){
-	excpEscES(res,error);
+	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
-
-    }else{	
-      var srvTime = (new Date().getTime())-eTime;
-      totalTimes.cached += srvTime;
-      console.log('runList (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-      if (requestValue[0] === "empty"){
-        res.send();
-      }else{
-	res.set('Content-Type', 'text/javascript');
-        res.header("Cache-Control", "no-cache, no-store");
-        if (cb!==null) {
-          res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-        }
-        else
-          res.send(JSON.stringify(requestValue[0]));
-      }
     }
   }
-}
 

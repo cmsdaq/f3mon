@@ -45,7 +45,7 @@ var sendResult = function(req,res,requestKey,cb,cached,obj,qname,eTime,ttl) {
   }
   res.set('Content-Type', 'text/javascript');
   res.header("Cache-Control", "no-cache, no-store");
-  if (cb!==null)
+  if (cb!==undefined)
     res.send(cb +' ('+JSON.stringify(obj)+')');
   else
     res.send(JSON.stringify(obj));
@@ -73,7 +73,7 @@ module.exports = {
     var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
-    var cb = checkDefault(req.query.callback,null);
+    var cb = req.query.callback;
     var qparam_setup = checkDefault(req.query.setup,'cdaq');
     var qparam_int = checkDefault(req.query.interval,100);
     var monitored = checkDefault(req.query.monitored,"cpu_MHz_avg_real");

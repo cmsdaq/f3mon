@@ -56,8 +56,9 @@
                 },
                 isRunning: function() {
                     return this.endTime == false
-                },
-            }
+                }
+            },
+            resetHeightNext : false 
         };
 
         service.reset = function() {            
@@ -72,6 +73,7 @@
             service.data.maskedStreams = [];
             service.data.queryStreams = [];
             service.data.lastLs = false;
+            service.resetHeightNext = true;
             cache = false;
 
             service.broadcast('selected');
@@ -101,6 +103,8 @@
             if (runNumber == this.data.runNumber) {
                 return;
             }
+            if (this.data.runNumber && runNumber)
+              $rootScope.setMinHeight(angular.element(document.getElementById('runInfoElement')).prop('offsetHeight'));
             service.reset();
             service.data.runNumber = runNumber;
 
@@ -121,6 +125,9 @@
                     }]
                 });
                 mypoller.promise.then(null, null, function(data) {
+                    if (service.resetHeightNext) {
+                      $rootScope.setMinHeight("");service.resetHeightNext=false;
+                    }
                     if (JSON.stringify(data) != cache) {
                         cache = JSON.stringify(data);
                         service.data.runNumber = data.runNumber;

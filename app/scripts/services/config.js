@@ -214,7 +214,10 @@
                         item.point.tooltipFormatter(series.tooltipOptions.pointFormat);
 
                     //add percentage
-                    if ( $.inArray(name,['micromerge','minimerge','macromerge']) == -1  ){
+                    if (name=='input'){
+                      formatString = formatString.substr(formatString.indexOf("/span>")+6);
+                    }
+                    else if ( $.inArray(name,['micromerge','minimerge','macromerge']) == -1  ){
                         formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
                     }
                     else {
@@ -344,6 +347,7 @@
             title: {
                 text: 'Events'
             },
+            type:'linear',
             showLastLabel: true,
             minPadding: 0,
             maxPadding: 0,
@@ -400,7 +404,26 @@
             lineWidth: 1,
             offset: 0,
             opposite: false,
-
+        }, {
+            title: {
+                text: 'Built Events' ,
+                align: 'middle',
+                margin: 40,
+            },
+            //type:'logarithmic',
+            showLastLabel: true,
+            //minPadding: 0,
+            //maxPadding: 0,
+            id: "ratesin",
+            height: "70%",
+            lineWidth: 1,
+            offset: 0,
+            minorGridLineWidth: 0.,
+            gridLineWidth:0,
+            opposite: true,
+            labels:{align:'center'},
+            //min:0
+            //alignTicks:false
         }],
     })
 

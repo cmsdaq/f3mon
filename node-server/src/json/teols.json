@@ -37,6 +37,11 @@
                   "field": "NEvents"
                }
             },
+            "bytes": {
+               "sum": {
+                  "field": "NBytes"
+               }
+            },
             "files": {
                "sum": {
                   "field": "NFiles"
@@ -60,6 +65,11 @@
            "events": {
              "sum": {
                   "field": "NEvents"
+             }
+           },
+           "bytes": {
+             "sum": {
+                  "field": "NBytes"
              }
            }
          }

@@ -34,9 +34,9 @@ module.exports = {
   query : function (req, res) {
 
 
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runRiverListTable request');
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runRiverListTable request');
     var eTime = new Date().getTime();
-    var cb = checkDefault(req.query.callback,null);
+    var cb = req.query.callback;
 
     var retObj = {
       "list" : "",
@@ -63,7 +63,7 @@ module.exports = {
       console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
       res.header("Cache-Control", "no-cache, no-store");
-      if (cb!==null)
+      if (cb!==undefined)
         res.send(cb +' ('+JSON.stringify(retObj)+')');
       else
         res.send(JSON.stringify(retObj));
@@ -143,7 +143,7 @@ module.exports = {
 	console.log('runRiverListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
         res.set('Content-Type', 'text/javascript');
         res.header("Cache-Control", "no-cache, no-store");
-        if (cb!==null)
+        if (cb!==undefined)
           res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
         else
           res.send(JSON.stringify(requestValue[0]));

@@ -13,6 +13,11 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var checkDefault = function(value,defaultValue) {
+  if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
+  else return value;
+}
+
 module.exports = {
 
   setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN) {
@@ -139,6 +144,47 @@ module.exports = {
       res.header("Cache-Control", "no-cache, no-store");
       res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
     }
+  },
+
+  findLog : function (req, res) {
+
+    try {
+      var qparam_setup = checkDefault(req.query.setup,"cdaq");
+      var qparam_run = parseInt(req.query.run);
+      var qparam_fu = checkDefault(req.query.fu,null);
+      var qparam_pid = parseInt(req.query.pid);
+      if (qparam_fu===null) throw "No FU parameter";
+    } catch (e) {
+      res.set('Content-Type', 'text/javascript');
+      res.header("Cache-Control", "no-cache, no-store");
+      res.send(JSON.stringify({error:"Malformed request parameters: "+e.message}));
+    }
+
+    var queryJSON = {"query":{"bool":{"must":[ {"term":{"run":qparam_run}},{"term":{"host":qparam_fu}},{"term":{"pid":qparam_pid}}]}}};
+ 
+    clieny.search({
+        index: 'hltdlogs_'+qparam_setup+'_read',
+        type: 'cmsswlog',
+        body: JSON.stringify(queryJSON)
+      }).then (function(body){
+        var results = body.hits.hits; //hits for query
+
+        retObj = {"results":[]}
+
+        if (results.length==0)
+          retObj["error"]="No log message document found";
+        else
+          for (var i=0;i<results.length;i++) {
+            retObj["results"].push(results[i]['_source']);
+          }
+	res.set('Content-Type', 'text/javascript');
+        res.header("Cache-Control", "no-cache, no-store");
+        res.send(JSON.stringify(retObj));
+ 
+      }, function (error){
+        excpEscES(res,error);
+        console.trace(error.message);
+      });
   }
 }
 

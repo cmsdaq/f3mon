@@ -372,7 +372,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
      console.log('sc_pp (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
      res.set('Content-Type', 'text/javascript');
      res.header("Cache-Control", "no-cache, no-store");
-     if (cb === undefined || cb === null)
+     if (cb === undefined)
        res.send(JSON.stringify(retObj));
      else
        res.send(cb +' ('+JSON.stringify(retObj)+')');
@@ -387,7 +387,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
      console.log('sc_pp (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
      res.set('Content-Type', 'text/javascript');
      res.header("Cache-Control", "no-cache, no-store");
-     if (cb === undefined || cb === null)
+     if (cb === undefined)
        res.send(JSON.stringify(requestValue[0]));
      else
        res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
