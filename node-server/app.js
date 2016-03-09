@@ -37,6 +37,7 @@ var client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
   //log: 'debug'
+  apiVersion:'2.2',
   log : [{
 	type : 'file', //outputs ES logging to a file in the app's directory
 	//levels : ['debug'] //can put more logging levels here
@@ -49,6 +50,7 @@ var clientESlocal = new elasticsearch.Client({
   host: 'es-local:9200',
   //log: 'trace'
   //log: 'debug'
+  apiVersion:'2.2',
   log : [{
 	type : 'file', //outputs ES logging to a file in the app's directory
 	//levels : ['debug'] //can put more logging levels here

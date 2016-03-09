@@ -556,7 +556,7 @@
               streamRatesChartConfig.yAxis[4].min = 0.01;
             } else {
               delete streamRatesChartConfig.yAxis[0].min;
-              delete streamRatesChartConfig.yAxis[4].min;
+              streamRatesChartConfig.yAxis[4].min=0;
             }
 
             streamRatesChartConfig.xAxis[0].minRange = configService.nbins;
