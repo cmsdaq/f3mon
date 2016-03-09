@@ -280,7 +280,7 @@
               inputSerie.setVisible($scope.showInputRate, false)
               chart.yAxis[4].update({
                 title: {
-                 text: $scope.showInputRate ? lastRateText : ""
+                  text: $scope.showInputRate ? lastRateText : ""
                 }
               }, false);
 
@@ -629,7 +629,7 @@
         //is possible to set the series in the config.js but then the chart render with grind and empty values at beginning
         var startChart = function() {
 
-           chart.addSeries({
+            chart.addSeries({
                 showInLegend: false,
                 visible: true,
                 name: 'input',
