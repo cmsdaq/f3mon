@@ -1024,7 +1024,7 @@
     })
 
 
-    .controller('streamSummaryCtrl', function($scope, $rootScope, $window, configService, streamSummaryService)
+    .controller('streamSummaryCtrl', function($scope, $rootScope, $window, $sce, configService, streamSummaryService)
     {
 
         var service = streamSummaryService;
@@ -1097,7 +1097,8 @@
             return heading
           }
           for (var i=1;i<=splitlevel;i++)
-            $scope["head"+i] = splitStreams();
+            //$scope["head"+i] = splitStreams();//works in angular 1.4
+            $scope["head"+i] = $sce.trustAsHtml(splitStreams());//for angular 1.5 compatibility
 
           streams = Object.keys(service.data).sort();
 
@@ -1116,7 +1117,8 @@
 	  }
           for (var i=0;i<splitlevel;i++) {
             if (content[i] && content[i].length)
-              $scope['body'+(i+1)]=content[i]+"</tr>";
+              //$scope['body'+(i+1)]=content[i]+"</tr>";//angular 1.4
+              $scope["body"+(i+1)] = $sce.trustAsHtml(content[i]+"</tr>");//angular 1.5
             else break;
           }
         }

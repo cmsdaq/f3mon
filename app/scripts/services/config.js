@@ -34,7 +34,7 @@
 
     //TimeZone settings
     .constant('angularMomentConfig', {
-        format: 'MMM D YYYY, HH:mm',
+        //format: 'MMM D YYYY, HH:mm', //problematic angular-moment 0.10.3, while this already is default
         preprocess: 'utc',
         //timezone: 'Europe/London' // e.g. 'Europe/London'
     })
