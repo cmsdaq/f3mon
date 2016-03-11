@@ -62,7 +62,7 @@ module.exports = {
     }
 
     //last LS number
-    var q3 = function (callback){
+    var q4 = function (){
 
       queryJSON1.query.term._parent = qparam_runNumber;
 
@@ -75,17 +75,53 @@ module.exports = {
 	  if (results.length === 0){
 	  retObj.lastLs = 0;
 	}else{
-	  retObj.lastLs = results[0].sort;
+	  //retObj.lastLs = results[0].sort[0];
+	  retObj.lastLs = results[0]._source.ls;
 	}
-        callback();
+        sendResult();
       }, function (error){
         excpEscES(res,error);
         console.trace(error.message);
       });
     }//end q3
 
+
+    //streams from INI
+    var q3 = function (){
+
+      var queryJSONs = {
+        "size": 1000,
+        "query": {
+          "prefix": {
+            "_id": 'run'+qparam_runNumber
+          }
+        },
+        "sort": {"stream": {"order": "asc"}}
+      }
+      client.search({
+       index: 'runindex_'+qparam_sysName+'_read',
+       type: 'stream_label',
+       body : JSON.stringify(queryJSONs)
+      }).then (function(body){
+        var results = body.hits.hits; //hits for query
+	var set = {};
+        retObj['streamListINI'] = [];
+	for (var i=0;i<results.length;i++) {
+	  if (!set.hasOwnProperty(results[i]._source.stream)){
+	    retObj.streamListINI.push(results[i]._source.stream);
+	    set[results[i]._source.stream] = true;	//avoiding duplicates, if they occur
+	  }
+	}
+        q4();
+      }, function (error){
+	excpEscES(res,error);
+        console.trace(error.message);
+      });
+    }
+
+
     //streams
-    var q2 = function (callback){
+    var q2 = function (){
 
       queryJSON2.query.term._parent = qparam_runNumber;
 
@@ -101,6 +137,7 @@ module.exports = {
 		streams[i] = terms[i].key;
 	}
 	retObj.streams = streams;
+        q3();
         callback(sendResult);
       }, function (error){
 	excpEscES(res,error);
@@ -109,7 +146,7 @@ module.exports = {
     }//end q2
 
     //start and end time
-    var q1 = function (callback){
+    var q1 = function (){
 
       var queryJSON = {"size":1,"sort":{"startTime":"desc"}}
       if (qparam_runNumber!==null)
@@ -129,7 +166,7 @@ module.exports = {
         }
 	retObj = results[0]._source; 	//throws cannot read property error if result list is empty (no hits found) because results[0] is undefined
         if (qparam_runNumber===null) qparam_runNumber = results[0]._id;
-	callback(q3);
+	q2();
       }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -143,8 +180,8 @@ module.exports = {
 
     if (requestValue == undefined) {
      f3MonCache.set(requestKey, "requestPending", ttl);
-
-     q1(q2); //call q1 with q2 as its callback
+ 
+     q1();
 
     }else{
 	var srvTime = (new Date().getTime())-eTime;

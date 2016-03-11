@@ -38,9 +38,9 @@ module.exports = {
       res.header("Cache-Control", "no-cache, no-store");
       res.send(cb +' ('+JSON.stringify(retObj)+')');
     }
-    
+   
     var del = function(callback){
-      //currently disabled (should be handled by river daemon)
+      //currently disabled (river daemon script)
       callback();
       return;
     
@@ -76,7 +76,11 @@ module.exports = {
       });
     }//end put
 
-    write_endtime(callback);
+    var endCallback = function(callback) {
+      callback();
+    }
+
+    write_endtime(endCallback);
   }
 }
 

@@ -719,6 +719,18 @@
             };
         })
 
+        $scope.$on('runInfo.updated', function(event) {
+            if (runInfoService.data.runNumber && runInfoService.data.endTime==false && chart) {
+                if (!runInfoService.data.streamListINI.length)
+                  chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for HLT initialization');
+                else if (runInfoService.data.lastLs===false)
+                  chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for first completed lumisection');//todo:add here that
+                else if (!runInfoService.data.streams.length)
+                  chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for stream output from HLT');
+            }
+        });
+
+
         $scope.$on('srChart.updated', function(event) {
             updateChart();
         });
@@ -912,7 +924,8 @@
           chartConfigHc = jQuery.extend({}, microStatesChartConfig);
           chartConfigHc.legend.enabled = $scope.showLegend;
           chart = new Highcharts.Chart(chartConfigHc);
-          chart.showLoading(config.chartWaitingMsg);
+          //chart.showLoading(config.chartWaitingMsg);
+          chart.showLoading('<img src="images/simple_spinner.gif">');
           isDirty = false || $scope.isCollapsed;//force reset after uncollapse
         }
 

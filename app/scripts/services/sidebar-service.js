@@ -48,6 +48,7 @@
                 startTime: false,
                 endTime: false,
                 streams: [],
+                streamListINI: [],
                 maskedStreams: [],
                 queryStreams: [],
                 lastLs: false,
@@ -70,6 +71,7 @@
             service.data.startTime = false;
             service.data.endTime = false;
             service.data.streams = [];
+            service.data.streamListINI = [];
             service.data.maskedStreams = [];
             service.data.queryStreams = [];
             service.data.lastLs = false;
@@ -134,8 +136,9 @@
                         service.data.startTime = data.startTime;
                         service.data.endTime = data.endTime ? data.endTime : false;
                         service.data.streams = data.streams;
+                        service.data.streamListINI = data.streamListINI;
                         service.updateMaskedStreams(undefined);
-                        service.data.lastLs = data.lastLs ? data.lastLs[0] : false;
+                        service.data.lastLs = data.lastLs ? data.lastLs : false;
                         service.broadcast('updated');
                     }
 
