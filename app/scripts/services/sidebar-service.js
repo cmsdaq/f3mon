@@ -101,8 +101,8 @@
 
         }
 
-        service.select = function(runNumber) {
-            if (runNumber == this.data.runNumber) {
+        service.select = function(runNumber,forceReset) {
+            if (runNumber == this.data.runNumber && !forceReset) {
                 return;
             }
             if (this.data.runNumber && runNumber)

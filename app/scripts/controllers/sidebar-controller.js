@@ -113,7 +113,7 @@
             window.setTimeout(
                 function() {
                     runRangerService.shutdown();
-                    runInfoService.select(runNumber);
+                    runInfoService.select(runNumber,true);
                 }, 10);
 
 

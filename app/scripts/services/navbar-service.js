@@ -255,7 +255,7 @@
                 });
                 mypoller.promise.then(null, null, function(data) {
                     if (data.runlist.length != 0 && !data.runlist[0].endTime) {
-                        runInfoService.select(data.runlist[0].runNumber);
+                        runInfoService.select(data.runlist[0].runNumber,false);
                         //runInfoService.select(123234);
                     };
                 })

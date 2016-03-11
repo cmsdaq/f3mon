@@ -924,8 +924,7 @@
           chartConfigHc = jQuery.extend({}, microStatesChartConfig);
           chartConfigHc.legend.enabled = $scope.showLegend;
           chart = new Highcharts.Chart(chartConfigHc);
-          //chart.showLoading(config.chartWaitingMsg);
-          chart.showLoading('<img src="images/simple_spinner.gif">');
+          chart.showLoading(config.chartWaitingMsg);
           isDirty = false || $scope.isCollapsed;//force reset after uncollapse
         }
 

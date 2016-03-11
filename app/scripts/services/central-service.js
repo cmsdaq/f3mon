@@ -586,6 +586,11 @@
             $rootScope.$broadcast('msChart.' + msg);
         };
 
+        $rootScope.$on('runInfo.selected', function(event) {
+            service.stop();
+            service.resetParams();
+        });
+
         $rootScope.$on('runInfo.updated', function(event) {
             if (runInfo.endTime) {
                 service.closedRun=true;
