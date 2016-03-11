@@ -52,6 +52,13 @@
                 maskedStreams: [],
                 queryStreams: [],
                 lastLs: false,
+                smartStreamsAsString: function() {
+                    if (this.streamListINI.length>this.streams.length) return this.iniStreamsAsString();
+                    else return this.streamsAsString();
+                },
+                iniStreamsAsString: function() {
+                  return this.streamListINI.length != 0 ? this.streamListINI.join(', ') : 'N/A';
+                },
                 streamsAsString: function() {
                     return this.streams.length != 0 ? this.streams.join(', ') : 'N/A';
                 },
