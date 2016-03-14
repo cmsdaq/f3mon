@@ -5,7 +5,8 @@ var f3MonCacheSec;
 var ttls;
 var client;
 var totalTimes;
-var queryJSON
+var queryJSON;
+var verbose;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -22,6 +23,7 @@ module.exports = {
     ttls = ttl;
     totalTimes = totTimes;
     queryJSON = queryJSN;
+    verbose = global.verbose;
   },
 
   query : function (req, res) {
@@ -158,7 +160,7 @@ module.exports = {
 	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	  var srvTime = (new Date().getTime())-eTime;
           totalTimes.queried += srvTime;
-	  console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+	  if (verbose) console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	  res.set('Content-Type', 'text/javascript');
           //res.header("Cache-Control", "no-cache, no-store, must-revalidate");
           res.header("Cache-Control", "no-cache, no-store");
@@ -188,7 +190,7 @@ module.exports = {
     }else{
       var srvTime = (new Date().getTime())-eTime;
       totalTimes.cached += srvTime;
-      console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+      if (verbose) console.log('riverStatus (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
       //res.header("Cache-Control", "no-cache, no-store, must-revalidate");
       res.header("Cache-Control", "no-cache, no-store");

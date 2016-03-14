@@ -8,6 +8,7 @@ var totalTimes;
 var queryJSON1;
 var queryJSON2;
 var queryJSON3;
+var verbose;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -26,6 +27,7 @@ module.exports = {
     queryJSON1 = queryJSN1;
     queryJSON2 = queryJSN2;
     queryJSON3 = queryJSN3;
+    verbose = global.verbose;
   },
 
   query : function (req, res) {
@@ -101,7 +103,7 @@ module.exports = {
 	    f3MonCache.set(requestKey, [retObj,usettl], usettl);
 	    var srvTime = (new Date().getTime())-eTime;
 	    totalTimes.queried += srvTime;
-	    console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+	    if (verbose) console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	    res.set('Content-Type', 'text/javascript');
             res.header("Cache-Control", "no-cache, no-store");
 	    res.send(cb +' ('+JSON.stringify(retObj)+')');
@@ -326,7 +328,7 @@ module.exports = {
     }else{
       var srvTime = (new Date().getTime())-eTime;
       totalTimes.cached += srvTime;
-      console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+      if (verbose) console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
       res.header("Cache-Control", "no-cache, no-store");
       res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');

@@ -768,12 +768,12 @@ module.exports.query = function (req, res) {
                   if (qparam_accum) {
                     ls_accum+=events;
                     ls_accum_b+=bytes;
-                    retInput.events.push([ls,Math.round((ls_accum/qparam_timePerLs)*100)/100]);
-                    retInput.bytes.push([ls,Math.round((ls_accum_b/qparam_timePerLs)*100)/100]);
+                    retInput.events.push([ls,Math.round((ls_accum/(qparam_timePerLs))*100)/100]);
+                    retInput.bytes.push([ls,Math.round((ls_accum_b/(qparam_timePerLs))*100)/100]);
                   } 
                   else {
-                    retInput.events.push([ls,Math.round((events/(interval*qparam_timePerLs))*100)/100]);
-                    retInput.bytes.push([ls,Math.round((bytes/(interval*qparam_timePerLs))*100)/100]);
+                    retInput.events.push([ls,Math.round((events/(qparam_timePerLs*interval))*100)/100]);
+                    retInput.bytes.push([ls,Math.round((bytes/(qparam_timePerLs*interval))*100)/100]);
                     if (events>0) retInput.bytesPerEvt.push([ls,Math.round(bytes/events)]);
                   }
                 }

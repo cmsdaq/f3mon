@@ -14,6 +14,8 @@ if (process.argv[2]!=null){
 }
 var owner=process.argv[3];
 
+global.verbose = process.argv[4]|0;
+
 //unlimited number of simultaneous connections (default:5)
 http.globalAgent.maxSockets=Infinity;
 

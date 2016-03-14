@@ -18,6 +18,7 @@ Common.prototype.setup = function (cache,cacheSec,cacheTer,client,clientESlocal,
     this.queryJSON2=json2;
     this.queryJSON3=json3;
     this.queryJSON4=json4;
+    this.verbose = global.verbose;
 }
 
 //escapes client hanging upon an ES request error by sending http 500
@@ -76,7 +77,7 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
       if (tookSec>ttl) ttl+=tookSec;
     }
     this.f3MonCache.set(requestKey, [obj,ttl], ttl);
-    console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
+    if (this.verbose) console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }
 
   res.set('Content-Type', 'text/javascript');
