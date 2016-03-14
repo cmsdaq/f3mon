@@ -296,6 +296,7 @@
         var runInfoData = runInfoService.data;
         var chart = false;
         var microSerie, miniSerie, macroSerie, streams, chartConfig;
+        var customLoading = false;
         var isDirty = true;
         var axisSet = false;
 
@@ -413,6 +414,15 @@
             }, false);
 
         }
+
+        //reset on switching back from
+        $scope.$on('global.reload', function(event) {
+          if ($rootScope.chartInitDone) {
+            runInfoService.updateMaskedStreams([]);
+            setTimeout(function() {initChart(true,true)},1);
+          }
+          //else $rootScope.chartInitDone=true;
+        });
 
         //$scope.selectorModeChanged = function() {
         //    currentRangeMode=$scope.selectorMode;
@@ -542,6 +552,8 @@
                 chart = false;
                 $("#" + chartConfig.chart.renderTo).empty().unbind();
                 chartConfig = false;
+                customLoading=false;
+
             };
 
             inputSerie = false;
@@ -622,6 +634,7 @@
         
             streams = {};
             isDirty = false;
+            $rootScope.chartInitDone = true;
             $scope.unitChanged();
             
         }
@@ -709,6 +722,7 @@
             macroSerie = chart.get('macromerge');
                         
             chart.hideLoading();
+            customLoading=false;
             isDirty = true;
             inputSerie.setVisible($scope.showInputRate, false) //invisible by default
         }
@@ -721,13 +735,16 @@
 
         $scope.$on('runInfo.updated', function(event) {
             if (runInfoService.data.runNumber && runInfoService.data.endTime==false && chart) {
+                customLoading=true;
                 if (!runInfoService.data.streamListINI.length)
                   chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for HLT initialization');
                 else if (runInfoService.data.lastLs===false)
-                  chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for first completed lumisection');//todo:add here that
+                  chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for first end-of-lumisection file');//todo:combine with input information
                 else if (!runInfoService.data.streams.length)
                   chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for stream output from HLT');
+                else customLoading=false;
             }
+            else if (customLoading && chart && !isDirty) {chart.showLoading('no monitoring information');customLoading=false;}
         });
 
 
@@ -980,6 +997,19 @@
                 $scope.api.refresh();
         });
 
+        //on log tab switch back or clicking on f3mon title
+        $scope.$on('global.reload', function(event) {
+          if ($rootScope.chartInitDone) {
+            if (chart || !cleared) setTimeout(function(){ 
+              if (chart || !cleared) { 
+                var isDirty_ = isDirty;
+                var cleared_ = cleared;
+                resetChart();
+                if (isDirty_ || !cleared_) processUpdate();
+              }
+            },1);
+          }
+        });
 
         $scope.$on('runInfo.selected', function(event) {
             microStatesService.stop();
@@ -1012,7 +1042,7 @@
                 };
               })
               chart.redraw();
-              if(!isDirty){isDirty = true;chart.hideLoading();}
+              if(!isDirty){isDirty = true;chart.hideLoading();customLoading=false;}
             }
             else {
               $scope.data = microStatesService.data;

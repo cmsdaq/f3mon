@@ -15,7 +15,12 @@
             status: {
                 currentTab: 0,
                 changeTab: function(num) {
+                    if (this.currentTab===0 && num===1) {//reset if switching from main view
+                      $rootScope.chartInitDone = false;
+                    }
                     this.currentTab = num;
+                    broadcast('reload')
+                    if (this.currentTab===0) setTimeout(function(){$rootScope.chartInitDone=true;},2);
                 },
                 isTabSelected: function(num) {
                     return this.currentTab == num;
@@ -32,6 +37,8 @@
         var broadcast = function(msg) {
             $rootScope.$broadcast('global.' + msg);
         };
+
+        $rootScope.chartInitDone = false;
 
         return service;
 
