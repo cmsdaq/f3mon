@@ -270,6 +270,7 @@
             margin: 0,
             yAxis: {
                 tickPixelInterval: 5,
+                min: 0,
                 title: {
                     text: 'Totals'
                 },
