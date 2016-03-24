@@ -6,6 +6,8 @@ Web interface for F3 infrastructure based on Elasticsearch engine.
 
 Requirements: node.js, bower, grunt, npm
 
+This file describes setup and compilation of browser F3mon component. For Node.js based web server installation and full deployment, see node-server/Readme.md
+
 ##Run as sudo / root
 ```
 yum install npm
@@ -26,25 +28,28 @@ bower install
 ```
 
 #Notes:
+```
 - Overrides are present in bower.json to force loading highstock drilldown module and fix an issue between latest bootstrap and bower definition
+```
 
 #Run Dev server (optional):
 #grunt serve (note: If it returns no errors but server doesnt start, try again and again )
 
 #Build
+```
 grunt build (note: Disabled the uglify process due to some conflict with angular )
+```
 
-
-##Optionals:
+##Optionals and tips:
 
 #Install external library and keep it as part of future bower setups
+```
 bower install <libname> --save
+```
 
 #Install node.js components
-sudo node install -g <componen-name> #(this will install globally for usage in every project, need sudo priviledges)
+```
+sudo npm install -g <componen-name> #(this will install globally for usage in every project, need sudo priviledges)
 
-node install <componen-name> #(for installing locally)
-
-#highchart installation
-bower install highstock-release --save
-
+npm install <componen-name> #(for installing locally)
+```

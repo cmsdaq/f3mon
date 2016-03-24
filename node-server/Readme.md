@@ -1,36 +1,28 @@
-#install:
+#installation:
 
-npm install express -save
-npm install elasticsearch -save
-npm install node-php -save
-npm install node-cache -save
-npm install daemonize2 -save #needed for init script
+#required for oracle compilation:
+```
+sudo yum install oracle-instantclient-devel #build libraries
+source envoracle.sh #oracle environment
 
-#installing oracle package:
-#sudo yum install oracle-instantclient-devel
-export OCI_LIB_DIR=/usr/lib64/oracle/*/client/lib64
-export OCI_INC_DIR=/usr/include/oracle/*/client
+#fetch and build dependencies
+```
+npm install
+```
+#deployment to custom directory:
+```
+1. Compile f3mon, copy "dist" directory to node-server web/ and rename it to 'f3mon'.
+If needed, remove symbolic link previously there (if later "scp -r" is used, it will dereference links)
+2. in node-server directory, get npm dependencies (including oracle) as described previously
+2. Copy whole node-server to a target location and rename it e.g. it can be names /cmsnfses-web/es-web/devel
+3. Copy dbinfo.json from /cmsnfses-web/es-web/prod to devel area
+4. From prod area, copy "web/sc/js", "web/sc/images", "web/sc/css", "web/sc/favicon" to web/sc
+```
 
-#npm install oracledb -save
+#deployment to existing prod or test directory:
+```
+1. copy app.js, src and node_modules to a target directory (e.g./cmsnfses-web/es-web/prod, /cmsnfses-web/es-web/test).
+If needed, get dbinfo.js from prod, test or from backup (this file should not be uploaded to GitHub).
+2. After building f3mon, copy "dist" directory to installation area "web/" and rename it to f3mon. If there are changes, you can copy individual files from web/sc.
+```
 
-#Note:compilation of oracledb 1.2.0 is broken, so do this:
-cd node_modules
-rm -rf oracledb
-npm pack oracledb
-tar xzf oracledb*.tgz
-rm -rf oracledb*.tgz
-rm -rf package/binding.gyp
-cp ../binding.gyp package/
-mv package oracledb
-cd oracledb
-npm install nan
-node-gyp rebuild
-cd ../../
-
-
-
-This is base web server directory.
-copy F3Mon (browser page) "dist" directory to web (in installation target directory) and rename it to node-f3mon
-
-In web/index.html :
-change link URLs to point to the server machine if needed
