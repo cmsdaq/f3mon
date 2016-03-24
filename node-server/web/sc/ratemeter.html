@@ -1,0 +1,68 @@
+<html>
+<head>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/font-awesome/css/font-awesome.min.css">
+  <!-- <link rel="stylesheet" href="css/lavish-bootstrap.css"> -->
+  <link rel="stylesheet" href="css/pure-min.css">
+  <link rel="stylesheet" href="css/jquery-ui.css">
+<style>
+  tr:nth-child(even) {background-color:lightblue;}
+  th {vertical-align:top;}
+  .ui-button .ui-button-text
+  {
+  padding: 0px 11px 0px 21px !important;
+  font-size: .72em !important;
+  }
+  .ui-spinner .ui-spinner-input
+  {
+  padding: 0px 11px 0px 21px !important;
+  font-size: .72em !important;
+  }
+</style>
+<script src="js/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<script src="ratemeter.js"></script>
+</head>
+<body onload="bootstrap_all()">
+<div class="pure-g">
+  <div class="pure-u-1-1" id="servicestatus" style="margin-left:15px;margin-right:15px;width:90%">
+    <form id="setups" style="font-size:9pt;">Setups
+      <div id="radio2">
+	<input type=radio name=setup value=cdaq id=cdaq checked=checked><label for="cdaq">cdaq</label>
+	<input type=radio name=setup value=minidaq id=minidaq><label for="minidaq">minidaq</label>
+	<input type=radio name=setup value=dv id=dv><label for="dv">daqval</label>
+	<input type=radio name=setup value=dqm id=dqm><label for="dqm">dqm</label>
+	<input type=radio name=setup value=ed id=ed ><label for="ed">eventdisplay</label>
+      </div>
+    </form>
+    <form id="streams" style="font-size:9pt;">Stream
+      <div id="radio3">
+	<input type=radio name=stream value=* id=streamstar><label for="streamstar">*</label>
+	<input type=radio name=stream value=Physics* id=physicsstar checked=checked><label for="physicsstar">Physics*</label>
+	<input type=radio name=stream value=HI* id=hionstar><label for="hionstar">HI*</label>
+	<input type=radio name=stream value=A id=streama><label for="streama">A</label>
+      </div>
+      <!--<label for="spinner" style="font-size:9pt;">LS delay:</label>
+      <input id="spinner" name="delay"> -->
+    </form>
+    <br>
+    <table id="ratemeter" class="pure-table pure-table-bordered" style="font:Arial;font-size:24pt;">
+      <thead>
+	<tr>
+	  <th>Run </th>
+	  <th>LS </th>
+	  <th>LS <div/> Delay <div/>(Micro)</th>
+	  <th>File<div/>(Ramdisk)<div/>Rate </th>
+	  <th>Input<div/>(L1)<div/> Rate </th>
+	  <th>Stream <div id="targetstream"></div> Rate </th>
+	  <th>Stream <div id="targetstream2"></div> Size</th>
+	</tr>
+      </thead>
+      <tbody id="rates">
+      </tbody>
+    </table>
+  </div>
+
+
+</body>
+</html>

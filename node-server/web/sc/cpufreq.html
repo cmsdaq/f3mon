@@ -24,7 +24,7 @@
     <tr>
       <td>
 
-  <div class="pure-u-1-1" id="servicestatus" style="margin-left:10px;margin-right:10px;font-size: 90%;">
+  <div class="pure-u-1-1" id="servicestatus" style="margin-left:10px;margin-right:10px;font-size: 80%;">
     <form id="setups">Setup
       <div id="radio2">
 	<input type=radio name=setup value=cdaq    id=cdaq checked=checked onclick="start()"><label for="cdaq"   >cdaq</label>
@@ -36,13 +36,14 @@
   </td>
 
   <td>
-  <div class="pure-u-1-1" id="servicevariables" style="margin-left:10px;margin-right:10px; font-size: 90%;">
+  <div class="pure-u-1-1" id="servicevariables" style="margin-left:10px;margin-right:10px; font-size: 80%;">
     <form id="variables">Variable
       <div id="radio3">
 	<input type=radio name=variable value=cpu_MHz_nominal     id=cpu_MHz_nominal onclick="start()">                 <label for="cpu_MHz_nominal"     >Nominal Freq.</label></input>
-	<input type=radio name=variable value=cpu_MHz_avg         id=cpu_MHz_avg onclick="start()">                     <label for="cpu_MHz_avg">Claimed Freq.</label></input>
-	<input type=radio name=variable value=cpu_MHz_avg_real    id=cpu_MHz_avg_real checked=checked onclick="start()"><label for="cpu_MHz_avg_real"   >Boost Freq.</label></input>
-	<input type=radio name=variable value=cpu_usage_frac      id=cpu_usage_frac                   onclick="start()"><label for="cpu_usage_frac"   >CPU%</label></input>
+	<input type=radio name=variable value=cpu_MHz_avg         id=cpu_MHz_avg onclick="start()">                     <label for="cpu_MHz_avg"     >Claimed Freq.</label></input>
+	<input type=radio name=variable value=cpu_MHz_avg_real    id=cpu_MHz_avg_real checked=checked onclick="start()"><label for="cpu_MHz_avg_real">Boost Freq.</label></input>
+	<input type=radio name=variable value=cpu_usage_frac      id=cpu_usage_frac                   onclick="start()"><label for="cpu_usage_frac"  >CPU</label></input>
+	<input type=radio name=variable value=memUsedFrac         id=mem_used_frac                    onclick="start()"><label for="mem_used_frac"     >RAM</label></input>
 	<input type=radio name=variable value=dataNetIn           id=dataNetIn                        onclick="start()"><label for="dataNetIn"   >Data In</label></input>
 	<input type=radio name=variable value=dataNetOut          id=dataNetOut                       onclick="start()"><label for="dataNetOut"   >Data Out</label></input>
       </div>
@@ -51,11 +52,11 @@
   </td>
 
   <td>
-  <div class="pure-u-1-1" id="anothersrv" style="margin-left:10px;margin-right:10px; font-size: 90%;">
+  <div class="pure-u-1-1" id="anothersrv" style="margin-left:10px;margin-right:10px; font-size: 80%;">
     <form id="axistypes">Y-Axis
       <div id="radio4">
-	  <input type=radio name=axistype value=linear        id=linear_axis checked=checked onclick="start()"> <label for="linear_axis"     >Linear</label></input>
-	  <input type=radio name=axistype value=logarithmic   id=logarithmic_axis onclick="start()">            <label for="logarithmic_axis">Log</label></input>
+	  <input type=radio name=axistype value=linear        id=linear_axis checked=checked onclick="start2()"> <label for="linear_axis"     >Linear</label></input>
+	  <input type=radio name=axistype value=logarithmic   id=logarithmic_axis onclick="start2()">            <label for="logarithmic_axis">Log</label></input>
       </div>
     </form>
   </div>
@@ -63,18 +64,18 @@
 
 
   <td>
-  <div class="pure-u-1-1" id="binsize" style="margin-left:10px;margin-right:10px; font-size: 90%;">
-    #Bins
+  <div class="pure-u-1-1" id="binsize" style="margin-left:10px;margin-right:10px; font-size: 80%;">
+    <div id="subdiv"></div>
   <div>
-	  <input type=button id=biggerbins  onclick="biggerbins()" style="" value="<"></input>
-	  <input type=button  id=smallerbins onclick="smallerbins()" value=">"></input>
+	  <input type=button  id=smallerbins onclick="smallerbins()" value="<"></input>
+	  <input type=button id=biggerbins  onclick="biggerbins()" style="" value=">"></input>
   </div>
   </div>
   </td>
 
 
   <td>
-    <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+    <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;font-size:90%;">
       <input type="button" id="start" onclick="start()"value="Reset"></input>
     </div>
   </td>

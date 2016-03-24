@@ -9,7 +9,7 @@ var allPlotBU=null;
 var cpuPlots = []
 var cpuPlotsCloud = []
 
-//var binsize=20
+var lastbinf=20
 
 var binfrac = 1;
 var sleeptime=2000
@@ -32,6 +32,8 @@ var bootstrap_all = function() {
     $('#plots4').hide();
     $('#plots5').hide();
     $('#plotsbu').hide();
+
+    $('#subdiv').html("Bin:"+binfrac*lastbinf);
 
     run_iteration();
 }
@@ -71,12 +73,12 @@ var start = function() {
     timeoutVar=null;
     run_iteration();
   }
+  $('#subdiv').html("Bin:"+binfrac*lastbinf);
 
 }
 
 
 var start2 = function() {
-
   if (do_destroyCharts) return;
   do_destroyCharts=true;
 
@@ -85,25 +87,28 @@ var start2 = function() {
     timeoutVar=null;
     run_iteration();
   }
+  $('#subdiv').html("Bin:"+binfrac*lastbinf);
 
 }
-
 
 var biggerbins = function() {binfrac*=2;start2()}
 var smallerbins = function() {binfrac/=2;start2()}
 
-$( window ).resize(function() { start()});
+$( window ).resize(function() { start2()});
 
 
 function genOptions(plotname,fumode,futype,serie,min,max,intv) {
 
   var xlabels='value'
-  if (min===undefined && max==undefined)
+  if (min===undefined && max==undefined) {
     //var xaxis = {type:'category',labels:{rotation: -45}}
     //var xaxis = {type:'category',labels:{rotation: -60}}
     var xaxis = {type:'category'}
-  else
+    var sumfus=false;
+  } else {
     var xaxis = {min:min,max:max}
+    var sumfus=true;
+  }
   return {
     chart:{
       type:'column',
@@ -119,7 +124,7 @@ function genOptions(plotname,fumode,futype,serie,min,max,intv) {
     xAxis:xaxis,
     yAxis:{
       title:{
-        text:"#FUs"
+        text:(sumfus?"#FUs":"")
       },
       type: $('input[name=axistype]:checked', '#axistypes').val()
     },
@@ -148,18 +153,29 @@ function run_iteration(){
       cpudetails=true;
       var max=3500;
       var binsize=20*binfrac
+      lastbinf = 20;
       textPre = "CPU frequency (MHz) - "
     }
     else if (selectedvar==='cpu_usage_frac') {
       cpudetails=true;
       var max=1;
       var binsize=0.01*binfrac;
-      textPre = "CPU usage % - ";
+      lastbinf = 0.01;
+      textPre = "CPU usage frac. - ";
+    }
+    else if (selectedvar==='memUsedFrac') {
+      cpudetails=true;
+      var max=1;
+      var binsize=0.01*binfrac;
+      lastbinf = 0.01;
+      textPre = "Memory usage frac. - ";
     }
     else {
       buplot=true;
       var max=undefined;
+      var buplotbinsize=1;
       var binsize=0.3*binfrac;
+      lastbinf = 0.3;
       if (selectedvar==='dataNetOut') {max=undefined;binsize=0.01*binfrac;}
       textPre = "Network (MB/s) - "
     }
@@ -205,7 +221,7 @@ function run_iteration(){
 		  allPlotBU.series[0].update({data:data["perbu"]},true,false);
 	    }else{
                 $('#plotsbu').show()
-                allPlotBU = new Highcharts.chart(genOptions('perbuplot','HLT',' sum per BU appliance',data["perbu"],undefined,undefined,binsize));
+                allPlotBU = new Highcharts.chart(genOptions('perbuplot','HLT',' sum per BU appliance',data["perbu"],undefined,undefined,buplotbinsize));
                 if (data["perbu"].length)
 		  allPlotBU.series[0].setData(data["perbu"],true,false);
             }
