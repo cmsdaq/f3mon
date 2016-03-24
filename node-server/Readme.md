@@ -4,6 +4,7 @@
 ```
 sudo yum install oracle-instantclient-devel #build libraries
 source envoracle.sh #oracle environment
+```
 
 #fetch and build dependencies
 ```
