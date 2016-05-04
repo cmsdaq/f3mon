@@ -340,7 +340,7 @@ module.exports = {
             bumap[bu] = {
                          "age":age,
                          "cpu_name":"",
-                         "active_runs":source.activeRuns,
+                         "active_runs":""+source.activeRuns,
 			 "connected":"connected",
                          "fus":{},
                          "fus_nbl":[],
