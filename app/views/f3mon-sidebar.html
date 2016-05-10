@@ -30,16 +30,35 @@
  -->
                                 <tr>
                                     <th scope="row">EndTime: </th>
-                                    <td>{{data.endTime ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : (data.runNumber ? 'ongoing' : 'N/A')}}</td>
+                                    <td>{{data.endTime ? 0>=data.activeBUs ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : 'degraded' : (data.runNumber ? 'ongoing' : 'N/A')}}</td>
+                                    <!--<td>{{data.endTime ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : (data.runNumber ? 'ongoing' : 'N/A')}}</td>-->
                                 </tr>
                                 <tr class='bt'>
                                     <th scope="row">Streams: </th>
+                                    <!--<td style="max-width:100%;word-wrap:break-word;font-size: 12px;"><span> {{data.smartStreamsAsString()}}</span></td>-->
                                     <td style="max-width:100%;word-wrap:break-word"><span> {{data.smartStreamsAsString()}}</span></td>
                                 </tr>
                                 <tr>
                                     <th scope="row">LS: </th>
                                     <td>{{data.lastLs ? data.lastLs : 'N/A'}}</td>
                                 </tr>
+
+                                <tr>
+                                    <th scope="row">BUs: </th>
+                                    <td bgcolor="{{buFracColor()}}">{{data.totalBUs && data.activeBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" running" : "N/A" }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th scope="row">Resources: </th>
+                                    <td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) +" active CPU slots" : "N/A" }}</td>
+                                </tr>
+
+<!--                                <tr>
+                                    <th scope="row">BUs: </th>
+                                    <td >{{data.totalBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" enabled" : "N/A" }}</td>
+                                </tr>
+-->
+
                             </tbody>
                         </table>
                     </div>
@@ -71,16 +90,21 @@
                             <tbody>
                                 <tr>
                                     <th scope="row">BU Ramdisks: </th>
-                                    <td style="text-align:right">{{data.buRamDisk.percent()!==false ? (data.buRamDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                    <td style="text-align:right" bgcolor="{{diskFracColor('buRamDisk')}}">{{data.buRamDisk.percent()!==false ? (data.buRamDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">BU Outdisks: </th>
-                                    <td style="text-align:right">{{data.buOutDisk.percent()!==false ? (data.buOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                    <td style="text-align:right" bgcolor="{{diskFracColor('buOutDisk')}}">{{data.buOutDisk.percent()!==false ? (data.buOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
                                 </tr>
                                 <tr>
                                     <th scope="row">FU Outdisks: </th>
-                                    <td style="text-align:right">{{data.fuOutDisk.percent()!==false ? (data.fuOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                    <td style="text-align:right" bgcolor="{{diskFracColor('fuOutDisk')}}">{{data.fuOutDisk.percent()!==false ? (data.fuOutDisk.percent() | percentage:2 )+" used" : "N/A" }}</td>
                                 </tr>
+                                <!--<tr>
+                                    <th scope="row">Run Resources: </th>
+                                    <td style="text-align:right">{{data.resourceFrac.percent()!==false ? (data.resourceFrac.percent() | percentage:2 )+" used" : "N/A" }}</td>
+                                </tr>-->
+
                             </tbody>
                         </table>
                     </div>
@@ -123,9 +147,11 @@
                             </thead>
                             <tbody ng-show="!data.noData()">
                                 <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag">
+                                    <!--<td>{{row.runNumber+"&#149;"}}</td>-->
                                     <td>{{row.runNumber}}</td>
                                     <td>{{row.startTime ? ( row.startTime | amDateFormat:"DD/MM/YY HH:mm") : "N/A"}}</td>
-                                    <td>{{row.endTime ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "ongoing"}}</td>
+                                    <td>{{row.endTime ? (0>=row.activeBUs ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "degraded") : "ongoing"}}</td>
+                                    <!--<td>{{row.endTime ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "ongoing"}}</td>-->
                                     <td style='text-align: right'><a ng-click='selectRun(row.runNumber)' role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Display this run."><span class="fa fa-play-circle "></span></a>
                                     </td>
                                 </tr>

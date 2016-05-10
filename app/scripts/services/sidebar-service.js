@@ -143,6 +143,8 @@
                         service.data.startTime = data.startTime;
                         service.data.endTime = data.endTime ? data.endTime : false;
                         service.data.streams = data.streams;
+                        service.data.activeBUs = data.activeBUs;
+                        service.data.totalBUs = data.totalBUs;
                         service.data.streamListINI = data.streamListINI;
                         service.updateMaskedStreams(undefined);
                         service.data.lastLs = data.lastLs ? data.lastLs : false;
@@ -211,6 +213,7 @@
         var service = {
             active:false,
             paused:false,
+            runNumber:false,
             data: {
                 buRamDisk: {
                     total: false,
@@ -233,6 +236,11 @@
                         return this.used && this.total ? (this.used / this.total) : false
                     }
                 },
+                resourceFrac: {
+                    perc:false,
+                    paused:false,
+                    percent : function() { if (this.paused) return false; else return this.perc }
+                }
             }
         };
 
@@ -250,6 +258,7 @@
                         runNumber: runInfoService.data.runNumber
                     }]
                 });
+                service.runNumber=runInfoService.data.runNumber;
 
                 mypoller.promise.then(null, null, function(data) {
                     //                    console.log(data);
@@ -261,6 +270,7 @@
                     d.buOutDisk.used = data.outputused.value  ? data.outputused.value : d.buOutDisk.used;
                     d.buRamDisk.total = data.ramdisk.value ? data.ramdisk.value : d.buRamDisk.total;
                     d.buRamDisk.used = data.ramdiskused.value  ? data.ramdiskused.value : d.buRamDisk.used;
+                    d.resourceFrac.perc = data.resourceFrac.value ? data.resourceFrac.value : false
                     //                    console.log(service.data);
                 });
             } else {
@@ -271,6 +281,7 @@
                         runNumber: runInfoService.data.runNumber
                     }]
                 });
+                service.runNumber=runInfoService.data.runNumber;
             }
         };
 
@@ -286,6 +297,7 @@
               mypoller.stop();
           }
           service.paused = true;
+          service.data.resourceFrac.paused = true;
         }
 
         service.resume = function() {
@@ -295,11 +307,17 @@
              }
           }
           service.paused = false;
+          service.data.resourceFrac.paused = false;
         }
 
         $rootScope.$on('runInfo.selected', function(event) {
             service.start();
         });
+
+        //$rootScope.$on('runInfo.updated', function(event) {
+        //    if (service.runNumber!=runInfoService.data.runNumber)
+        //      service.start();
+        //});
 
         return service;
     })

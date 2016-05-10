@@ -51,7 +51,7 @@
 
     })
 
-    .controller('runInfoCtrl', function($rootScope, $scope, $modal, runInfoService) {
+    .controller('runInfoCtrl', function($rootScope, $scope, $modal, runInfoService, disksInfoService) {
         $scope.isCollapsed = false;
 
         var modal = $modal({
@@ -62,6 +62,7 @@
             backdrop: true
         });
         $scope.data = runInfoService.data;
+        $scope.dataDisks = disksInfoService.data;
         $scope.selected = false;
         $scope.restartCollector = runInfoService.restartCollector;
 
@@ -77,6 +78,29 @@
             $scope.minHeight = val+'px';
             else $scope.minHeight=""
         }
+        $scope.buFracColor = function(){
+          return ""//todo:figure out color when stopping
+          //console.log('bufraccolor ' + runInfoService.data.totalBUs +' '+ runInfoService.data.activeBUs)
+          if (isNaN(runInfoService.data.totalBUs) || isNaN(runInfoService.data.activeBUs)) return "";
+          if (!runInfoService.data.totalBUs || !runInfoService.data.activeBUs) return "";
+          var bufrac = runInfoService.data.activeBUs/runInfoService.data.totalBUs;
+          if (bufrac<0.5) return "red";
+          if (bufrac<0.75) return "orange";
+          if (bufrac<0.90) return "yellow";
+          if (bufrac<0.95) return "khaki";
+          return ""
+        }
+        $scope.resFracColor = function(){
+          return ""//todo:figure out color when stopping
+          var resfrac = disksInfoService.data.resourceFrac.percent();
+          //console.log('resfrac '+resfrac)
+          if (resfrac===false) return "";
+          if (resfrac<0.5) return "red";
+          if (resfrac<0.75) return "orange";
+          if (resfrac<0.90) return "yellow";
+          if (resfrac<0.95) return "khaki";
+          return ""
+        }
     })
 
     .controller('disksInfoCtrl', function($scope, disksInfoService) {
@@ -88,6 +112,36 @@
         }
 
         $scope.data = disksInfoService.data;
+
+        $scope.diskFracColor = function(call){
+          var resfrac = disksInfoService.data[call].percent();
+          if (resfrac==false) return "";
+          if (resfrac>0.80) return "red";
+          if (resfrac>0.65) return "orange";
+          if (resfrac>0.50) return "yellow";
+          if (resfrac>0.40) return "khaki";
+          return ""
+        }
+
+        $scope.diskFracColor2 = function(){
+          var resfrac = disksInfoService.data.buOutDisk.percent();
+          if (resfrac==false) return "";
+          if (resfrac>0.80) return "red";
+          if (resfrac>0.65) return "orange";
+          if (resfrac>0.50) return "yellow";
+          if (resfrac>0.40) return "khaki";
+          return ""
+        }
+
+        $scope.diskFracColor3 = function(){
+          var resfrac = disksInfoService.data.fuOutDisk.percent();
+          if (resfrac==false) return "";
+          if (resfrac>0.80) return "red";
+          if (resfrac>0.65) return "orange";
+          if (resfrac>0.50) return "yellow";
+          if (resfrac>0.40) return "khaki";
+          return ""
+        }
     })
 
     .controller('runListCtrl', function($scope, runListService, runRangerService, runInfoService, globalService) {

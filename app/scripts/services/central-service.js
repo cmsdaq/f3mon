@@ -15,7 +15,7 @@
             status: {
                 currentTab: 0,
                 changeTab: function(num) {
-                    if (this.currentTab===0 && num===1) {//reset if switching from main view
+                    if (this.currentTab===0 && (num===1 || num==2)) {//reset if switching from main view
                       $rootScope.chartInitDone = false;
                     }
                     this.currentTab = num;
@@ -621,7 +621,7 @@
         return service;
     })
 
-    .factory('logsService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+    .factory('logsService', function($resource, $rootScope, $sce, poller, configService, runInfoService, indexListService) {
         var mypoller, cache, config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
@@ -635,8 +635,10 @@
         var service = {
             data: {
                 numLogs: 0,
+                numHLT: 0,
+                numHLTd: 0,
                 currentPage: 1,
-                itemsPerPage: 20,
+                itemsPerPage: 0,//20
                 displayTotal: 0,
                 displayed: [],
                 lastTime: 0,
@@ -645,6 +647,7 @@
                 }
             },
             queryParams: {
+                docType: 'hltdlog,cmsswlog',
                 startTime: false,
                 endTime: false,
                 sysName: false,
@@ -721,11 +724,14 @@
                     argumentsArray: [service.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
+                    if (data.docType!==service.queryParams.docType) {service.stop();service.start();return;}
                     if (data.lastTime != service.data.lastTime || data.iTotalRecords != service.data.displayTotal) {
                         service.data.lastTime = data.lastTime;
                         service.data.displayed = data.aaData;
                         service.data.displayTotal = data.iTotalDisplayRecords; //at the moment there no differences between totals. need to be improved in the query
                         service.data.numLogs = data.iTotalRecords || 0;
+                        service.data.numHLTd = data.hltdTotal || 0;
+                        service.data.numHLT = data.hltTotal || 0;
                         //console.log(service.data);
                     }
                     //if (data.legend && data.timestamp != service.queryInfo.timestamp) {
@@ -749,6 +755,8 @@
                         service.data.displayed = [];
                         service.data.displayTotal = 0; //at the moment there no differences between totals. need to be improved in the query
                         service.data.numLogs = 0;
+                        service.data.numHLTd = 0;
+                        service.data.numHLT = 0;
             }
 
 

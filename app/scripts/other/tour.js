@@ -79,6 +79,15 @@
           element: "#logButton",
           placement: "bottom",
           title: "Alerts",
+          content: "The number of error and fatal messages sent by the CMSSW processes in HLT between the start and the end of the current run is shown here.",
+          toggleBackDrop: true,
+          onShown: function(tour){tour._options.onShown(tour); tour._options.backdrop = false;},
+          onPrev: function(tour){tour._options.backdrop = true; tour.hideStep(tour._current);},
+        }, 
+        {
+          element: "#logButton",
+          placement: "bottom",
+          title: "Alerts",
           content: "Clicking on it will open the alert panel, through which you can examine the errors in detail.",
           onShown: function(tour){tour._options.backdrop = true;},
         }, 
@@ -99,8 +108,8 @@
         {
           element: "#riverStatusButton",
           placement: "bottom",
-          title: "RunRiver Plugin Status",
-          content: "During normal operation it should be green. It may blink with different colors during the script start-stop procedures.",
+          title: "River Service Status",
+          content: "During normal operation it should be green, except when DAQ is not running. It may blink with different colors during the script start-stop procedures.",
           onShown: function(tour){tour._options.onShown(tour);tour._options.backdrop = false;},
         }, 
         {

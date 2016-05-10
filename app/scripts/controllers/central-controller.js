@@ -1062,6 +1062,63 @@
         $scope.pageChanged = service.pageChanged;
         $scope.sortedClass = service.sortedClass;
         $scope.changeSorting = service.changeSorting;
+        $scope.showHLTd=false;
+        $scope.showHLT=false;
+
+        //on log tab switch back or clicking on f3mon title
+        $scope.$on('global.reload', function(event) {
+          var tabnum = globalService.status.currentTab;
+          if (tabnum===0) {
+            $scope.showHLTd=false;
+            $scope.showHLT=false;
+            service.data.itemsPerPage=0;
+            logsService.data.displayTotal=0
+            logsService.data.displayed = [];//clear existing data
+            //logsService.data.size=0;
+            logsService.queryParams.docType='hltdlog,cmsswlog';
+            return;
+          }
+          else if (tabnum===1) {
+            $scope.showHLTd=true;
+            $scope.showHLT=false;
+            //logsService.data.size=20;
+            service.data.itemsPerPage=20;
+            $scope.setType('hltdlog')
+          }
+          else if (tabnum===2) {
+            $scope.showHLTd=false;
+            $scope.showHLT=true;
+            //logsService.data.size=20;
+            service.data.itemsPerPage=20;
+            $scope.setType('cmsswlog')
+          }
+        });
+        $scope.toggleHLT =function () {
+          $scope.detectType();
+        }
+
+        $scope.toggleHLTd =function () {
+          $scope.detectType();
+        }
+
+        $scope.detectType =function () {
+          if ($scope.showHLT && $scope.showHLTd)
+            $scope.setType('hltdlog,cmsswlog')
+          else if ($scope.showHLT)
+            $scope.setType('cmsswlog')
+          else if ($scope.showHLTd)
+            $scope.setType('hltdlog')
+          else
+            $scope.setType('hltdlog,cmsswlog')
+        }
+
+        $scope.setType =function (docType) {
+          logsService.data.displayed = [];
+          logsService.queryParams.docType=docType;
+          logsService.data.displayTotal=0
+          logsService.stop()
+          logsService.start()
+        }
 
     })
 
@@ -1076,12 +1133,12 @@
 
         var setPadding=function() {
           //console.log($window.innerWidth);
-          if ($window.innerWidth>=1700) splitf = 12;
-          else if ($window.innerWidth>=1500) splitf = 10;
+          if ($window.innerWidth>=1700) splitf = 11;
+          else if ($window.innerWidth>=1500) splitf = 9;
           else if ($window.innerWidth>=1250)
-              splitf = 8;
+              splitf = 7;
           else if ($window.innerWidth>=1000)
-              splitf = 6;
+              splitf = 5;
           else if ($window.innerWidth>=650)
               splitf = 4;
           else if ($window.innerWidth>=400)
