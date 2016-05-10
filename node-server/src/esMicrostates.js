@@ -1,39 +1,15 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var queryJSON1;
-var queryJSON2;
-var queryJSON3;
-var verbose;
+var Common = require('./esCommon');
+module.exports = new Common()
 
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
+module.exports.query = function (req, res) {
 
-module.exports = {
-
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2,queryJSN3) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
-    queryJSON1 = queryJSN1;
-    queryJSON2 = queryJSN2;
-    queryJSON3 = queryJSN3;
-    verbose = global.verbose;
-  },
-
-  query : function (req, res) {
+    var took = 0;
+    var qname = 'nstates-summary';
 
     //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'nstates-summary request');
-    var eTime = new Date().getTime();
+    var eTime = this.gethrms();
     var cb = req.query.callback;
 
     //GET query string params
@@ -84,9 +60,9 @@ module.exports = {
                            +'&'+qparam_maxLs
                            +'&'+qparam_format
     //make hash out of string
-    var requestKey = 'nstates-summary?runNumber=' + qparam_runNumber +requestKeySuffix;//+ requestKeySuffix.reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
-    var requestValue = f3MonCache.get(requestKey);
-    var ttl = ttls.nstatesSummary; //cached ES response ttl (in seconds)
+    var requestKey = qname+'?runNumber=' + qparam_runNumber +requestKeySuffix;//+ requestKeySuffix.reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+    var requestValue = this.f3MonCache.get(requestKey);
+    var ttl = this.ttls.nstatesSummary; //cached ES response ttl (in seconds)
 
 
     var retObj = {
@@ -96,19 +72,6 @@ module.exports = {
 	    "data" : ""
     };
 
-    var sendResult = function(){
-	    var tookSec = took/1000.
-            var usettl = ttl;
-            if (tookSec>usettl) usettl = tookSec+ttl;
-	    f3MonCache.set(requestKey, [retObj,usettl], usettl);
-	    var srvTime = (new Date().getTime())-eTime;
-	    totalTimes.queried += srvTime;
-	    if (verbose) console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	    res.set('Content-Type', 'text/javascript');
-            res.header("Cache-Control", "no-cache, no-store");
-	    res.send(cb +' ('+JSON.stringify(retObj)+')');
-    }
-
     var legend = {};
     var reserved;
     var special;
@@ -117,48 +80,50 @@ module.exports = {
 
     var idxmap = {};
 
-    //var properties = [];
-    var q1 = function(callback) {
+    var _this = this
 
-      queryJSON3.query.bool.must.term._parent = qparam_runNumber;
-      queryJSON3.query.bool.should[0].term.ls = qparam_minLs;
-      queryJSON3.query.bool.should[1].term.ls = qparam_maxLs;
-      client.search({
+    //var properties = [];
+    var q1 = function() {
+
+      _this.queryJSON3.query.bool.must.term._parent = qparam_runNumber;
+      _this.queryJSON3.query.bool.should[0].term.ls = qparam_minLs;
+      _this.queryJSON3.query.bool.should[1].term.ls = qparam_maxLs;
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'eols',
-        body : JSON.stringify(queryJSON3)
+        body : JSON.stringify(_this.queryJSON3)
       }).then (function(body){
-	took = body.took;
+	took += body.took;
         if (body.hits.total===0) {
           retObj.data = [];
-          sendResult();
+          _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
         }
         else {  
           minTs = body.aggregations.lsmin.value;
           maxTs = body.aggregations.lsmax.value+23400;//add 1 LS
-          q2(q3);
+          q2();
         }
       }, function (error){
-              excpEscES(res,error);
+              _this.excpEscES(res,error);
               console.trace(error.message);
       });
 
     } //end q1
 
     //Get legend
-    var q2 = function(callback) {
-      queryJSON1.query.term._parent = qparam_runNumber;
+    var q2 = function() {
+      _this.queryJSON1.query.term._parent = qparam_runNumber;
       //console.log('xxxx'+JSON.stringify(queryJSON1));
 
-      client.search({
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'microstatelegend',
-        body : JSON.stringify(queryJSON1)
+        body : JSON.stringify(_this.queryJSON1)
       }).then (function(body){
 	took += body.took;
         if (body.hits.total ===0){
           retObj.data = [];
-          sendResult();
+          _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
         }else{
           if (hcformat) retObj.data = {};
           else retObj.data = [];
@@ -170,7 +135,7 @@ module.exports = {
 	  output = result._source.output;
           if (result._source.stateNames===undefined) {
             retObj.data = [];
-            sendResult();
+            _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
           }
 	  else {
 	    var shortened = result._source.stateNames;
@@ -202,11 +167,11 @@ module.exports = {
 		//for (var pName in retObj.data)
 		//	properties.push(pName);
 	    ustatetype = "state-hist-summary";
-	    callback(sendResult);
+	    q3();
 	  }
         }
       }, function (error){
-	      excpEscES(res,error);
+	      _this.excpEscES(res,error);
 	      console.trace(error.message);
       });
 
@@ -214,39 +179,39 @@ module.exports = {
 
 
     //Get states
-    var q3 = function(callback){
-        queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
+    var q3 = function(){
+        _this.queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
         //TODO: use fm_date field here..(all remapped documents will contain it)
 
         //elastic 2.2 doesn't support date_histogram interval < 1 sec
         if (qparam_maxTime!==null) {
           if (qparam_maxTime.substr(0,3)==('now')) {
-	    queryJSON2.query.bool.must[1].range.date.to = qparam_maxTime;
-	    queryJSON2.query.bool.must[1].range.date.from = 'now-'+parseInt(qparam_timeRange)+'s';
+	    _this.queryJSON2.query.bool.must[1].range.date.to = qparam_maxTime;
+	    _this.queryJSON2.query.bool.must[1].range.date.from = 'now-'+parseInt(qparam_timeRange)+'s';
           }
           else { //unix timestamp
-	    queryJSON2.query.bool.must[1].range.date.to = parseInt(qparam_maxTime);
-	    queryJSON2.query.bool.must[1].range.date.from = Math.Round(parseInt(qparam_maxTime)-(1000*parseInt(qparam_timeRange)));
+	    _this.queryJSON2.query.bool.must[1].range.date.to = parseInt(qparam_maxTime);
+	    _this.queryJSON2.query.bool.must[1].range.date.from = Math.Round(parseInt(qparam_maxTime)-(1000*parseInt(qparam_timeRange)));
           }
           var intval = parseInt(qparam_timeRange)/parseInt(qparam_numIntervals);
           //console.log(intval)
           if (intval<1) intval = 1
-          queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
         }
         else {
           //LS time interval
-          queryJSON2.query.bool.must[1].range.date.to = maxTs;
-          queryJSON2.query.bool.must[1].range.date.from = minTs;
+          _this.queryJSON2.query.bool.must[1].range.date.to = maxTs;
+          _this.queryJSON2.query.bool.must[1].range.date.from = minTs;
           var intval = (maxTs-minTs)/(1000.*parseInt(qparam_numIntervals));
           //console.log(intval)
           if (intval<1) intval = 1
-          queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
         }
 
-	client.search({
+	_this.client.search({
           index: 'runindex_'+qparam_sysName+'_read',
           type: ustatetype,
-          body : JSON.stringify(queryJSON2)
+          body : JSON.stringify(_this.queryJSON2)
 
         }).then (function(body){
 	  took += body.took;
@@ -303,36 +268,35 @@ module.exports = {
 	    retObj.lastTime = results[results.length-1].key;
 
           if (!hcformat) retObj.data.reverse();
-	  callback();
+           _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
         }, function (error) {
-	    excpEscES(res,error);
+	    _this.excpEscES(res,error);
 	    console.trace(error.message);
       });
 
     }//end q3
 
+    var pending=false
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      pending=true
+      requestValue = this.f3MonCacheSec.get(requestKey);
     }
 
-    if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+    if (requestValue === undefined) {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+        return;
+      }
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
 
       if (qparam_minLs!=null && qparam_maxLs!==null) {
-        q1(q2);
+        q1();
       }
       else {
-        q2(q3); //call q1 with q2 as its callback
+        q2(); //call q1 with q2 as its callback
       }
 
-    }else{
-      var srvTime = (new Date().getTime())-eTime;
-      totalTimes.cached += srvTime;
-      if (verbose) console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-      res.set('Content-Type', 'text/javascript');
-      res.header("Cache-Control", "no-cache, no-store");
-      res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-    }
+    } else
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   }
-}
 

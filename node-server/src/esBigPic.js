@@ -1,56 +1,29 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var smdb;
-var clientESlocal;
-var verbose;
+var Common = require('./esCommon');
+module.exports = new Common()
 
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
+module.exports.query = function (req, res) {
 
-var checkDefault = function(value,defaultValue) {
-    if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
-    else return value;
-}
+    var qname = 'bigpic';
+    var took = 0.;
 
-module.exports = {
+    if (this.verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
-  setup : function(cache,cacheSec,cl,cleslocal,smdbm,ttl,totTimes,queryJSN) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    clientESlocal=cleslocal;
-    ttls = ttl;
-    totalTimes = totTimes;
-    smdb = smdbm
-    verbose = global.verbose;
-    //queryJSON = queryJSN;
-  },
-
-  query : function (req, res) {
-
-
-    if (verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'bigpic request');
-
-    var eTime = new Date().getTime();
-    var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
+    var eTime = this.gethrms();
+    var ttl = this.ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
     var cb = req.query.callback;
-    var qparam_sysName = checkDefault(req.query.setup,'cdaq');
+    var qparam_sysName = this.checkDefault(req.query.setup,'cdaq');
 
-    var requestKey = 'bigpic?sysName='+qparam_sysName;
+    var requestKey = qname+'?sysName='+qparam_sysName;
 
-    var requestValue = f3MonCache.get(requestKey);
+    var requestValue = this.f3MonCache.get(requestKey);
+    var pending=false;
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      requestValue = this.f3MonCacheSec.get(requestKey);
+      pending=true;
     }
 
     var unix_time;
@@ -65,19 +38,7 @@ module.exports = {
       fuprefix="dvrubu";
     }
 
-    var sendResult = function() {
-	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
-	  var srvTime = (new Date().getTime())-eTime;
-	  totalTimes.queried += srvTime;
-	  if (verbose) console.log('bigpic (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	  res.set('Content-Type', 'text/javascript');
-          res.header("Cache-Control", "no-cache, no-store");
-          if (cb!==undefined)
-	    res.send(cb +' ('+JSON.stringify(retObj)+')');
-          else
-	    res.send(JSON.stringify(retObj));
-    }
-
+    var _this = this;
 
     var q3 = function() {
 
@@ -132,13 +93,12 @@ module.exports = {
         }
       };
 
-      client.search({
+      _this.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'boxinfo',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
-        //sendResult();//test
-        //return;
+        took += body.took;
         unix_time = Date.now();
         var buckets = body.aggregations.bus.buckets;
         for (var i=0;i<buckets.length;i++) {
@@ -204,10 +164,10 @@ module.exports = {
           target.tldisk = alives.totalDataDir.value;
         }
         //done
-        sendResult();
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
 
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
 
@@ -235,11 +195,12 @@ module.exports = {
                       };
 
 
-      client.search({
+      _this.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        took += body.took;
         //unix_time = Date.now();
         //console.log(body.aggregations.bus.cloud_filter);
         var buagg =  body.aggregations.bus.buckets;
@@ -277,10 +238,12 @@ module.exports = {
               if (fu_hits[j]._source.cloudState==="on")
                 cloud_fu_list.push(fu_id);
             }
-            //target.fus.push(fu_id);
-            target.fus[fu_id]={"effGHz":(fu_src.cpu_MHz_avg_real*0.001).toFixed(2),"nomGHz":(fu_src.cpu_MHz_nominal*0.001).toFixed(2),
-                               "memPerc":(fu_src.memUsedFrac*100).toFixed(0),"cpuPerc":(fu_src.cpu_usage_frac*100).toFixed(0)};
-              //fu_map[fu_id]={};//todo:fill (blacklist info, stale etc.)
+            target.fus[fu_id]={
+              "effGHz":(fu_src.cpu_MHz_avg_real*0.001).toFixed(2),
+              "nomGHz":(fu_src.cpu_MHz_nominal*0.001).toFixed(2),
+              "memPerc":(fu_src.memUsedFrac*100).toFixed(0),
+              "cpuPerc":(fu_src.cpu_usage_frac*100).toFixed(0)
+            };
           }
           //target.fus.sort();
           target.cloud_nodes = cloud_fu_list;
@@ -291,7 +254,7 @@ module.exports = {
         }
         q3();
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
     }//q2
@@ -304,29 +267,21 @@ module.exports = {
                         "size":200,
                         "query":{
                               "prefix":{"_id":buprefix}
-//                          "bool":{
-//                            "should":[
-//                              {"prefix":{"_id":"bu-"}},
-//                              {"prefix":{"_id":"dvbu-"}}
-//                            ]
-//                          }
                         }
                       };
 
-      //check timestamp..
-
-      client.search({
+      _this.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'boxinfo',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        took += body.took;
         unix_time = Date.now();
         var results = body.hits.hits;
         retObj["appliance_clusters"] = {};
         if (body.hits.length==0){
-          //send empty response
-          //retObj = {}//?
-          sendResult();
+          //send empty response // TODO !
+          _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
         }else{
           var total = body.hits.total;
           var bumap = retObj.appliance_clusters;
@@ -335,12 +290,10 @@ module.exports = {
             var source = results[index]._source
             var age = ((unix_time - new Date(source.fm_date).getTime())/1000.).toFixed(1); //todo:maybe have to add +0000 for GMT)
 
-            //console.log(source.activeRuns);
-
             bumap[bu] = {
                          "age":age,
                          "cpu_name":"",
-                         "active_runs":""+source.activeRuns,
+                         "active_runs":source.activeRuns,
 			 "connected":"connected",
                          "fus":{},
                          "fus_nbl":[],
@@ -368,18 +321,18 @@ module.exports = {
             };
 	  }
           q2();
-          //sendResult(); //test
         }
 
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
     }//q1
 
     //first check cluster health
     var healthQuery = function(callback) {
-      client.cluster.health().then (function(body) {
+      _this.client.cluster.health().then (function(body) {
+        took += body.took;
         retObj["central_server"] = {
           "status":body.status,
           "number_of_data_nodes":body.number_of_data_nodes,
@@ -387,14 +340,14 @@ module.exports = {
         };
         callback();
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
     }
 
-
     var healthQueryESlocal = function() {
-      clientESlocal.cluster.health().then (function(body) {
+      _this.clientESlocal.cluster.health().then (function(body) {
+        took += body.took;
         retObj["eslocal_server"] = {
           "status":body.status,
           "number_of_data_nodes":body.number_of_data_nodes,
@@ -402,84 +355,54 @@ module.exports = {
         };
         q1();
       }, function (error){
-        //excpEscES(res,error);
         console.error("error running es-local health query");
         console.trace(error.message);
         q1();//tolerate this error
       });
     }
 
-
-    if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
-
-      //q1();
-      //healthQuery(q1);
+    var retObj = {
+      "setup":qparam_sysName
+    };
+    if (requestValue === undefined) {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+        return;
+      }
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
       healthQuery(healthQueryESlocal);
-      //get list of machines from DB (call uses separate cache key and timeout), pass callback to run after Oracle query
-      //var ret = smdb.runPPquery("system",machineIndex,q1);
-      //if (!ret) excpEscES(res,null); 
-
-    }else{
-      var srvTime = (new Date().getTime())-eTime;
-      totalTimes.cached += srvTime;
-      if (verbose) console.log('bigpic (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-      res.set('Content-Type', 'text/javascript');
-      res.header("Cache-Control", "no-cache, no-store");
-      if (cb!==undefined)
-        res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-      else
-        res.send(JSON.stringify(requestValue[0]));
-    }
+    }else
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   },
 
 
+module.exports.teols = function (req, res) {
 
-  teols : function (req, res) {
+    var qname = 'bigpic_teols'
+    var took = 0.;
 
-    if (verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'bigpic request');
+    if (this.verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
-    var eTime = new Date().getTime();
-    var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
+    var eTime = this.gethrms();
+    var ttl = this.ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
     var cb = req.query.callback;
-    var qparam_sysName = checkDefault(req.query.setup,'cdaq');
+    var qparam_sysName = this.checkDefault(req.query.setup,'cdaq');
     var qparam_runNumber = req.query.runNumber;
     //var qparam_to = req.query.to;
 
-    var requestKey = 'bigpic_teols?sysName='+qparam_sysName+'&rn='+qparam_runNumber;//+'&to='+qparam_to;
+    var requestKey = qname+'?sysName='+qparam_sysName+'&rn='+qparam_runNumber;//+'&to='+qparam_to;
 
-
-    var requestValue = f3MonCache.get(requestKey);
+    var requestValue = this.f3MonCache.get(requestKey);
+    var pending=false;
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      requestValue = this.f3MonCacheSec.get(requestKey);
+      pending=true;
     }
+    var _this = this;
 
-    var retObj = {
-    };
-
-    var sendResult = function(cached,obj) {
-	  var srvTime = (new Date().getTime())-eTime;
-	  totalTimes.queried += srvTime;
-          if (cached) {
-	    if (verbose) console.log('bigpic_teols (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-          } else {
-	    f3MonCache.set(requestKey, [obj,ttl], ttl);
-	    if (verbose) console.log('bigpic_teols (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-          }
-	  res.set('Content-Type', 'text/javascript');
-          res.header("Cache-Control", "no-cache, no-store");
-          if (cb!==undefined)
-	    res.send(cb +' ('+JSON.stringify(obj)+')');
-          else
-	    res.send(JSON.stringify(obj));
-    }
-
-    var retObj = {
-    };
-
-    var maxls;
+    var maxls;//should bind it
 
     var qmaxls = function() {
 
@@ -493,15 +416,16 @@ module.exports = {
         }
       };
 
-      client.search({
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'eols',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        took += body.took;
         maxls = body.aggregations.maxls.value
         q(); 
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
 
@@ -531,14 +455,12 @@ module.exports = {
         }
       };
 
-
-
-      client.search({
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'stream-hist',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
-
+        took += body.took;
         var buckets = body.aggregations.streams.buckets;
         for (var i=0;i<buckets.length;i++) {
           var bucket = buckets[i]
@@ -551,10 +473,10 @@ module.exports = {
           else  
             retObj[bucket.key] = [bucket.complete.doc_count,bucket.incomplete.doc_count+diff,Math.floor((((tot_ls-diff)/tot_ls)*100)*bucket.complete.doc_count/bucket.doc_count)];
         }
-        sendResult(false,retObj);
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
 
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
 
@@ -564,12 +486,11 @@ module.exports = {
     };
 
     if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
       qmaxls();
     }else {
-      sendResult(true,requestValue[0]);
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
     }
     
   }//end
-}
 

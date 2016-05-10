@@ -1,80 +1,68 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var queryJSON;
-var verbose;
+var Common = require('./esCommon');
+module.exports = new Common()
 
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+      position = position || 0;
+      return this.substr(position, searchString.length) === searchString;
+  };
 }
 
-var checkDefault = function(value,defaultValue) {
-  if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
-  else return value;
-}
+module.exports.query = function (req, res) {
 
-module.exports = {
-
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
-    queryJSON = queryJSN;
-    verbose = global.verbose;
-  },
-
-  query : function (req, res) {
-
+    var took = 0;
+    var qname = 'logtable';
 
     //if (verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'logtable request');
-    var eTime = new Date().getTime();
+    var eTime = this.gethrms();
     var cb = req.query.callback;
 
     //GET query string params
-    var qparam_from = req.query.from;
-    var qparam_size = req.query.size;
-    var qparam_sortBy = req.query.sortBy;
-    var qparam_sortOrder = req.query.sortOrder;
-    var qparam_search = req.query.search;
-    var qparam_startTime = req.query.startTime;
-    var qparam_endTime = req.query.endTime;
-    var qparam_sysName = req.query.sysName;
+    var qparam_from = this.checkDefault(req.query.from,0);
+    var qparam_size = this.checkDefault(req.query.size,100);
+    var qparam_sortBy = this.checkDefault(req.query.sortBy,'');
+    var qparam_sortOrder = this.checkDefault(req.query.sortOrder,'');
+    var qparam_search = this.checkDefault(req.query.search,'*');
+    var qparam_startTime = this.checkDefault(req.query.startTime,'now');
+    if (qparam_startTime==='NaN') qparam_startTime = 'now';
+    var qparam_endTime = this.checkDefault(req.query.endTime,'now');
+    var qparam_sysName = this.checkDefault(req.query.sysName,'cdaq');
+    var qparam_truncateAt = parseInt(this.checkDefault(req.query.truncateAt,16184));
+    var qparam_docType = this.checkDefault(req.query.docType,"hltdlog,cmsswlog");
+    var htmlFormat=true;
 
-    if (qparam_from == null){qparam_from = 0;}
-    if (qparam_size == null){qparam_size = 100;}
-    if (qparam_sortBy == null){qparam_sortBy = '';}
-    if (qparam_sortOrder == null){qparam_sortOrder = '';}
-    if (qparam_search == null){qparam_search = '*';}
-    if (qparam_startTime == null || qparam_startTime == 'false'){qparam_startTime = 0;}
-    if (qparam_startTime==='NaN') qparam_startTime = now;
-    if (qparam_endTime == null || qparam_endTime == 'false' || qparam_endTime==='NaN'){qparam_endTime = 'now';}
-    if (qparam_sysName == null || qparam_sysName == 'false'){qparam_sysName = 'cdaq';}
+    //show last 5 min if no run is selected / active
+    if (qparam_startTime=='now' && qparam_endTime=='now') qparam_endTime='now-5m';
 
-    var requestKey = 'logtable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='+qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
-    var requestValue = f3MonCache.get(requestKey);
-    var ttl = ttls.logtable; //cached ES response ttl (in seconds)
+    if (parseInt(qparam_size)+parseInt(qparam_from)>=10000) if (parseInt(qparam_from)<10000) qparam_size=10000-parseInt(qparam_from); else {qparam_size=1000;qparam_from=0};
 
+    var requestKey = qname+'?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy
+                     +'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='
+                     +qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
+
+    var requestValue = this.f3MonCache.get(requestKey);
+    var ttl = this.ttls.logtable; //cached ES response ttl (in seconds)
+
+    var pending=false
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      pending=true
+      requestValue = this.f3MonCacheSec.get(requestKey);
     }
 
-
-    if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+    if (requestValue === undefined) {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+        return;
+      }
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
 
       //parameterize query
-      queryJSON.size = qparam_size;
-      queryJSON.from = qparam_from;
-      queryJSON.query.filtered.filter.and[0].range.date.from = qparam_startTime;
-      queryJSON.query.filtered.filter.and[0].range.date.to = qparam_endTime;
+      this.queryJSON1.size = qparam_size;
+      this.queryJSON1.from = qparam_from;
+      this.queryJSON1.query.filtered.filter.and[0].range.date.from = qparam_startTime;
+      this.queryJSON1.query.filtered.filter.and[0].range.date.to = qparam_endTime;
 
       if (qparam_search != ''){
 	var searchText = '';
@@ -83,9 +71,9 @@ module.exports = {
 	}else{
 	  searchText = qparam_search;
 	}
-	queryJSON.query.filtered.query.bool.should[0].query_string.query = searchText;
+	this.queryJSON1.query.filtered.query.bool.should[0].query_string.query = searchText;
       }else{
-	queryJSON.query.filtered.query.bool.should[0].query_string.query = '*';
+	this.queryJSON1.query.filtered.query.bool.should[0].query_string.query = '*';
       }
 
       var missing = '_last';
@@ -101,14 +89,16 @@ module.exports = {
 	var temp = {};
 	temp[qparam_sortBy] = inner;
 	var outer = temp;
-	queryJSON.sort = outer;
+	this.queryJSON1.sort = outer;
       }
+      var _this = this
 
-      client.search({
+      this.client.search({
         index: 'hltdlogs_'+qparam_sysName+'_read',
-        type: 'hltdlog,cmsswlog',
-        body: JSON.stringify(queryJSON)
+        type: qparam_docType,
+        body: JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        took+=body.took
         var results = body.hits.hits; //hits for query
         if (body.hits.length==0){
           //send empty response if hits list is empty
@@ -116,39 +106,149 @@ module.exports = {
         }else{
           var total = body.hits.total;
           var ret = [];
-	  for (var index = 0 ; index < results.length; index++){
+	  for (var index = 0 ; index < results.length; index++) {
+            if (results[index]._source.hasOwnProperty('message')) {
+              var msgtokens = results[index]._source.message.split('\n');
+              var msgout = "";
+              var msgoutlen = 0;
+              var seenThreadTrace=false;
+              var traceCount = 0
+              for (var idx=0;idx<msgtokens.length;idx++) {
+                var token = msgtokens[idx]
+                var msglen = token.length;
+                if (token.startsWith('Thread')) {
+                  if (htmlFormat)
+                  token = token.replace(/Thread/,'<b>Thread</b>')
+                  seenThreadTrace=true;
+                  traceCount=0
+                }
+                else {
+                  if (seenThreadTrace)
+                    traceCount++;
+                }
+                if (traceCount<=5) {//take only 5 lines from stack trace
+                  if (htmlFormat) {
+                    msgout+=token+'<br>';
+                    msglen+=msglen+3;
+                  } else {
+                    msgout+=token+'\n';
+                    msglen+=msglen+2;
+                  }
+                  msgoutlen+=msglen;
+                }
+                else if (traceCount==6){
+                  if (htmlFormat) {
+                    msgout+='[...]<br>';
+                    msglen+=msglen+8;
+                  } else {
+                    msgout+='[...]\n';
+                    msglen+=msglen+7;
+                  }
+                  msgoutlen+=msglen;
+                }
+                if (qparam_truncateAt>0 && msgoutlen>qparam_truncateAt && idx+1<msgtokens.length)  {
+                  if (htmlFormat)
+                    msgout+="<br> <b>[ message truncated ]</b> <br>";
+                  else
+                    msgout+="\n [ message truncated ] \n";
+                  break;
+                }
+              }
+              results[index]._source.message=msgout
+            }
+            /*try {
+              if (qparam_truncateAt>0 && results[index]._source.message.length>qparam_truncateAt) {
+                if (htmlFormat) {
+                  results[index]._source.message = results[index]._source.message.substr(0,qparam_truncateAt).replace(/\n/g,'<br>');
+                  results[index]._source.message+="<br> <b>[ message truncated ]</b> <br>"
+                }
+                else {
+                  results[index]._source.message = results[index]._source.message.substr(0,qparam_truncateAt);
+                  results[index]._source.message+="\n [ message truncated ] \n"
+                }
+              }
+              else {
+                if (htmlFormat)
+                  results[index]._source.message = results[index]._source.message.replace(/\n/g,'<br>');
+              }
+            } catch (e) {}*/
+              
 	    ret[index] = results[index]._source;
 	  }
 	  var retObj = {
 	    "iTotalRecords" : total,
 	    "iTotalDisplayRecords" : total,
 	    "aaData" : ret,
-	    "lastTime" : body.aggregations.lastTime.value
+	    "lastTime" : body.aggregations.lastTime.value,
+            "docType" : qparam_docType
 	  };
-	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
-	  var srvTime = (new Date().getTime())-eTime;
-	  totalTimes.queried += srvTime;
-	  if (verbose) console.log('logtable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	  res.set('Content-Type', 'text/javascript');
-          res.header("Cache-Control", "no-cache, no-store");
-	  res.send(cb +' ('+JSON.stringify(retObj)+')');
+
+          var q3=function() {
+            //gt count of CMSSW messages
+            var queryJSON2 = JSON.parse(JSON.stringify(_this.queryJSON1));
+            queryJSON2.size=0
+            queryJSON2.from=0
+            delete queryJSON2.aggs;
+            qparam_docType='hltdlog'
+
+            _this.client.search({
+              index: 'hltdlogs_'+qparam_sysName+'_read',
+              type: qparam_docType,
+              body: JSON.stringify(queryJSON2)
+            }).then (function(body) {
+                took+=body.took
+                retObj.hltdTotal = parseInt(body.hits.total); //hits for query
+                _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+              }
+              ,function (error){
+                _this.excpEscES(res,error);
+                console.trace(error.message);
+            });
+          }
+
+          var q2=function() {
+            //gt count of CMSSW messages
+            var queryJSON2 = JSON.parse(JSON.stringify(_this.queryJSON1));
+            queryJSON2.size=0
+            queryJSON2.from=0
+            delete queryJSON2.aggs;
+            qparam_docType='cmsswlog'
+
+            _this.client.search({
+              index: 'hltdlogs_'+qparam_sysName+'_read',
+              type: qparam_docType,
+              body: JSON.stringify(queryJSON2)
+            }).then (function(body) {
+                took+=body.took
+                retObj.hltTotal = parseInt(body.hits.total); //hits for query
+                retObj.hltdTotal = parseInt(retObj.iTotalRecords) - retObj.hltTotal
+                if (qparam_docType!=='hltdlog' && qparam_docType!=='cmsswlog')
+                  //both types searched commonly
+                  _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+                else {
+                  //need another query to find out hltdlog doc count
+                  q3()
+                }
+              }
+              ,function (error){
+                _this.excpEscES(res,error);
+                console.trace(error.message);
+            });
+          }
+
+          q2();
+          //_this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
         }                  
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
 
-    }else{
-      var srvTime = (new Date().getTime())-eTime;
-      totalTimes.cached += srvTime;
-      if (verbose) console.log('logtable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-      res.set('Content-Type', 'text/javascript');
-      res.header("Cache-Control", "no-cache, no-store");
-      res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-    }
+    } else
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   },
 
-  findLog : function (req, res) {
+module.exports.findLog = function (req, res) {
 
     try {
       var qparam_setup = checkDefault(req.query.setup,"cdaq");
@@ -163,8 +263,10 @@ module.exports = {
     }
 
     var queryJSON = {"query":{"bool":{"must":[ {"term":{"run":qparam_run}},{"term":{"host":qparam_fu}},{"term":{"pid":qparam_pid}}]}}};
+
+    var _this = this
  
-    clieny.search({
+    this.client.search({
         index: 'hltdlogs_'+qparam_setup+'_read',
         type: 'cmsswlog',
         body: JSON.stringify(queryJSON)
@@ -181,12 +283,11 @@ module.exports = {
           }
 	res.set('Content-Type', 'text/javascript');
         res.header("Cache-Control", "no-cache, no-store");
-        res.send(JSON.stringify(retObj));
+        res.send(JSON.stringify(retObj)); //non-cached
  
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
   }
-}
 

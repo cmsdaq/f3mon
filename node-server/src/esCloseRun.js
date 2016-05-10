@@ -66,7 +66,7 @@ module.exports = {
         type: 'run',
         id: qparam_runNumber,
         refresh:true, //make sure this is written when reply is received
-        body: {doc:{endTime : time,activeBUs:0}}
+        body: {doc:{endTime : time}}
       }).then (function(body){
         retObj.runDocument = body;
         callback(sendResult);

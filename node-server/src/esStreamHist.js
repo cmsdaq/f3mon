@@ -43,7 +43,7 @@ module.exports.query = function (req, res) {
 
   var qname = 'streamhist'
   //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
-  var eTime = new Date().getTime();
+  var eTime = this.gethrms();
   var cb = req.query.callback;
 
   //GET query string params
@@ -404,6 +404,9 @@ module.exports.query = function (req, res) {
                 var processedAccum = beforeLs.procAll.value
 
                 var totAcc = 0;
+                var fakeMicro = false
+                if (retObj.micromerge.percents.length==lsList.length) fakeMicro=true;
+                //else console.log(fakeMicro)
 
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
@@ -456,6 +459,13 @@ module.exports.query = function (req, res) {
                         "color" : color
                         };
                         minimerge.percents.push(entry);
+                        if (fakeMicro) {
+                          var tobj = retObj.micromerge.percents[i];
+                          if (tobj.y<percent) {
+                            tobj.y=percent;
+                            tobj.color=percColor2(percent,tobj.err);
+                          }
+                        }
 		}
 		retObj.minimerge = minimerge;
                 q5(_this)
@@ -680,7 +690,8 @@ module.exports.query = function (req, res) {
 		var entry = {
 			"x" : ls,
 			"y" : percent,
-			"color" : color
+			"color" : color,
+                        "err":err>0
 		};
 		micromerge.percents.push(entry);
         }

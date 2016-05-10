@@ -19,12 +19,13 @@ Common.prototype.setup = function (cache,cacheSec,cacheTer,client,clientESlocal,
     this.queryJSON3=json3;
     this.queryJSON4=json4;
     this.verbose = global.verbose;
+    this.bulk_buffer = global.bulk_buffer;
 }
 
 //escapes client hanging upon an ES request error by sending http 500
 Common.prototype.excpEscES = function(res,error,requestKey){
     //message can be augmented with info from error
-    var msg = 'Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)';
+    var msg = 'Internal Server Error (Elasticsearch query error during the request execution, expert should seek further info in the logs)';
     res.status(500).send(msg);
 
     var cachedPending = this.f3MonCacheTer.get(requestKey);
@@ -63,22 +64,22 @@ Common.prototype.checkDefault = function(value,defaultValue) {
 }
 
 Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eTime,ttl,took) {
-  var srvTime = (new Date().getTime())-eTime;
+  //var srvTime = (new Date().getTime())-eTime;
+  var srvTime = this.gethrms() - eTime;
   this.totalTimes.queried += srvTime;
-  if (took!==undefined) { //adaptive ttl
-        var tookSec = took/1000.;
-        if (tookSec>ttl) usettl=ttl+tookSec;
-  }
   if (cached) {
     //console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
   } else {
+    var usettl = ttl;
     if (took!==undefined) { //adaptive ttl
       var tookSec = took/1000.;
-      if (tookSec>ttl) ttl+=tookSec;
+      if (tookSec>ttl && tookSec<ttl*4) usettl+=tookSec;
     }
-    this.f3MonCache.set(requestKey, [obj,ttl], ttl);
+    this.f3MonCache.set(requestKey, [obj,usettl], usettl);
     if (this.verbose) console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }
+  var time_now = new Date().getTime();
+  this.bulk_buffer.push({ip:req.connection.remoteAddress,useragent:req.headers['user-agent'],query:qname,cached_response:cached,date:time_now,took:srvTime})
 
   res.set('Content-Type', 'text/javascript');
   res.header("Cache-Control", "no-cache, no-store");
@@ -111,6 +112,11 @@ Common.prototype.putInPendingCache = function(replyCache,requestKey,ttl) {
     this.f3MonCacheTer.set(requestKey,[replyCache],ttl*10); //large(r) expiration time for this
   else
     cachedval.push(replyCache);
+}
+
+Common.prototype.gethrms = function() {
+var hrTime = process.hrtime() ;
+return hrTime[0] * 1000 + hrTime[1] / 1000000;
 }
 
 module.exports = Common;

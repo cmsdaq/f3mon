@@ -12,9 +12,12 @@ var serverPort = 3002;
 if (process.argv[2]!=null){
 	serverPort = process.argv[2];
 }
+global.serverPort = serverPort;
 var owner=process.argv[3];
 
 global.verbose = process.argv[4]|0;
+
+global.bulk_buffer = []
 
 //unlimited number of simultaneous connections (default:5)
 http.globalAgent.maxSockets=Infinity;
@@ -114,6 +117,7 @@ process.on('uncaughtException', exceptionHandler = function(err) {
         else throw err;
 	});
 
+
 //8.map of queries in JSON format
 //this map is loaded with all queries (structure in JSON) at startup, then callbacks use these queries instead of launching independent I/Os in the json directory
 var loadedJSONs = {};
@@ -186,12 +190,12 @@ smdb.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,dbinfo)
 //redirect
 app.get('/node-f3mon', function (req, res) {  res.redirect('/f3mon');});
 
-//callback 1 (test)
+//callback test 1
 app.get('/', function (req, res) {
   res.send('Hello World!');
 });
 
-//callback 2 (test)
+//callback test 2
 app.get('/test', function (req, res) { setTimeout(function(){
     res.send('Hello World after sleep!');
   }, 10000);
@@ -199,106 +203,107 @@ app.get('/test', function (req, res) { setTimeout(function(){
 });
 
 //***F3MON CALLBACKS***
-//callback 3
+//callback 1
 var esServerStatus = require('./src/esServerStatus')
-esServerStatus.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes);
-app.get('/f3mon/api/serverStatus', esServerStatus.query);
+esServerStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
+app.get('/f3mon/api/serverStatus', esServerStatus.query.bind(esServerStatus));
 
-//callback 4
+//callback 2
 var esIndices = require('./src/esIndices')
-esIndices.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes);
-app.get('/f3mon/api/getIndices', esIndices.query);
+esIndices.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
+app.get('/f3mon/api/getIndices', esIndices.query.bind(esIndices));
 
-//callback 5
+//callback 3
 var esDisksStatus = require('./src/esDisksStatus')
 esDisksStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("disks.json"));
 app.get('/f3mon/api/getDisksStatus', esDisksStatus.query.bind(esDisksStatus));
 
-//callback 6
+//callback 4
 var esRunList = require('./src/esRunList')
 esRunList.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
 //added layer of redirection (bind) because express 'drops' this namespace
 app.get('/f3mon/api/runList', esRunList.query.bind(esRunList));
 app.get('/sc/api/runList', esRunList.query.bind(esRunList));
 
-//callback 7
+//callback 5
 var esRiverStatus = require('./src/esRiverStatus')
-esRiverStatus.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("riverstatus.json"));
-app.get('/f3mon/api/riverStatus', esRiverStatus.query);
+esRiverStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("riverstatus.json"));
+app.get('/f3mon/api/riverStatus', esRiverStatus.query.bind(esRiverStatus));
+
+//callback 6
+var esRunListTable = require('./src/esRunListTable')
+esRunListTable.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("rltable.json"));
+app.get('/f3mon/api/runListTable', esRunListTable.query.bind(esRunListTable));
+
+//callback 7
+var esRiverListTable = require('./src/esRiverListTable')
+esRiverListTable.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("runrivertable-meta.json"));
+app.get('/f3mon/api/runRiverListTable', esRiverListTable.query.bind(esRiverListTable));
+app.get('/sc/api/runRiverListTable', esRiverListTable.query.bind(esRiverListTable));
 
 //callback 8
-var esRunListTable = require('./src/esRunListTable')
-esRunListTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("rltable.json"));
-app.get('/f3mon/api/runListTable', esRunListTable.query);
-
-//callback 9
-var esRiverListTable = require('./src/esRiverListTable')
-esRiverListTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("runrivertable-status.json"),getQuery("runrivertable-meta.json"));
-app.get('/f3mon/api/runRiverListTable', esRiverListTable.query);
-app.get('/sc/api/runRiverListTable', esRiverListTable.query);
-
-//callback 10
 var esCloseRun = require('./src/esCloseRun')
 esCloseRun.setup(client);
 app.get('/f3mon/api/closeRun', esCloseRun.query);
 
-//callback 12
+//callback 9
 var esStartCollector = require('./src/esStartCollector');
 esStartCollector.setup(client);
 app.get('/f3mon/api/startCollector', esStartCollector.query);
 
-//callback 12
+//callback 10
 var esLogTable = require('./src/esLogTable')
-esLogTable.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("logmessages.json"));
-app.get('/f3mon/api/logtable', esLogTable.query);
+esLogTable.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("logmessages.json"));
+app.get('/f3mon/api/logtable', esLogTable.query.bind(esLogTable));
+
+//callback 11
+var esNstatesSummary = require('./src/esMicrostates');
+esNstatesSummary.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("aggnstates.json"),getQuery("teolsminmax.json"));
+app.get('/f3mon/api/nstates-summary', esNstatesSummary.query.bind(esNstatesSummary));
+
+//not yet ported to esCommon:
+//callback 12
+var esRunInfo = require('./src/esRunInfo');
+esRunInfo.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("lastls.json"),getQuery("streamsinrun.json"));
+app.get('/f3mon/api/runInfo', esRunInfo.query.bind(esRunInfo));
+app.get('/sc/api/runInfo', esRunInfo.query.bind(esRunInfo));
 
 //callback 13
-var esNstatesSummary = require('./src/esMicrostates');
-esNstatesSummary.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("aggnstates.json"),getQuery("teolsminmax.json"))
-app.get('/f3mon/api/nstates-summary', esNstatesSummary.query);
-
-//callback 14
-var esRunInfo = require('./src/esRunInfo');
-esRunInfo.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("lastls.json"),getQuery("streamsinrun.json"));
-app.get('/f3mon/api/runInfo', esRunInfo.query);
-app.get('/sc/api/runInfo', esRunInfo.query);
-
-//callback 15
 var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
 esMiniMacroPerStream.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
 app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query); 
 
-//callback 16
+//callback 14
 var esMiniMacroPerHost = require('./src/esMiniMacroPerHost');
 esMiniMacroPerHost.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("macroperhost.json"),getQuery("teolsperbu.json"),getQuery("teolsperstream.json"));
 app.get('/f3mon/api/minimacroperhost', esMiniMacroPerHost.query); 
 
-//callback 17
+//callback 15
 var esStreamHist = require('./src/esStreamHist');
 esStreamHist.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"));
 app.get('/f3mon/api/streamhist', esStreamHist.query.bind(esStreamHist)); 
 
-//callback 18
+//callback 16
 var esGetStreamList =  require('./src/esGetStreamList');
 esGetStreamList.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("streamlabel.json"));
 app.get('/f3mon/api/getstreamlist', esGetStreamList.query);
 
-//callback 19
+//callback 17
 var esGetConfig =  require('./src/esGetConfig');
 esGetConfig.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("config.json"));
 app.get('/f3mon/api/getConfig', esGetConfig.query);
 
-//callback 20
+//callback 18
 var esBigPic =  require('./src/esBigPic');
-esBigPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
-app.get('/sc/api/bigPic', esBigPic.query);
+esBigPic.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
+app.get('/sc/api/bigPic', esBigPic.query.bind(esBigPic));
 
-//callback 21
-app.get('/sc/api/teols', esBigPic.teols);
-app.get('/f3mon/api/teols', esBigPic.teols);
+//callback 19
+app.get('/sc/api/teols', esBigPic.teols.bind(esBigPic));
+app.get('/f3mon/api/teols', esBigPic.teols.bind(esBigPic));
 //***DB callbacks (TRANSFER STATUS and BIGPIC HWCFG)***
 
-//callback 22
+//callback 20
 app.get('/sc/api/transfer', function (req, res) {
   smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
 });
@@ -339,7 +344,7 @@ var server = app.listen(serverPort, function () {
 
 //12. start cache state logging
 var statsLogger =  require('./src/statsLogger');
-statsLogger.start(f3MonCache,totalTimes);
+statsLogger.start(client,f3MonCache,totalTimes);
 
 
 //log start time

@@ -1,35 +1,14 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var queryJSON;
-var verbose;
+var Common = require('./esCommon');
+module.exports = new Common()
 
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
+module.exports.query = function (req, res) {
 
-module.exports = {
-
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
-    queryJSON = queryJSN;
-    verbose = global.verbose;
-  },
-
-  query : function (req, res) {
-
+    var took = 0;
+    var qname = 'runListTable';
     //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runListTable request');
-    var eTime = new Date().getTime();
+    var eTime = this.gethrms();
     var cb = req.query.callback;
 
     //GET query string params
@@ -47,22 +26,26 @@ module.exports = {
     if (qparam_search == null){qparam_search = '';}
     if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
-    var requestKey = 'runListTable?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&sysName='+qparam_sysName;
-    var requestValue = f3MonCache.get(requestKey);
-    var ttl = ttls.runListTable; //cached ES response ttl (in seconds)
+    var requestKey = qname+'?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&sysName='+qparam_sysName;
+    var requestValue = this.f3MonCache.get(requestKey);
+    var ttl = this.ttls.runListTable; //cached ES response ttl (in seconds)
 
-
+    var pending=false
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      pending=true
+      requestValue = this.f3MonCacheSec.get(requestKey);
     }
 
-    if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+    if (requestValue === undefined) {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+        return;
+      }
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
 
-      //console.log(qparam_sortBy);
       //parameterize query fields
-      queryJSON.size =  qparam_size;
-      queryJSON.from = qparam_from;
+      this.queryJSON1.size =  qparam_size;
+      this.queryJSON1.from = qparam_from;
 
       var missing = '_last';
       if (qparam_sortOrder == 'desc'){
@@ -77,10 +60,10 @@ module.exports = {
 	var temp = {};
 	temp[qparam_sortBy] = inner;
 	var outer = [temp]; //follows rltable.json format for sort
-	queryJSON.sort = outer;
+	this.queryJSON1.sort = outer;
       }
 
-      var qsubmitted = queryJSON;
+      var qsubmitted = this.queryJSON1;
       //only filter if more than 2 characters specified
       if (qparam_search != '' && qparam_search.length>2){
 	var searchText = qparam_search;
@@ -99,23 +82,22 @@ module.exports = {
 	    qsubmitted["filter"] = {"script":{"script":"doc[\"runNumber\"].value.toString().startsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}
           else if (searchText[0]==='*')
 	    qsubmitted["filter"] = {"script":{"script":"doc[\"runNumber\"].value.toString().endsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}
-          //qsubmitted["query"] = {"query_string":{"query": searchText}}
         }
         else {
 	  delete qsubmitted["filter"];
-	  //delete qsubmitted["query"];
         }
       }else{
 	delete qsubmitted["filter"];
-	//delete qsubmitted["query"];
       }
 
+      var _this = this
       //search ES
-      client.search({
+      this.client.search({
         index:'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body: JSON.stringify(qsubmitted)
       }).then (function(body){
+        took+=body.took
         var results = body.hits.hits; //hits for query
 
 	//format response content here
@@ -131,28 +113,13 @@ module.exports = {
 	  "iTotalDisplayRecords" : filteredTotal,
 	  "aaData" : arr
 	};
-
-
-	f3MonCache.set(requestKey, [retObj,ttl], ttl);
-	var srvTime = (new Date().getTime())-eTime;
-	totalTimes.queried += srvTime;
-	if (verbose) console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	res.set('Content-Type', 'text/javascript');
-        res.header("Cache-Control", "no-cache, no-store");
-	res.send(cb +' ('+JSON.stringify(retObj)+')');
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
 
-    }else{
-      var srvTime = (new Date().getTime())-eTime;
-      totalTimes.cached += srvTime;
-      if (verbose) console.log('runListTable (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-      res.set('Content-Type', 'text/javascript');
-      res.header("Cache-Control", "no-cache, no-store");
-      res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-    }
+    } else
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   }
-}
 

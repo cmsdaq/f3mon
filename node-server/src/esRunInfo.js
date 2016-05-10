@@ -1,78 +1,39 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var queryJSON1;
-var queryJSON2;
-var verbose;
+var Common = require('./esCommon');
+module.exports = new Common()
 
-//escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-	//message can be augmented with info from error
-        res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
+module.exports.query = function (req, res) {
 
-var checkDefault = function(value,defaultValue) {
-    if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
-    else return value;
-}
-
-module.exports = {
-
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
-    queryJSON1 = queryJSN1;
-    queryJSON2 = queryJSN2;
-    verbose = global.verbose;
-  },
-
-  query : function (req, res) {
+    var took = 0;
+    var qname = 'runInfo';
 
     //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'runInfo request');
-    var eTime = new Date().getTime();
+    var eTime = this.gethrms();
     var cb = req.query.callback;
     //GET query string params
-    var qparam_runNumber = checkDefault(req.query.runNumber,null);
-    var qparam_sysName = checkDefault(req.query.sysName,"cdaq");
-    var qparam_activeRuns  = checkDefault(req.query.activeRuns,false);
+    var qparam_runNumber = this.checkDefault(req.query.runNumber,null);
+    var qparam_sysName = this.checkDefault(req.query.sysName,"cdaq");
+    var qparam_activeRuns  = this.checkDefault(req.query.activeRuns,false);
 
-    var requestKey = 'runInfo?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName+'&active='+qparam_activeRuns;
-    var requestValue = f3MonCache.get(requestKey);
-    var ttl = ttls.runInfo; //cached ES response ttl (in seconds)
-
+    var requestKey = qname+'?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName+'&active='+qparam_activeRuns;
+    var requestValue = this.f3MonCache.get(requestKey);
+    var ttl = this.ttls.runInfo; //cached ES response ttl (in seconds)
 
     var retObj = {};
-
-    var sendResult = function(){
-	    f3MonCache.set(requestKey, [retObj,ttl], ttl);
-	    var srvTime = (new Date().getTime())-eTime;
-	    totalTimes.queried += srvTime;
-	    if (verbose) console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-	    res.set('Content-Type', 'text/javascript');
-            res.header("Cache-Control", "no-cache, no-store");
-            if (cb!==undefined)
-	      res.send(cb +' ('+JSON.stringify(retObj)+')');
-            else
-	      res.send(JSON.stringify(retObj));
-    }
+    var _this = this
 
     //last LS number
     var q4 = function (){
 
-      queryJSON1.query.term._parent = qparam_runNumber;
+      _this.queryJSON1.query.term._parent = qparam_runNumber;
 
-      client.search({
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'eols',
-      body : JSON.stringify(queryJSON1)
+      body : JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        took+=body.took
 	var results = body.hits.hits; //hits for query
 	  if (results.length === 0){
 	  retObj.lastLs = 0;
@@ -80,9 +41,9 @@ module.exports = {
 	  //retObj.lastLs = results[0].sort[0];
 	  retObj.lastLs = results[0]._source.ls;
 	}
-        sendResult();
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
       }, function (error){
-        excpEscES(res,error);
+        _this.excpEscES(res,error);
         console.trace(error.message);
       });
     }//end q3
@@ -100,11 +61,12 @@ module.exports = {
         },
         "sort": {"stream": {"order": "asc"}}
       }
-      client.search({
+      _this.client.search({
        index: 'runindex_'+qparam_sysName+'_read',
        type: 'stream_label',
        body : JSON.stringify(queryJSONs)
       }).then (function(body){
+        took+=body.took
         var results = body.hits.hits; //hits for query
 	var set = {};
         retObj['streamListINI'] = [];
@@ -116,7 +78,7 @@ module.exports = {
 	}
         q4();
       }, function (error){
-	excpEscES(res,error);
+	_this.excpEscES(res,error);
         console.trace(error.message);
       });
     }
@@ -125,13 +87,14 @@ module.exports = {
     //streams
     var q2 = function (){
 
-      queryJSON2.query.term._parent = qparam_runNumber;
+      _this.queryJSON2.query.term._parent = qparam_runNumber;
 
-      client.search({
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'stream-hist',
-        body : JSON.stringify(queryJSON2)
+        body : JSON.stringify(_this.queryJSON2)
       }).then (function(body){
+        took+=body.took
         //var results = body.hits.hits; //hits for query
         var terms = body.aggregations.streams.buckets; //replacing facet implementation (facets->deprecated)
 	var streams = [];
@@ -140,9 +103,8 @@ module.exports = {
 	}
 	retObj.streams = streams;
         q3();
-        callback(sendResult);
       }, function (error){
-	excpEscES(res,error);
+	_this.excpEscES(res,error);
         console.trace(error.message);
       });
     }//end q2
@@ -156,46 +118,44 @@ module.exports = {
       if (qparam_activeRuns)
         queryJSON["query"]= {"constant_score":{"filter":{"missing":{"field":"endTime"}}}};
 
-      client.search({
+      _this.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body : JSON.stringify(queryJSON)
       }).then (function(body){
+        took+=body.took
         var results = body.hits.hits; //hits for query
 	if (results.length === 0){
-          sendResult();
+           _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
           return;
         }
 	retObj = results[0]._source; 	//throws cannot read property error if result list is empty (no hits found) because results[0] is undefined
         if (qparam_runNumber===null) qparam_runNumber = results[0]._id;
+
 	q2();
       }, function (error){
-	excpEscES(res,error);
+	_this.excpEscES(res,error);
         console.trace(error.message);
       });
 
     }//end q1
 
+    var pending=false
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      pending=true
+      requestValue = this.f3MonCacheSec.get(requestKey);
     }
 
-    if (requestValue == undefined) {
-     f3MonCache.set(requestKey, "requestPending", ttl);
- 
-     q1();
+    if (requestValue === undefined) {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+        return;
+       }
+       this.f3MonCache.set(requestKey, "requestPending", ttl);
+       q1();
 
-    }else{
-	var srvTime = (new Date().getTime())-eTime;
-        totalTimes.cached += srvTime;
-        if (verbose) console.log('runInfo (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-        res.set('Content-Type', 'text/javascript');
-        res.header("Cache-Control", "no-cache, no-store");
-        if (cb!==undefined)
-          res.send(cb + ' (' + JSON.stringify(requestValue[0])+')');
-        else
-	  res.send(JSON.stringify(requestValue[0]));
-    }
+    } else 
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    
   }
-}
 

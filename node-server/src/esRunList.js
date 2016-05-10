@@ -8,7 +8,8 @@ module.exports.query = function (req, res) {
     //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
     //time
-    var eTime = new Date().getTime();
+    var took = 0
+    var eTime = this.gethrms();
 
     //query const
     var qname = 'runList';
@@ -71,6 +72,7 @@ module.exports.query = function (req, res) {
         type: 'run',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        took+=body.took
 	var results = body.hits.hits; //hits for query
 
 	//format response content from query results, then send it
@@ -87,7 +89,7 @@ module.exports.query = function (req, res) {
 	    "runlist" : arr
 	  };
         }
-        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
 /*
         //lookup for pending queries cached in the meantime
         var cachedPending = _this.f3MonCacheTer.get(requestKey);

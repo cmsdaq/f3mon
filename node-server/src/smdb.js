@@ -351,10 +351,11 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
   var setup = reqQuery.setup;
   var setuptag="";
   var fuprefix="";
+  var buprefix="";
   if (setup === "minidaq") setup="cdaq";//same db
 
-  if (setup==="cdaq" || setup==="minidaq") {setuptag='DAQ2';fuprefix='fu-%';}
-  if (setup==="dv") {setuptag='DAQ2VAL';fuprefix='dvrubu-%';}
+  if (setup==="cdaq" || setup==="minidaq") {setuptag='DAQ2';fuprefix='fu-%';buprefix='bu-%'}
+  if (setup==="dv") {setuptag='DAQ2VAL';fuprefix='dvrubu-%';buprefix='dvbu-%'}
 
   var cb = reqQuery.cb;//angular callback (optional)
 
@@ -476,11 +477,51 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
               retObj[bu] = [fu];
           }
           //overwrite obj, put in cache
-	  f3MonCache.set(requestKey, [retObj,ttl], ttl);
-          if (!reply)
-            callback(retObj);
-          else
-            sendResult();
+
+          var q2 = function(callb) {
+
+              //"select attr_name, attr_value, d.dnsname from "+
+              //"DAQ_EQCFG_HOST_ATTRIBUTE ha,"+
+              //"ha.attr_name like 'myBUControl!_%' escape '!' "+
+            connection.execute(
+              "select d.dnsname from "+
+              "DAQ_EQCFG_DNSNAME d "+
+              "where "+
+              "d.dnsname like :buprefix "+
+              "AND d.NETWORK_NAME = 'Control' "+
+              //"AND ha.attr_name like 'myBU!_%' escape '!' "+
+              "AND d.eqset_id = (select eqset_id from DAQ_EQCFG_EQSET "+
+              "where tag=:setuptag AND "+
+              "ctime = (SELECT MAX(CTIME) FROM DAQ_EQCFG_EQSET WHERE tag=:setuptag))",
+              {'setuptag':setuptag,'buprefix':buprefix},
+              function(err, result){
+    	        if (err) {
+      	          console.error(err.message);
+                  //clear key on error?
+	          //f3MonCache.set(requestKey, [{},ttl], ttl);
+                  if (!reply)
+                    callb(null);
+                  else
+                    excpEscOracle(res, err);
+      	          return;
+   	        }
+	        var tuples = result.rows;
+                var bulist = {}
+                tuples.forEach(function(item) {  bulist[item.DNSNAME.split('.')[0]]=true  });
+                //console.log(bulist)
+                retObj['list_of_bus']=bulist;
+
+	        f3MonCache.set(requestKey, [retObj,ttl], ttl);
+
+                if (!reply)
+                  callb(retObj);
+                else
+                  sendResult();
+            });
+          }
+
+          q2(callback);
+
         }); //oracle query callback
 
     });//connection
