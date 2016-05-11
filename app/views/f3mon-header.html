@@ -17,10 +17,16 @@
                     </li>
 
                     <li id="logButton" ng-class="{'active': globalStatus.isTabSelected(1)}">
-                        <!-- Alert Link-->
-                        <a href="" ng-click='globalStatus.changeTab(1)'><i class="fa fa-bell"></i> Alerts
-                    <span class="label label-success" id="logNum"  ng-class="{'label-danger':logdata.numLogs > 0}">{{logdata.numLogs || 0}}</span>  
-                    </a>
+                      <!-- Alert Link HLTd-->
+                      <a href="" ng-click='globalStatus.changeTab(1)'><i class="fa fa-bell"></i> F<sup>3</sup>Alerts
+                        <span class="label label-success" id="logNum"  ng-class="{'label-danger':logdata.numHLTd > 0}">{{logdata.numHLTd || 0}}</span>
+                      </a>
+                    </li>
+                      <!-- Alert Link HLT-->
+                    <li id="logButtonHLT" ng-class="{'active': globalStatus.isTabSelected(2)}">
+                      <a href="" ng-click='globalStatus.changeTab(2)'><i class="fa fa-bell"></i> HLT Alerts
+                        <span class="label label-success" id="logNumHLT"  ng-class="{'label-danger':logdata.numHLT > 0}">{{logdata.numHLT || 0}}</span>  
+                      </a>
                     </li>
                 </ul>
             </div>
@@ -91,7 +97,9 @@
 
                     <li><a href="../index.html" id="mainMenuButton"><i class="fa fa-list"></i> Menu</a>
                     </li>
-
+ 
+                    <!--<li><a href="../kibana-tribe/#/dashboard/file/rateTribe"><i class="fa fa-sitemap"></i> Kibana-rateTribe</a>
+                    </li>-->
                     <li>
                         <a ng-controller="guideCtrl" ng-click="startTour()" href="" id="tourButton"><i class="fa fa-question"></i> Guide</a>
                     </li>
