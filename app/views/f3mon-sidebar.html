@@ -226,11 +226,11 @@
                             </tbody>
                             <tbody ng-show="!noData">
                                 <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.total" pagination-id="riverListPag">
-                                    <td>{{row.name}}</td>
+                                    <td style='font-size: 12px'>{{row.name}}</td>
                                     <!--<td>{{row.role}}</td>-->
-                                    <td style='white-space: nowrap' >{{row.host}}</td>
-                                    <td style='text-align: center'>{{row.subSystem}}</td>
-                                    <td style='text-align: center'>{{row.status}}</td>
+                                    <td style='white-space: nowrap;font-size: 12px' >{{row.host}}</td>
+                                    <td style='text-align: center;font-size: 12px'>{{row.subSystem}}</td>
+                                    <td style='text-align: center;font-size: 12px'>{{row.status}}</td>
                                     <td ng-show="row.role=='collector'" style='text-align: right'>
                                         <a ng-click="closeCollectorDialog(row.name,row.subSystem)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
                                     </td>
