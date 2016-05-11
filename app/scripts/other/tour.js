@@ -76,7 +76,7 @@
           onPrev: function(tour){tour._options.backdrop = true; tour.hideStep(tour._current);},
         }, 
         {
-          element: "#logButton",
+          element: "#logButtonHLT",
           placement: "bottom",
           title: "Alerts",
           content: "The number of error and fatal messages sent by the CMSSW processes in HLT between the start and the end of the current run is shown here.",
@@ -88,7 +88,7 @@
           element: "#logButton",
           placement: "bottom",
           title: "Alerts",
-          content: "Clicking on it will open the alert panel, through which you can examine the errors in detail.",
+          content: "Clicking on one of alert buttons will open the alert panel, through which you can examine the errors in detail.",
           onShown: function(tour){tour._options.backdrop = true;},
         }, 
         {
