@@ -45,7 +45,8 @@
 
                                 <tr>
                                     <th scope="row">BUs: </th>
-                                    <td bgcolor="{{buFracColor()}}">{{data.totalBUs && data.activeBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" running" : "N/A" }}</td>
+                                    <!--<td bgcolor="{{buFracColor()}}">{{data.totalBUs && data.activeBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" running" : "N/A" }}</td>-->
+                                    <td bgcolor="{{buFracColor()}}">{{data.totalBUs &amp;&amp; data.activeBUs ? data.activeBUs + " of " +data.totalBUs +" running" : "N/A" }}</td>
                                 </tr>
 
                                 <tr>
