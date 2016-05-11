@@ -52,6 +52,8 @@
                 maskedStreams: [],
                 queryStreams: [],
                 lastLs: false,
+                activeBUs: 0,
+                totalBUs: 0,
                 smartStreamsAsString: function() {
                     if (this.streamListINI.length>this.streams.length) return this.iniStreamsAsString();
                     else return this.streamsAsString();
@@ -82,6 +84,8 @@
             service.data.maskedStreams = [];
             service.data.queryStreams = [];
             service.data.lastLs = false;
+            service.data.activeBUs = 0;
+            service.data.totalBUs = 0;
             service.resetHeightNext = true;
             cache = false;
 
