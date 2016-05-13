@@ -72,6 +72,7 @@ module.exports.query = function (req, res) {
         type: 'run',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took+=body.took
 	var results = body.hits.hits; //hits for query
 
@@ -101,6 +102,7 @@ module.exports.query = function (req, res) {
           _this.f3MonCacheTer.del(requestKey);
         }
 */
+        } catch (e) {_this.exCb(res,e,requestKey)}
       },function (error){
 	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);

@@ -78,6 +78,7 @@ module.exports = {
         type: 'microstatelegend',
         body : JSON.stringify(queryJSON1)
       }).then (function(body){
+      try {
       if (body.hits.total ===0){
         retObj.data = [];
         sendResult();
@@ -125,9 +126,10 @@ module.exports = {
 	//console.log(JSON.stringify(data));	
 	callback(sendResult);
       }
+      } catch (e) {_this.exCb(res,e,requestKey)}
 
       }, function (error){
-	      excpEscES(res,error);
+	      excpEscES(res,error,requestKey);
 	      console.trace(error.message);
       });
 
@@ -146,6 +148,7 @@ module.exports = {
               body : JSON.stringify(queryJSON2)
 
             }).then (function(body){
+              try {
               var results = body.hits.hits; //hits for query
               var timeList = [];
 		
@@ -215,8 +218,9 @@ module.exports = {
 		retObj.lastTime = lastTime;
 	}
 	callback();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-	    excpEscES(res,error);
+	    excpEscES(res,error,requestKey);
 	    console.trace(error.message);
       });
 

@@ -14,6 +14,12 @@ var excpEscES = function (res, error){
   res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var exCb = function (res, error){
+  var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
+  console.log(error.stack)
+  res.status(500).send(msg);
+}
+
 var checkDefault = function(value,defaultValue) {
   if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
   else return value;
@@ -122,6 +128,7 @@ module.exports = {
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
 
         var afreq = body.aggregations.cloud.cpufreq.buckets;
         var afreqhlt = body.aggregations.hlt.cpufreq.buckets;
@@ -174,6 +181,8 @@ module.exports = {
 
 
         sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
+        //} catch (e) {_this.exCb(res,e,requestKey)}
+        } catch (e) {exCb(res,e)}
 
       }, function (error){
         excpEscES(res,error);
@@ -212,7 +221,7 @@ module.exports = {
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
-
+        try {
         var retObj = {
           "all":{"cpufreqhlt":[],"cpufreqcloud":[]},
           "perbu":[]
@@ -287,6 +296,8 @@ module.exports = {
           }*/
         sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
 
+        //} catch (e) {_this.exCb(res,e,requestKey)}
+        } catch (e) {exCb(res,e)}
       }, function (error){
         excpEscES(res,error);
         console.trace(error.message);

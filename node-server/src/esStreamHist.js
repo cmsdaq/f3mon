@@ -269,6 +269,7 @@ module.exports.query = function (req, res) {
          type: 'macromerge',
          body : JSON.stringify(queryJSON1)
     	}).then (function(body){
+          try {
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
                   var fm_date_val = results[0].fields.fm_date[0];
@@ -353,6 +354,7 @@ module.exports.query = function (req, res) {
 	        retObj.lastTime = maxLastTime;
                 //reply
                 _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+          } catch (e) {_this.exCb(res,e,requestKey)}
 	}, function (error){
 		_this.excpEscES(res,error,requestKey);
         	console.trace(error.message);
@@ -384,6 +386,7 @@ module.exports.query = function (req, res) {
          type: 'minimerge',
          body : JSON.stringify(queryJSON1)
     	}).then (function(body){
+          try {
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
                   var fm_date_val = results[0].fields.fm_date[0];
@@ -471,6 +474,7 @@ module.exports.query = function (req, res) {
                 q5(_this)
                 //uncomment instead of previous for stream completeness info (here and in q5)
 		//callback(q6); //q5(q6)
+          } catch (e) {_this.exCb(res,e,requestKey)}
 	}, function (error){
 		_this.excpEscES(res,error,requestKey);
         	console.trace(error.message);
@@ -508,6 +512,7 @@ module.exports.query = function (req, res) {
       type: 'stream-hist',
       body : JSON.stringify(queryJSON2)
     }).then (function(body){
+      try {
       var results = body.hits.hits; //hits for query
       if (results.length>0){
                 //is unix timestamp
@@ -711,6 +716,7 @@ module.exports.query = function (req, res) {
 	streamNum = mmStreamList.length;
 	
 	q4(_this); //q4(q5)
+      } catch (e) {_this.exCb(res,e,requestKey)}
     }, function (error){
         _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
@@ -737,6 +743,7 @@ module.exports.query = function (req, res) {
       type: 'eols',
       body : JSON.stringify(queryJSON3)
     }).then (function(body){
+      try {
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
                 var eoltimes = new Date(results[0].fields.fm_date);
@@ -795,6 +802,7 @@ module.exports.query = function (req, res) {
         retObj["input"]=retInput;
 
         q3(_this);
+      } catch (e) {_this.exCb(res,e,requestKey)}
     }, function (error){
 	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
@@ -825,6 +833,7 @@ module.exports.query = function (req, res) {
       type: 'eols',
       body : JSON.stringify(queryJSON3)
     }).then (function(body){
+      try {
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
                 var eoltimes = new Date(results[0].fields.fm_date);
@@ -880,6 +889,7 @@ module.exports.query = function (req, res) {
       retObj.navbar = ret;
       //callback(q3); //q2(q3)
       q2(_this);
+      } catch (e) {_this.exCb(res,e,requestKey)}
     }, function (error){
       _this.excpEscES(res,error,requestKey);
       console.trace(error.message);

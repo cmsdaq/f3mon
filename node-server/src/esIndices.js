@@ -32,8 +32,8 @@ module.exports.query = function (req, res) {
 
       this.client.cat.aliases({
        name: 'runindex*read'}
-      ).then(
-      function (body) {
+      ).then(function (body) {
+        try {
         took+=body.took
         //console.log('received response from ES :\n'+body+'\nend-response');
         var aliasList = [];
@@ -54,9 +54,10 @@ module.exports.query = function (req, res) {
         aliasList.sort(function(a,b){if (a.subSystem>b.subSystem) return true; else return false;});
         var retObj = {'list':aliasList};
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        } catch (e) {_this.exCb(res,e,requestKey)}
       },
       function(error) {
-	_this.excpEscES(res,error);
+	_this.excpEscES(res,error,requestKey);
         console.trace(error)
     });
     } else 

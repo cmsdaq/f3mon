@@ -98,11 +98,13 @@ module.exports.query = function (req, res) {
         type: qparam_docType,
         body: JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        try {
         took+=body.took
         var results = body.hits.hits; //hits for query
         if (body.hits.length==0){
           //send empty response if hits list is empty
           res.send();
+          return;
         }else{
           var total = body.hits.total;
           var ret = [];
@@ -196,12 +198,14 @@ module.exports.query = function (req, res) {
               type: qparam_docType,
               body: JSON.stringify(queryJSON2)
             }).then (function(body) {
+                try {
                 took+=body.took
                 retObj.hltdTotal = parseInt(body.hits.total); //hits for query
                 _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+                } catch (e) {_this.exCb(res,e,requestKey)}
               }
               ,function (error){
-                _this.excpEscES(res,error);
+                _this.excpEscES(res,error,requestKey);
                 console.trace(error.message);
             });
           }
@@ -219,6 +223,7 @@ module.exports.query = function (req, res) {
               type: qparam_docType,
               body: JSON.stringify(queryJSON2)
             }).then (function(body) {
+                try {
                 took+=body.took
                 retObj.hltTotal = parseInt(body.hits.total); //hits for query
                 retObj.hltdTotal = parseInt(retObj.iTotalRecords) - retObj.hltTotal
@@ -229,9 +234,10 @@ module.exports.query = function (req, res) {
                   //need another query to find out hltdlog doc count
                   q3()
                 }
+                } catch (e) {_this.exCb(res,e,requestKey)}
               }
               ,function (error){
-                _this.excpEscES(res,error);
+                _this.excpEscES(res,error,requestKey);
                 console.trace(error.message);
             });
           }
@@ -239,6 +245,7 @@ module.exports.query = function (req, res) {
           q2();
           //_this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
         }                  
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
         _this.excpEscES(res,error);
         console.trace(error.message);
@@ -271,6 +278,7 @@ module.exports.findLog = function (req, res) {
         type: 'cmsswlog',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         var results = body.hits.hits; //hits for query
 
         retObj = {"results":[]}
@@ -284,9 +292,11 @@ module.exports.findLog = function (req, res) {
 	res.set('Content-Type', 'text/javascript');
         res.header("Cache-Control", "no-cache, no-store");
         res.send(JSON.stringify(retObj)); //non-cached
+
+        } catch (e) {_this.exCb(res,e,requestKey)}
  
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
   }

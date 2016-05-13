@@ -13,6 +13,12 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var exCb = function (res, error){
+  var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
+  console.log(error.stack)
+  res.status(500).send(msg);
+}
+
 module.exports = {
 
   setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN) {
@@ -71,6 +77,7 @@ var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
      type: 'stream_label',
      body : JSON.stringify(queryJSON)
      }).then (function(body){
+        try {
         var results = body.hits.hits; //hits for query
 	var set = {};
 	for (var i=0;i<results.length;i++){
@@ -80,6 +87,8 @@ var ttl = ttls.getstreamlist; //cached ES response ttl (in seconds)
 		}
 	}
 	callback();
+        //} catch (e) {_this.exCb(res,e,requestKey)}
+        } catch (e) {exCb(res,e)}
    }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);

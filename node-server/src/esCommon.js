@@ -22,10 +22,28 @@ Common.prototype.setup = function (cache,cacheSec,cacheTer,client,clientESlocal,
     this.bulk_buffer = global.bulk_buffer;
 }
 
+
+//escapes client hanging upon ES request callback exception
+Common.prototype.exCb = function(res,error,requestKey){
+    //message can be augmented with info from error
+    var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
+    console.log(error.stack)
+    res.status(500).send(msg);
+
+    var cachedPending = this.f3MonCacheTer.get(requestKey);
+    if (cachedPending) {
+      cachedPending.forEach(function(item) {
+        item.res.status(500).send(msg);
+      });
+      //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
+      this.f3MonCacheTer.del(requestKey);
+    }
+}
+
 //escapes client hanging upon an ES request error by sending http 500
 Common.prototype.excpEscES = function(res,error,requestKey){
     //message can be augmented with info from error
-    var msg = 'Internal Server Error (Elasticsearch query error during the request execution, expert should seek further info in the logs)';
+    var msg = 'Internal Server Error (Elasticsearch query error during the request execution, expert should seek further info in the logs). Msg:'+error.message;
     res.status(500).send(msg);
 
     var cachedPending = this.f3MonCacheTer.get(requestKey);

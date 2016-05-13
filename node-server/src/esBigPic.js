@@ -98,6 +98,7 @@ module.exports.query = function (req, res) {
         type: 'boxinfo',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took += body.took;
         unix_time = Date.now();
         var buckets = body.aggregations.bus.buckets;
@@ -165,9 +166,10 @@ module.exports.query = function (req, res) {
         }
         //done
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        } catch (e) {_this.exCb(res,e,requestKey)}
 
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
 
@@ -200,6 +202,7 @@ module.exports.query = function (req, res) {
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took += body.took;
         //unix_time = Date.now();
         //console.log(body.aggregations.bus.cloud_filter);
@@ -253,8 +256,9 @@ module.exports.query = function (req, res) {
           target.cpu_name=buagg[i].cpu.buckets[0].key;
         }
         q3();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }//q2
@@ -275,6 +279,7 @@ module.exports.query = function (req, res) {
         type: 'boxinfo',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took += body.took;
         unix_time = Date.now();
         var results = body.hits.hits;
@@ -322,9 +327,10 @@ module.exports.query = function (req, res) {
 	  }
           q2();
         }
+        } catch (e) {_this.exCb(res,e,requestKey)}
 
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }//q1
@@ -332,6 +338,7 @@ module.exports.query = function (req, res) {
     //first check cluster health
     var healthQuery = function(callback) {
       _this.client.cluster.health().then (function(body) {
+        try {
         took += body.took;
         retObj["central_server"] = {
           "status":body.status,
@@ -339,14 +346,16 @@ module.exports.query = function (req, res) {
           "active_primary_shards":body.active_primary_shards
         };
         callback();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }
 
     var healthQueryESlocal = function() {
       _this.clientESlocal.cluster.health().then (function(body) {
+        try {
         took += body.took;
         retObj["eslocal_server"] = {
           "status":body.status,
@@ -354,6 +363,7 @@ module.exports.query = function (req, res) {
           "active_primary_shards":body.active_primary_shards
         };
         q1();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
         console.error("error running es-local health query");
         console.trace(error.message);
@@ -421,11 +431,13 @@ module.exports.teols = function (req, res) {
         type: 'eols',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took += body.took;
         maxls = body.aggregations.maxls.value
         q(); 
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
 
@@ -460,6 +472,7 @@ module.exports.teols = function (req, res) {
         type: 'stream-hist',
         body: JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took += body.took;
         var buckets = body.aggregations.streams.buckets;
         for (var i=0;i<buckets.length;i++) {
@@ -474,9 +487,10 @@ module.exports.teols = function (req, res) {
             retObj[bucket.key] = [bucket.complete.doc_count,bucket.incomplete.doc_count+diff,Math.floor((((tot_ls-diff)/tot_ls)*100)*bucket.complete.doc_count/bucket.doc_count)];
         }
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        } catch (e) {_this.exCb(res,e,requestKey)}
 
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
 

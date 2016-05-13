@@ -54,6 +54,7 @@ module.exports.query = function (req, res) {
         type:'instance',
         body: JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        try {
         took+=body.took
         var results = body.hits.hits; //hits for query 1
         retObj.total = body.hits.total;
@@ -81,9 +82,10 @@ module.exports.query = function (req, res) {
 	  list.push(o);
         }
         retObj.list = list;//passes list to callback-level scope, next functs will access it directly
-         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        } catch (e) {_this.exCb(res,e,requestKey)} 
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }//end q1

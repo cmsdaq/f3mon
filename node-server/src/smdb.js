@@ -419,7 +419,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
       }
 
       //TODO:support daq2val query & DB params
-      console.log(setuptag)
+      //console.log(setuptag)
 
       connection.execute(
         "select attr_name, attr_value, d.dnsname from "+

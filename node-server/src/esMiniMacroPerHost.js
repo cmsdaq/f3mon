@@ -16,6 +16,12 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var exCb = function (res, error){
+  var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
+  console.log(error.stack)
+  res.status(500).send(msg);
+}
+
 //percColor function
 var percColor = function (percent){
 		//console.log('called percColor with arg='+percent);
@@ -127,6 +133,7 @@ var q2 = function(callback){
     type: 'minimerge',
     body : JSON.stringify(queryJSON1)
     }).then (function(body){
+        try {
         //var results = body.hits.hits; //hits for query
         var hosts = body.aggregations.host.buckets;
         var hostNames = [];
@@ -171,6 +178,8 @@ var q2 = function(callback){
             }
 	}
         callback();
+        //} catch (e) {_this.exCb(res,e,requestKey)} 
+        } catch (e) {exCb(res,e)}
     }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -198,6 +207,7 @@ var q2macro = function(callback,total_q1){
     type: 'macromerge',
     body : JSON.stringify(queryJSON2)
     }).then (function(body){
+      try {
         //var results = body.hits.hits; //hits for query
         var hosts = body.aggregations.host.buckets;
         for (var i=0;i<hosts.length;i++) {
@@ -229,6 +239,8 @@ var q2macro = function(callback,total_q1){
 		retObj.percents.push(entry);
 	}
         callback();
+      //} catch (e) {_this.exCb(res,e,requestKey)}
+      } catch (e) {exCb(res,e)}
     }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -249,6 +261,7 @@ var q1 = function(callback){
     type: 'eols',
     body : JSON.stringify(queryJSON3)
     }).then (function(body){
+      try {
         //console.log(body.aggregations.host.buckets)
         var host_buckets = body.aggregations.host.buckets;
         for (var i=0;i<host_buckets.length;i++) {
@@ -256,6 +269,8 @@ var q1 = function(callback){
         }
 	//var doc_count = body.hits.total;
         callback(sendResult);
+      //} catch (e) {_this.exCb(res,e,requestKey)}
+      } catch (e) {exCb(res,e)}
   }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -274,10 +289,13 @@ var q1macro = function(callback){
     type: 'eols',
     body : JSON.stringify(queryJSON4)
     }).then (function(body){
+     try {
        // var results = body.hits.hits; //hits for query
         var total = body.aggregations.events.value;
 	var doc_count = body.hits.total;
         callback(sendResult, total);
+      //} catch (e) {_this.exCb(res,e,requestKey)}
+      } catch (e) {exCb(res,e)}
   }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);

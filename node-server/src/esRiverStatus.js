@@ -34,6 +34,7 @@ module.exports.query = function (req, res) {
         type:'instance',
         body: JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        try {
         took+=body.took
         var results = body.hits.hits;
 	
@@ -93,9 +94,10 @@ module.exports.query = function (req, res) {
 	}
 
         prepareLookup(); //initial caller
+        } catch (e) {_this.exCb(res,e,requestKey)}
 
       }, function (error){
-	_this.excpEscES(res,error);
+	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }//end q1

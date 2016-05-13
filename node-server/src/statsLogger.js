@@ -20,7 +20,7 @@ var cachestatslogger = function (){
   };
   stats_file.write(util.format(JSON.stringify(outObj)+'\n'));
   times_file.write(util.format(JSON.stringify(totalTimes)+'\n'));
-  console.log('-Wrote out cache statistics -------------------------------------------------------------------------------------------------');
+  //console.log('-Wrote out cache statistics -------------------------------------------------------------------------------------------------');
 
   bulk_inject()
 }

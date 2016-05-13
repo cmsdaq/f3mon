@@ -93,6 +93,7 @@ module.exports.query = function (req, res) {
         type: 'eols',
         body : JSON.stringify(_this.queryJSON3)
       }).then (function(body){
+        try {
 	took += body.took;
         if (body.hits.total===0) {
           retObj.data = [];
@@ -103,8 +104,9 @@ module.exports.query = function (req, res) {
           maxTs = body.aggregations.lsmax.value+23400;//add 1 LS
           q2();
         }
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-              _this.excpEscES(res,error);
+              _this.excpEscES(res,error,requestKey);
               console.trace(error.message);
       });
 
@@ -120,6 +122,7 @@ module.exports.query = function (req, res) {
         type: 'microstatelegend',
         body : JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        try {
 	took += body.took;
         if (body.hits.total ===0){
           retObj.data = [];
@@ -170,8 +173,9 @@ module.exports.query = function (req, res) {
 	    q3();
 	  }
         }
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-	      _this.excpEscES(res,error);
+	      _this.excpEscES(res,error,requestKey);
 	      console.trace(error.message);
       });
 
@@ -214,6 +218,7 @@ module.exports.query = function (req, res) {
           body : JSON.stringify(_this.queryJSON2)
 
         }).then (function(body){
+          try {
 	  took += body.took;
           var results = body.aggregations.dt.buckets; //date bin agg for query
           var timeList = [];
@@ -266,11 +271,11 @@ module.exports.query = function (req, res) {
           retObj.timeList = timeList;	
 	  if (results.length>0)
 	    retObj.lastTime = results[results.length-1].key;
-
           if (!hcformat) retObj.data.reverse();
            _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+          } catch (e) {_this.exCb(res,e,requestKey)}
         }, function (error) {
-	    _this.excpEscES(res,error);
+	    _this.excpEscES(res,error,requestKey);
 	    console.trace(error.message);
       });
 

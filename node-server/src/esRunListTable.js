@@ -97,6 +97,7 @@ module.exports.query = function (req, res) {
         type: 'run',
         body: JSON.stringify(qsubmitted)
       }).then (function(body){
+        try {
         took+=body.took
         var results = body.hits.hits; //hits for query
 
@@ -114,8 +115,9 @@ module.exports.query = function (req, res) {
 	  "aaData" : arr
 	};
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
 

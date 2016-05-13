@@ -34,14 +34,14 @@ module.exports.query = function (req, res) {
       var _this = this;
 
       //query elasticsearch health and bind return function to reply to the server
-      this.client.cluster.health().then(
-       function(body) {
+      this.client.cluster.health().then(function(body) {
+        try {
         took+=body.took
         var retObj = {'status':body['status']};
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
-
+        } catch (e) {_this.exCb(res,e,requestKey)}
        }, function (err) {
-        _this.excpEscES(res,err);
+        _this.excpEscES(res,err,requestKey);
         console.log(err.message);
        }
       );

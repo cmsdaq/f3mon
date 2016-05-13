@@ -15,6 +15,12 @@ var excpEscES = function (res, error){
         res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var exCb = function (res, error){
+  var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
+  console.log(error.stack)
+  res.status(500).send(msg);
+}
+
 //percColor function
 var percColor = function (percent){
 		//console.log('called percColor with arg='+percent);
@@ -131,6 +137,7 @@ var q2 = function(callback, total_q1){
     type: qparam_type,
     body : JSON.stringify(queryJSON)
     }).then (function(body){
+      try {
         //var results = body.hits.hits; //hits for query
         var streams = body.aggregations.stream.buckets;
         var streamNames = [];
@@ -178,6 +185,8 @@ var q2 = function(callback, total_q1){
 		retObj.percents.push(entry);
 	}
         callback();
+      //} catch (e) {_this.exCb(res,e,requestKey)}
+      } catch (e) {exCb(res,e)}
     }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);
@@ -199,10 +208,13 @@ var q1 = function(callback){
     type: 'eols',
     body : JSON.stringify(queryJSON3)
     }).then (function(body){
+     try {
        // var results = body.hits.hits; //hits for query
         var total = body.aggregations.events.value;
 	var doc_count = body.hits.total;
         callback(sendResult, total);
+      //} catch (e) {_this.exCb(res,e,requestKey)}
+      } catch (e) {exCb(res,e)}
   }, function (error){
 	excpEscES(res,error);
         console.trace(error.message);

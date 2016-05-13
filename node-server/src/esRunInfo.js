@@ -33,6 +33,7 @@ module.exports.query = function (req, res) {
         type: 'eols',
       body : JSON.stringify(_this.queryJSON1)
       }).then (function(body){
+        try {
         took+=body.took
 	var results = body.hits.hits; //hits for query
 	  if (results.length === 0){
@@ -42,8 +43,9 @@ module.exports.query = function (req, res) {
 	  retObj.lastLs = results[0]._source.ls;
 	}
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-        _this.excpEscES(res,error);
+        _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }//end q3
@@ -66,6 +68,7 @@ module.exports.query = function (req, res) {
        type: 'stream_label',
        body : JSON.stringify(queryJSONs)
       }).then (function(body){
+        try {
         took+=body.took
         var results = body.hits.hits; //hits for query
 	var set = {};
@@ -77,8 +80,9 @@ module.exports.query = function (req, res) {
 	  }
 	}
         q4();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-	_this.excpEscES(res,error);
+	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }
@@ -94,6 +98,7 @@ module.exports.query = function (req, res) {
         type: 'stream-hist',
         body : JSON.stringify(_this.queryJSON2)
       }).then (function(body){
+        try {
         took+=body.took
         //var results = body.hits.hits; //hits for query
         var terms = body.aggregations.streams.buckets; //replacing facet implementation (facets->deprecated)
@@ -103,8 +108,9 @@ module.exports.query = function (req, res) {
 	}
 	retObj.streams = streams;
         q3();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-	_this.excpEscES(res,error);
+	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
     }//end q2
@@ -123,6 +129,7 @@ module.exports.query = function (req, res) {
         type: 'run',
         body : JSON.stringify(queryJSON)
       }).then (function(body){
+        try {
         took+=body.took
         var results = body.hits.hits; //hits for query
 	if (results.length === 0){
@@ -133,8 +140,9 @@ module.exports.query = function (req, res) {
         if (qparam_runNumber===null) qparam_runNumber = results[0]._id;
 
 	q2();
+        } catch (e) {_this.exCb(res,e,requestKey)}
       }, function (error){
-	_this.excpEscES(res,error);
+	_this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
 
