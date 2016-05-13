@@ -1053,7 +1053,7 @@
     })
 
 
-    .controller('logsCtrl', function($scope, logsService) {
+    .controller('logsCtrl', function($scope, logsService, globalService) {
         var service = logsService;
 
         $scope.queryParams = logsService.queryParams;

@@ -242,6 +242,8 @@
                 },
                 resourceFrac: {
                     perc:false,
+                    total:false,
+                    active:false,
                     paused:false,
                     percent : function() { if (this.paused) return false; else return this.perc }
                 }
@@ -275,7 +277,8 @@
                     d.buRamDisk.total = data.ramdisk.value ? data.ramdisk.value : d.buRamDisk.total;
                     d.buRamDisk.used = data.ramdiskused.value  ? data.ramdiskused.value : d.buRamDisk.used;
                     d.resourceFrac.perc = data.resourceFrac.value ? data.resourceFrac.value : false
-                    //                    console.log(service.data);
+                    d.resourceFrac.total = data.resourceFrac.value ? data.resourceCount.value : false
+                    d.resourceFrac.active = data.resourceFrac.value ? data.resourceCountActive.value : false
                 });
             } else {
                 //Restart poller

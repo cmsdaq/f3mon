@@ -193,7 +193,7 @@
                 })
 
                 var totalsRate = $.grep(items,function(item,index){
-                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge']) <0;
+                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge','input']) <0;
                 })
 
                 var sumRate = 0;
@@ -204,33 +204,79 @@
                     sumRate += item.point.y;
                   });
                 }
- 
+
+                //define functions to help with formatting (this should probably be defined elsewhere)
+                function padL(a,b,c){//string/number,length+1,char
+                  return (new Array(b||2).join(c||0)+a).slice(-b)
+                }
+
+                function bytesToSize(bytes, precision,pers) {
+                  var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                  var sizes_s = ['Bytes/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
+                  var posttxt = 0;
+                  if (bytes == 0)
+                    if (pers) return '0 '+sizes_s[0];
+                    else return '0 '+sizes[0];
+                  if (bytes < 1000) {
+                   if (pers)
+                     return Number(bytes) + " " + sizes_s[posttxt];
+                   else
+                     return Number(bytes) + " " + sizes[posttxt];
+                 }
+                 while( bytes >= 1000 ) {
+                      posttxt++;
+                      bytes = bytes / 1000;
+                }
+                if (pers)
+                  return bytes.toFixed(precision) + " " + sizes_s[posttxt];
+                else
+                  return bytes.toFixed(precision) + " " + sizes[posttxt];
+                }
+
+                var hasBSeconds = series.chart.yAxis[0].axisTitle.textStr==="Bytes/s";
+
                 // build the values
                 items.forEach(function(item) {
                     var name = item.series.name;
 
                     series = item.series;
-                    var formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
+                    var isMerge = $.inArray(name,['micromerge','minimerge','macromerge']) !== -1;
+
+                    var formatString;
+                    if (tiptype===0 || isMerge)
+                     formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
                         item.point.tooltipFormatter(series.tooltipOptions.pointFormat);
+                    else
+                      formatString= '<span style="color:'+item.series.color+'">●</span> '+item.series.name+': <b>'+bytesToSize(item.point.y,2,hasBSeconds)+'</b><br/>'
 
                     //add percentage
                     if (name=='input'){
                       formatString = formatString.substr(formatString.indexOf("/span>")+6);
                     }
-                    else if ( $.inArray(name,['micromerge','minimerge','macromerge']) == -1  ){
-                        formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
+                    else if (!isMerge){
+                      formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
                     }
                     else {
                       //skip color bullet
                       formatString = formatString.replace('<br/>','%<br/>').substr(formatString.indexOf("/span>")+6);
                       //formatString = formatString.replace('<br/>','%<br/>');
                     }
+ 
                     s.push(formatString);
                     
                 });
-                if (sumRate>=0)
-                  s.push("<br>Total:<b>" + Math.round(sumRate).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " "+ series.chart.yAxis[0].axisTitle.textStr +"</b></br>");
-
+                if (sumRate>=0) {
+                  var sumEst = sumRate / (hasBSeconds? 1000000. :23310000.);
+                  if (sumEst>5000)
+                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:red;font-weight:bold;font-size: 14px;" >' 
+                           + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
+                  else if (sumEst>3000)
+                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:#FF5733;font-weight:bold;font-size:14px;" >'
+                           + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
+                  else
+                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: ' 
+                           + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
+                }
                 // footer
                 s.push(tooltip.options.footerFormat || '');
 

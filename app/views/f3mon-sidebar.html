@@ -52,13 +52,9 @@
                                 <tr>
                                     <th scope="row">Resources: </th>
                                     <td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) +" active CPU slots" : "N/A" }}</td>
+                                    <!--<td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) 
+                                                     +" active CPU slots (all: "+dataDisks.resourceFrac.total+")" : "N/A" }}</td>-->
                                 </tr>
-
-<!--                                <tr>
-                                    <th scope="row">BUs: </th>
-                                    <td >{{data.totalBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" enabled" : "N/A" }}</td>
-                                </tr>
--->
 
                             </tbody>
                         </table>

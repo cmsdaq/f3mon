@@ -78,11 +78,11 @@
         {
           element: "#logButtonHLT",
           placement: "bottom",
-          title: "Alerts",
+          title: "HLT Alerts",
           content: "The number of error and fatal messages sent by the CMSSW processes in HLT between the start and the end of the current run is shown here.",
-          toggleBackDrop: true,
-          onShown: function(tour){tour._options.onShown(tour); tour._options.backdrop = false;},
-          onPrev: function(tour){tour._options.backdrop = true; tour.hideStep(tour._current);},
+          //toggleBackDrop: true,
+          //onShown: function(tour){tour._options.onShown(tour); tour._options.backdrop = false;},
+          //onPrev: function(tour){tour._options.backdrop = true; tour.hideStep(tour._current);},
         }, 
         {
           element: "#logButton",
