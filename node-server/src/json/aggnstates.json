@@ -16,6 +16,13 @@
             }
           }
         }
+      ],
+      "must_not": [
+        {
+          "exists": {
+            "field": "cpuslotsmax"
+          }
+        }
       ]
     }
   },
