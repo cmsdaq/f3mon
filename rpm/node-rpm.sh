@@ -21,7 +21,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fff-node-scripts.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.0.2
+Version: 1.0.3
 Release: 0
 Summary: node.js f3mon scripts
 License: gpl
@@ -39,7 +39,7 @@ Provides:/opt/node/test/
 Provides:/etc/init.d/fff-node-server
 Provides:/etc/init.d/test-fff-node-server
 Provides:/opt/node/node-daemon.js
-Provides:/etc/logrotate.d/fff-node-server
+#Provides:/etc/logrotate.d/fff-node-server
 
 %description
 init scripts for Node.js FFF monitor package
@@ -58,11 +58,11 @@ mkdir -p \$RPM_BUILD_ROOT
 mkdir -p %{buildroot}/opt/node/prod
 mkdir -p %{buildroot}/opt/node/test
 mkdir -p %{buildroot}/etc/init.d
-mkdir -p %{buildroot}/etc/logrotate.d
+#mkdir -p %{buildroot}/etc/logrotate.d
 cp $BASEDIR/fff-node-server %{buildroot}/etc/init.d/fff-node-server
 cp $BASEDIR/test-fff-node-server %{buildroot}/etc/init.d/test-fff-node-server
 cp $BASEDIR/node-daemon.js %{buildroot}/opt/node/node-daemon.js
-cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
+#cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 
 %files
 %defattr(-, root, root, -)
@@ -76,7 +76,7 @@ cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 %attr( 755 ,root, root) /etc/init.d/fff-node-server
 %attr( 755 ,root, root) /etc/init.d/test-fff-node-server
 %attr( 755 ,root, root) /opt/node/node-daemon.js
-%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
+#%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
 
 %post
 #echo "post install trigger"
