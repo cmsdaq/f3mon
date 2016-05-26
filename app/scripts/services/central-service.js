@@ -15,7 +15,7 @@
             status: {
                 currentTab: 0,
                 changeTab: function(num) {
-                    if (this.currentTab===0 && (num===1 || num==2)) {//reset if switching from main view
+                    if (this.currentTab===0 && (num===1 || num===2)) {//reset if switching from main view
                       $rootScope.chartInitDone = false;
                     }
                     this.currentTab = num;
