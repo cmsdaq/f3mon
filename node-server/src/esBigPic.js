@@ -212,7 +212,7 @@ module.exports.query = function (req, res) {
           var key = buagg[i].key;
           if (!retObj["appliance_clusters"].hasOwnProperty(key)) {
             if (key!=='unknown') //hilton (can get written in dv index, but no BU)
-              console.log('appliance clusters dont have key '+key);
+              //console.log('appliance clusters dont have key '+key);
             continue;
           }
           var target = retObj["appliance_clusters"][key];

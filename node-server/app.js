@@ -113,8 +113,9 @@ process.on('uncaughtException', exceptionHandler = function(err) {
         process.removeListener("uncaughtException", exceptionHandler);
 	unhook_err();
 	fs.closeSync(stderrFS);
-        if (errCount<100) errCount=errCount+1;
-        else throw err;
+        //if (errCount<100) errCount=errCount+1;
+        //else throw err;
+        throw err;
 	});
 
 
