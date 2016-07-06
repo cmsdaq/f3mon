@@ -42,6 +42,11 @@ grunt build (note: Disabled the uglify process due to some conflict with angular
 
 #Assembling server directory (if not updating individual directories/files)
 ```
+cd node-server/web/sc
+npm install
+cd -
+```
+```
 cp -RL node-server/* /tmp/prod
 ```
 dbinfo.json should be taken from previous area.
