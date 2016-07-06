@@ -547,7 +547,7 @@
             data: {
                 total: 0,
                 currentPage: 1,
-                itemsPerPage: 5,
+                itemsPerPage: 6,
                 sortBy: 'role',
                 sortOrder: 'desc',
                 searchText: '',
@@ -604,7 +604,7 @@
             //console.log('pageChange');
             service.stop();
             service.data.currentPage = newPageNumber;
-            service.start();
+            start();
         }
 
         service.changeSorting = function(field) {
@@ -615,7 +615,7 @@
             } else {
                 service.data.sortOrder = (service.data.sortOrder == 'desc') ? 'asc' : 'desc';
             }
-            service.start();
+            start();
         };
 
         service.sortedClass = function(field) {

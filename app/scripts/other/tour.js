@@ -100,7 +100,7 @@
         {
           element: "#riverStatusButton",
           placement: "bottom",
-          title: "RunRiver Plugin Status",
+          title: "River Service Status",
           content: "This button shows the status of the <strong>RunRiver Plugin</strong>.",
           onShown: function(tour){tour._options.onShown(tour);tour._options.backdrop = false;},
           onPrev: function(tour){tour._options.backdrop = true; tour.hideStep(tour._current);},
@@ -115,7 +115,7 @@
         {
           element: "#riverStatusButton",
           placement: "bottom",
-          title: "RunRiver Plugin Status",
+          title: "River Service Status",
           content: "Clicking on it will spawn information about the servers that are currently hosting RunRiver instances.",
           onShown: function(tour){tour._options.onShown(tour);tour._options.backdrop = true;},
         }, 

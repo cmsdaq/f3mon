@@ -26,7 +26,7 @@
                         <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
                     </div>
 
-                    <div class="pull-right" style="width:120px;" id='sr-divisor' ng-show="displayAux">
+                    <div class="pull-right" style="width:120px;margin-right:3px" id='sr-divisor' ng-show="displayAux">
                         <div class="input-group input-group-xs ">
                             <span class="input-group-addon primary"> <input ng-change='tooltipToggle()' ng-model="tooltip" type="checkbox" aria-label="..." style='vertical-align: middle'> tooltip </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle'> sec/LS </span>
@@ -100,7 +100,7 @@
             <!-- Microstate chart panel -->
             <div class="panel panel-primary" ng-controller='microStatesCtrl' style='height:100%' id='msPanel'>
                 <!-- Default panel contents -->
-                <div class="panel-heading">
+                <div class="panel-heading" style="overflow:visible">
                     <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
 
                     <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-microchartselectswitch'>
@@ -114,10 +114,27 @@
                         <label class="btn btn-primary" ng-model="chartLib" uib-btn-radio="'disabled'" ng-change='switchChartLib()'>Disabled</label>
                     </div>
 
-                    <div class="pull-right" style="width:120px;" id='ms-legendctrl'>
+                    <div class="pull-right" style="width:120px;margin-right:80px" id='ms-legendctrl'>
                         <div class="input-group input-group-xs ">
+                            <span class="input-group-addon primary"> <input ng-model="corr20" ng-click="toggleCorr20()" type="checkbox" aria-label="..." style='vertical-align: middle'> correct(HTeff=20%) </input></span>
                             <span class="input-group-addon primary"> <input ng-model="showLegendView" ng-click="toggleLegend()" type="checkbox" aria-label="..." style='vertical-align: middle'> legend </input></span>
                         </div>
+                    </div>
+
+
+                    <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-cpuslotsmax'>
+
+                        <button type="button" class="btn btn-primary" disabled>
+                          logical cores / FU:
+                        </button>
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                          <span id="srvparcpu">{{cpuSlotsMax}}</span>
+                          <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu" id="selector-mode-list">
+                          <li ng-repeat="item in cpuSlotsMaxList" class="list-group-item" ng-click="cpuSlotsMaxSet(item)"><a href="">{{item}}</a>
+                          </li>
+                        </ul>
                     </div>
 
 

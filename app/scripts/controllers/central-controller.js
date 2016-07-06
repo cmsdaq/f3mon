@@ -878,6 +878,32 @@
           processUpdate(); 
         }
 
+        var resetCPUSlots = function() {
+          $scope.cpuSlotsMax = microStatesService.queryParams.cputype;
+          $scope.cpuSlotsMaxList = microStatesService.cputypes;
+        }
+        $scope.cpuSlotsMaxSet = function(newcputype) {
+          microStatesService.pause();
+          microStatesService.queryParams.cputype = newcputype;
+          microStatesService.queryInfo.lastTime = false
+          $scope.cpuSlotsMax = newcputype;
+          microStatesService.resume();
+        }
+        microStatesService.slotsResetCB = resetCPUSlots;
+        resetCPUSlots();
+
+        $scope.toggleCorr20 = function() {
+          microStatesService.pause();
+          microStatesService.queryParams.hteff = $scope.corr20 ? 0.2 : 1;
+          microStatesService.queryInfo.lastTime = false
+          microStatesService.resume();
+        }
+        var resetCorr20 = function() {
+          $scope.corr20 = microStatesService.queryParams.hteff==1 ? false:true
+        }
+        microStatesService.resetHTeffCB = resetCorr20;
+        resetCorr20();
+
         //defaults
         $scope.chartLib = "highcharts";
 
@@ -1049,11 +1075,12 @@
               if (cleared) $scope.api.refresh();
               cleared = false;
             }
+            $scope.cpuSlotsMaxList = microStatesService.cputypes;
         }
     })
 
 
-    .controller('logsCtrl', function($scope, logsService, globalService) {
+    .controller('logsCtrl', function($scope, $sce, logsService, globalService) {
         var service = logsService;
 
         $scope.queryParams = logsService.queryParams;

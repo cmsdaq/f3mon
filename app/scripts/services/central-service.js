@@ -423,6 +423,7 @@
 
         var service = {
             data: {},
+            cputypes: ["any"],
             queryParams: {},
             queryInfo: {},
             rangeParams: {},
@@ -439,7 +440,9 @@
               sysName: false,
               timeRange: 300,
               numIntervals: 30,
-              format : "" //nvd3 or other(hc)
+              format : "", //nvd3 or other(hc)
+              cputype:"any",
+              hteff: 1
             };
             service.queryInfo = {
               timeList:false,
@@ -488,7 +491,7 @@
             else if (!selectedTo && service.closedRun===false) {
               var range = (max-min)*23.31;//todo increase intervals if large range
               service.queryParams.timeRange=range>300?range:300;
-              service.queryParams.numIntervals=300;
+              service.queryParams.numIntervals=90;
               //console.log(JSON.stringify(service.queryParams));
               //if (range>300)
               //  service.queryParams.numIntervals=Math.Round(1.*range/6.);
@@ -508,7 +511,7 @@
             else { //range mode or closed run
               //use LS (start) timestamps
               var range = (max-min)*23.31;//todo:increase intervals if large range
-              service.queryParams.numIntervals=300;
+              service.queryParams.numIntervals=90;
               //if (range>300)
               //  service.queryParams.numIntervals=Math.Round(1.*range/6.);
               service.queryParams.maxLs=max
@@ -543,12 +546,15 @@
                     argumentsArray: [service.queryParams]
                 });
                 mypoller.promise.then(null, null, function(data) {
-                    if (service.queryParams.format == data.format) {
+                    if (service.queryParams.format == data.format && service.queryParams.cputype == data.cputype && service.queryParams.hteff == data.hteff) {
                       if (data.lastTime && service.queryInfo.lastTime != data.lastTime) {
                         //service.queryInfo.legend = data.legend;
                         service.queryInfo.lastTime = data.lastTime;
                         service.queryInfo.timeList = data.timeList;
                         service.data = data.data;
+                        var cputypesSorted = data.cputypes.sort();
+                        if (cputypesSorted !== service.cputypes)
+                          service.cputypes = cputypesSorted;
                         broadcast('updated');
                     }
                   } else
@@ -596,6 +602,8 @@
         $rootScope.$on('runInfo.selected', function(event) {
             service.stop();
             service.resetParams();
+            service.slotsResetCB();
+            service.resetHTeffCB();
         });
 
         $rootScope.$on('runInfo.updated', function(event) {
@@ -611,10 +619,14 @@
                 return;
             }
             service.stop();
-            //remember ustate chart lib choice
+            //remember ustate chart lib choice and cputype selection
             var fmt  = service.queryParams.format;
+            var cputype  = service.queryParams.cputype;
+            var hteff  = service.queryParams.hteff;
             service.resetParams();
             service.queryParams.format = fmt;
+            service.queryParams.cputype = cputype;
+            service.queryParams.hteff = hteff;
         });
 
         service.resetParams();

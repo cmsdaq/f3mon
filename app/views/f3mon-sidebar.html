@@ -52,9 +52,13 @@
                                 <tr>
                                     <th scope="row">Resources: </th>
                                     <td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) +" active CPU slots ("+dataDisks.resourceFrac.active+")" : "N/A" }}</td>
-                                    <!--<td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) 
-                                                     +" active CPU slots (all: "+dataDisks.resourceFrac.total+")" : "N/A" }}</td>-->
                                 </tr>
+
+<!--                                <tr>
+                                    <th scope="row">BUs: </th>
+                                    <td >{{data.totalBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" enabled" : "N/A" }}</td>
+                                </tr>
+-->
 
                             </tbody>
                         </table>
@@ -223,11 +227,11 @@
                             </tbody>
                             <tbody ng-show="!noData">
                                 <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.total" pagination-id="riverListPag">
-                                    <td style='font-size: 12px'>{{row.name}}</td>
+                                    <td style="font-size: 12px;">{{row.name}}</td>
                                     <!--<td>{{row.role}}</td>-->
-                                    <td style='white-space: nowrap;font-size: 12px' >{{row.host}}</td>
-                                    <td style='text-align: center;font-size: 12px'>{{row.subSystem}}</td>
-                                    <td style='text-align: center;font-size: 12px'>{{row.status}}</td>
+                                    <td style='white-space: nowrap;font-size: 12px;' >{{row.host}}</td>
+                                    <td style='text-align: center;font-size: 12px;'>{{row.subSystem}}</td>
+                                    <td style='text-align: center;font-size: 12px;'>{{row.status}}</td>
                                     <td ng-show="row.role=='collector'" style='text-align: right'>
                                         <a ng-click="closeCollectorDialog(row.name,row.subSystem)" role="button" class="btn btn-default btn-xs" ><span class="fa fa-power-off "></span></a>
                                     </td>

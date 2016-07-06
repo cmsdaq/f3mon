@@ -206,9 +206,9 @@
                 }
 
                 //define functions to help with formatting (this should probably be defined elsewhere)
-                function padL(a,b,c){//string/number,length+1,char
-                  return (new Array(b||2).join(c||0)+a).slice(-b)
-                }
+                //function padL(a,b,c){//string/number,length+1,char
+                //  return (new Array(b||2).join(c||0)+a).slice(-b)
+                //}
 
                 function bytesToSize(bytes, precision,pers) {
                   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -218,19 +218,19 @@
                     if (pers) return '0 '+sizes_s[0];
                     else return '0 '+sizes[0];
                   if (bytes < 1000) {
-                   if (pers)
-                     return Number(bytes) + " " + sizes_s[posttxt];
-                   else
-                     return Number(bytes) + " " + sizes[posttxt];
-                 }
-                 while( bytes >= 1000 ) {
-                      posttxt++;
-                      bytes = bytes / 1000;
-                }
-                if (pers)
-                  return bytes.toFixed(precision) + " " + sizes_s[posttxt];
-                else
-                  return bytes.toFixed(precision) + " " + sizes[posttxt];
+                    if (pers)
+                      return Number(bytes) + " " + sizes_s[posttxt];
+                    else
+                      return Number(bytes) + " " + sizes[posttxt];
+                  }
+                  while( bytes >= 1000 ) {
+                    posttxt++;
+                    bytes = bytes / 1000;
+                  }
+                  if (pers)
+                    return bytes.toFixed(precision) + " " + sizes_s[posttxt];
+                  else
+                    return bytes.toFixed(precision) + " " + sizes[posttxt];
                 }
 
                 var hasBSeconds = series.chart.yAxis[0].axisTitle.textStr==="Bytes/s";

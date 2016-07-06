@@ -4,8 +4,8 @@ Colors = {};
 
 Colors.names = {
     darkblue: "#00008b",
-    black: "#000000",
     lightgreen: "#90ee90",
+    black: "#000000",
     blue: "#0000ff",
     lightblue: "#add8e6",
     green: "#008000",
