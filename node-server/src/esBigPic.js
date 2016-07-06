@@ -508,3 +508,69 @@ module.exports.teols = function (req, res) {
     
   }//end
 
+
+module.exports.maxls = function (req, res) {
+
+    var qname = 'bigpic_maxls'
+    var took = 0.;
+
+    if (this.verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
+
+    var eTime = this.gethrms();
+    var ttl = this.ttls.bigpic; //cached ES response ttl (in seconds)
+
+    //GET query string params
+    var cb = req.query.callback;
+    var qparam_sysName = this.checkDefault(req.query.setup,'cdaq');
+    var qparam_runNumber = req.query.runNumber;
+    //var qparam_to = req.query.to;
+
+    var requestKey = qname+'?rn='+qparam_runNumber;
+
+    var requestValue = this.f3MonCache.get(requestKey);
+    var pending=false;
+    if (requestValue=="requestPending"){
+      requestValue = this.f3MonCacheSec.get(requestKey);
+      pending=true;
+    }
+    var _this = this;
+
+    var retObj = { "maxls":0 };
+
+    if (requestValue == undefined) {
+
+      var queryJSON = {
+        "size":0,
+        "query":{"bool":{"must":[{"term":{"_parent":qparam_runNumber}}]}},
+        "aggregations":{
+          "maxls":{
+            "max":{"field":"ls"}
+          }
+        }
+      };
+
+      this.f3MonCache.set(requestKey, "requestPending", ttl);
+
+      _this.client.search({
+        index: 'runindex_'+qparam_sysName+'_read',
+        type: 'eols',
+        body: JSON.stringify(queryJSON)
+      }).then (function(body){
+        try {
+
+          took += body.took;
+          retObj.maxls = body.aggregations.maxls.value
+          _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+
+        } catch (e) {_this.exCb(res,e,requestKey)}
+      }, function (error){
+        _this.excpEscES(res,error,requestKey);
+        console.trace(error.message);
+      });
+    }
+    else
+    {
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    }
+}
+

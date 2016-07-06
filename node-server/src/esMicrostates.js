@@ -21,6 +21,8 @@ module.exports.query = function (req, res) {
     var qparam_minLs=req.query.minLs;
     var qparam_maxLs=req.query.maxLs;
     var qparam_format=req.query.format;
+    var qparam_cputype=this.checkDefault(req.query.cputype,'any');
+    var qparam_hteff = parseFloat(this.checkDefault(req.query.hteff,1))
 
     if (qparam_runNumber === null || qparam_runNumber===undefined){qparam_runNumber = 0;}
     else { qparam_runNumber = parseInt(req.query.runNumber);}
@@ -69,6 +71,9 @@ module.exports.query = function (req, res) {
             "format"   : qparam_format,
 	    "lastTime" : null,
 	    "timeList" : null,
+            "cputypes"  : ['any'],
+            "cputype"  : qparam_cputype,
+            "hteff"  : qparam_hteff,
 	    "data" : ""
     };
 
@@ -142,10 +147,17 @@ module.exports.query = function (req, res) {
           }
 	  else {
 	    var shortened = result._source.stateNames;
+            var swapIdle=false;
+            if (shortened.length>2 && shortened[2]=='Idle') swapIdle=true;
+
 	    for (var i = 0 ; i< special ; i++) {
 	        legend[i]=shortened[i];
               if (hcformat) {
-	        retObj.data[shortened[i]] = [];
+               var j=i;
+                if (swapIdle)
+                  if (j==2) j=1;
+                  else if (j==1) j=2;
+	        retObj.data[shortened[j]] = [];
               }
               else {
                 idxmap[shortened[i]]=retObj.data.length
@@ -200,7 +212,7 @@ module.exports.query = function (req, res) {
           var intval = parseInt(qparam_timeRange)/parseInt(qparam_numIntervals);
           //console.log(intval)
           if (intval<1) intval = 1
-          _this.queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=intval+'s'
         }
         else {
           //LS time interval
@@ -209,8 +221,19 @@ module.exports.query = function (req, res) {
           var intval = (maxTs-minTs)/(1000.*parseInt(qparam_numIntervals));
           //console.log(intval)
           if (intval<1) intval = 1
-          _this.queryJSON2.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=intval+'s'
         }
+        //apply cpu filtering
+        if (qparam_cputype==='any') {
+          _this.queryJSON2.query.bool.must_not = []
+          _this.queryJSON2.aggs.f.filter = {bool:{ must_not : [{exists: {field: "cpuslotsmax"}}] }}//{match_all: {}}
+        }
+        else {
+          _this.queryJSON2.query.bool.must_not = []
+          _this.queryJSON2.aggs.f.filter = {term: {cpuslotsmax:qparam_cputype}}
+        }
+
+        //console.log(JSON.stringify(_this.queryJSON2));
 
 	_this.client.search({
           index: 'runindex_'+qparam_sysName+'_read',
@@ -220,7 +243,14 @@ module.exports.query = function (req, res) {
         }).then (function(body){
           try {
 	  took += body.took;
-          var results = body.aggregations.dt.buckets; //date bin agg for query
+          //update list of cpu types
+          var cpubuckets = body.aggregations.cpuslotsmax.buckets;
+	  for (var i=0;i<cpubuckets.length;i++){
+            retObj.cputypes.push(cpubuckets[i].key);
+          }
+          //console.log(retObj.cputype + ' ' + JSON.stringify(retObj.cputypes) + ' '+JSON.stringify(cpubuckets))
+ 
+          var results = body.aggregations.f.dt.buckets; //date bin agg for query
           var timeList = [];
 
           //console.log(JSON.stringify(results));
@@ -241,8 +271,38 @@ module.exports.query = function (req, res) {
               for (var iidx=0; iidx<retObj.data.length;iidx++)
                 retObj.data[iidx].values.push([timestamp,0])
 
+            var tot = 0;
+            var idle = 0;
+	    for (var index=0;index<entries.length;index++) {
+              if (idle==0) {
+                var ukey = entries[index].key;
+                var name = legend[ukey];
+                if (name=='Idle') {
+                  idle = entries[index].counts.value;
+                  var idleidx = index;
+                }
+              }
+              tot+=entries[index].counts.value;
+            }
+            var hteff = qparam_hteff;
+            //var hteff = 1
+            if (hteff!=1 && tot!=0 && idle!=0) {
+              var frc = (tot-idle)/tot;
+              if (frc>0.5) {
+                var htfrc = (hteff*(frc-0.5)+0.5)/(0.5+hteff*0.5);
+                //console.log('htfrc ' + htfrc+ ' '+ frc + ' t:'+tot +' i:'+ idle)
+              }
+              else {
+                var htfrc = frc/(0.5+hteff*0.5);
+              }
+              var newIdle = (tot-idle)/htfrc - (tot-idle)
+              if (newIdle>=0)
+                entries[idleidx].counts.value = (tot-idle)/htfrc - (tot-idle)  //tot*(1-htfrc)
+            }
+
 	    for (var index=0;index<entries.length;index++) {
               var ukey = entries[index].key;
+              //console.log(ukey)
               var add=false;
               //console.log('entry'+JSON.stringify(entries[index]))
               if (!legend.hasOwnProperty(ukey)) {
@@ -256,6 +316,8 @@ module.exports.query = function (req, res) {
               //console.log('myname '+ name + hcformat + idxmap[name])
 	      var value = entries[index].counts.value;
               if (hcformat) {
+                if (idle==0 && name=='Idle') idle = value;
+                tot+=value;
                 if (add) retObj.data[name][entrycnt-1][1]+=value;
                 else retObj.data[name][entrycnt-1][1] = value;
               }
@@ -271,6 +333,7 @@ module.exports.query = function (req, res) {
           retObj.timeList = timeList;	
 	  if (results.length>0)
 	    retObj.lastTime = results[results.length-1].key;
+
           if (!hcformat) retObj.data.reverse();
            _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
           } catch (e) {_this.exCb(res,e,requestKey)}

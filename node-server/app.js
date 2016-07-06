@@ -105,6 +105,7 @@ function hook_writestream(stream, callback) {
 //7.intercept and log uncaught exceptions
 var exceptionHandler = null;
 var errCount=0;
+
 process.on('uncaughtException', exceptionHandler = function(err) {
         var toc = new Date().toISOString();
 	console.error('Caught fatal exception! Time: '+toc);
@@ -305,16 +306,22 @@ app.get('/f3mon/api/teols', esBigPic.teols.bind(esBigPic));
 //***DB callbacks (TRANSFER STATUS and BIGPIC HWCFG)***
 
 //callback 20
+app.get('/sc/api/maxls', esBigPic.maxls.bind(esBigPic));
+app.get('/f3mon/api/maxls', esBigPic.maxls.bind(esBigPic));
+//***DB callbacks (TRANSFER STATUS and BIGPIC HWCFG)***
+
+
+//callback 21
 app.get('/sc/api/transfer', function (req, res) {
   smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
 });
 
-//callback 23
+//callback 22
 app.get('/sc/api/pp', function (req, res) {
   smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
 });
 
-//callback 22
+//callback 23
 var esSmallPic =  require('./src/esSmallPic');
 esSmallPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
 app.get('/sc/api/fuhistos', esSmallPic.fuhistos);

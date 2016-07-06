@@ -27,11 +27,13 @@
     }
   },
   "aggs": {
-    "dt":{
-      "date_histogram":{
+    "f":{"filter":{ "match_all": {} },
+     "aggs": {
+      "dt":{
+       "date_histogram":{
         "field":"date","interval":"2.3s"
-      },
-      "aggs":{
+       },
+       "aggs":{
         "entries":{
           "nested":{
             "path":"hmicro.entries"
@@ -52,6 +54,15 @@
             }
           }
         }
+       }
+      }
+     }
+    },
+    "cpuslotsmax":{
+      "terms":{
+        "field":"cpuslotsmax",
+        "size":20,
+        "order" : { "_term" : "asc" }
       }
     }
   }
