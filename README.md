@@ -40,6 +40,13 @@ bower install
 grunt build (note: Disabled the uglify process due to some conflict with angular )
 ```
 
+#Assembling server directory (if not updating individual directories/files)
+```
+cp -RL node-server/* /tmp/prod
+```
+dbinfo.json should be taken from previous area.
+
+
 ##Optionals and tips:
 
 #Install external library and keep it as part of future bower setups
