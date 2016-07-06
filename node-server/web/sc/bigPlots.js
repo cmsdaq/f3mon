@@ -11,7 +11,7 @@ function bootstrap(){
     $( "#radio2" ).buttonset();
     $('#target').submit(function(event){
             event.preventDefault();
-            doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val());
+            doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $("#loading_dialog").loading();
         });
     $('#open').click(function(){
@@ -22,7 +22,7 @@ function bootstrap(){
 	    $('#close').prop("disabled",true);
 	    $('#progressbar').show();
 	    doReopen($('#runno').val());
-            doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val());
+            doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $('#close').prop("disabled",false);
         });
     $('#close').click(function(){
@@ -35,8 +35,38 @@ function bootstrap(){
 	    doClose($('#runno').val());
 	    $('#open').prop("disabled",false);
         });
+    $('#maxls').val("");
+    $('#minls').val("");
+    $('#fullrun').prop('checked',true);
     //    
     
+    var timeout_rq;
+    var run_iteration = function() {
+        if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
+	$.getJSON("api/maxls?runNumber="+$('#runno').val(),function(data) {
+          if (data.maxls!=null) {
+            //console.log(JSON.stringify(data));
+            $('#maxls').val(data.maxls);
+            $('#minls').val(1);
+          }
+        });
+    }
+    $('#runno').bind("input",
+      function(event){
+        //console.log('input!')
+        clearTimeout(timeout_rq);
+        timeout_rq = setTimeout(run_iteration,330);
+      }
+    );
+
+    $('#minls').prop('disabled',$('#fullrun').prop('checked'));
+    $('#maxls').prop('disabled',$('#fullrun').prop('checked'));
+    $('#fullrun').change(function(){
+      $('#minls').prop('disabled',$(this).is(':checked'));
+      $('#maxls').prop('disabled',$(this).is(':checked'));
+    });
+    run_iteration();
+
 }
 
 function doReopen(run){
@@ -114,13 +144,15 @@ function toggleRack(racks){
 	});
 }
 
-function doPlots(run,xaxis,yaxis){
+function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
     $.ajaxSetup({
 	    async: true
 		});
     plots=[];
     refseries.splice(0,refseries.length); //delete content of refseries array from previous doPlots
-    pippo=$.getJSON("php/appliance_analysis.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+    if (!fullrun) var lspart="&minls="+minls+"&maxls="+maxls;
+    else var lspart="&minls=&maxls="; 
+    pippo=$.getJSON("php/appliance_analysis.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart,function(data){
 
 	    if(data.runinfo.start !=null){
 		$('#runinfo').show();		
@@ -181,12 +213,18 @@ function doPlots(run,xaxis,yaxis){
 		plot('#plot2','rate from index','line',data["series2"],'','LS','rate (1/s)');
 		plot('#plot2B','bandwidth from index','line',data["series3"],'','LS','rate (B/s)');
 		plot('#plot3','ramdisk','line',data["ramdisk"],'datetime','time','fraction used');
+		plot('#plot3a','output to BU','line',data["outputbw"],'datetime','time','MB/s');
 		plot('#plot4','rate from eol','line',data["ratebybu"]);
 		plot('#plot4B','bandwidh from eol','line',data["bwbybu"]);
 		plot('#plot5','aggregated rate from eol','line',data["ratebytotal"]);
 		plot('#plot7','starttimes','line',data["begins"],'datetime','time','ls');
 		plot('#plot8','endtimes','line',data["ends"],'datetime','time','ls');
 		plot('#plot9','ratebyfile','line',data["series3"],'datetime','time','rate');
+		plot('#plot10','fu sys cpu usage frac','line',data["fusyscpu"],'datetime','time','fraction');
+		plot('#plot10a','fu sys cpu usage frac avg','line',data["fusyscpu2"],'datetime','time','fraction');
+		plot('#plot11','fu sys cpu freq','line',data["fusysfreq"],'datetime','time','fraction');
+		plot('#plot12','fu data input','line',data["fudatain"],'datetime','time','MB/s');
+		plot('#plot13','lumisection output data B/W','line',data["lumibw"],'datetime','time','MB/s');
 		//	    plot('#plot6','agg rate from eol','line',data["ratebytotal"]);
 		if(refseries.length==0){
 		    for(var i in data.ratebybu){

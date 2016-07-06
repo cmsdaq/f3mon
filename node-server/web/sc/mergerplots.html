@@ -23,7 +23,18 @@
       <form class="pure-form" id="target" action="">
 	<br><label for="runno">Run Number </label><input id="runno" name="runno"></input>
 	<label for="stream">Stream </label><input id="stream" name="stream"></input>
-	<br><br><label for="xaxis">x-axis</label> 
+        <br><br>
+	<label for="minls">LS from</label><input id="minls" name="minls"></input>
+	<label for="maxls">to</label><input id="maxls" name="maxls"></input>
+	<label for="fullrun"></label><input type="checkbox" id="fullrun" name="fullrun"></input><label for="fullrun">full range</label>
+	<br><br>
+        <label for="setup">setup</label> 
+	<select id="setup">
+	  <option value="cdaq">cdaq</option>
+	  <option value="minidaq">minidaq</option>
+	  <option value="dv">daq2val</option>
+	</select>
+        <br><br><label for="xaxis">x-axis</label> 
 	<select id="xaxis">
 	  <option value="ls">lumisection</option>
 	  <option value="size">total size</option>

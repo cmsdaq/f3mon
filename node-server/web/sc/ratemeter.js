@@ -57,11 +57,11 @@ function run_data_format(){
 				      content+="<td>"+ls+"</td>"+lsDelaySnip+"<td>"+(data2.hits.total/23.4).toFixed(2)+" Hz </td><td>"+(data2.aggregations.eventcount.value/23.4).toFixed(2)+" Hz</td>";
 				      //content+="<td>"+ls+"</td>"+lsDelaySnip+"<td>"+(data2.aggregations.bybu.buckets[0].lss.buckets[0].doc_count/23.4).toFixed(2)+
 					  //"</td><td>"+(data2.aggregations.bybu.buckets[0].lss.buckets[0].eventcount.value/23.4).toFixed(2)+"</td>";
-				      if(streama>1000.){
-					  content += "<td style='background-color:yellow'>"+streama+" Hz</td>";
-				      }
-				      else if(streama>1500.){
+				      if(streama>3000.){
 					  content += "<td style='background-color:red'>"+streama+" Hz</td>";
+                                      }
+				      else if(streama>1000.){
+					  content += "<td style='background-color:yellow'>"+streama+" Hz</td>";
 				      }
 				      else if (streama<0.) {
                                           content += "<td> - </td>";
@@ -78,7 +78,14 @@ function run_data_format(){
 
 				  }
                                   //content+="<td>"+Math.round(streamaSize/(1024*1024.))+"</td></tr>"
-                                  content+="<td>"+(streamaSize/(1024*1024.)).toFixed(1)+" MB/s</td></tr>"
+                                  var streamaMB = streamaSize/(1024*1024.);
+                                  if (streamaMB>5000)
+                                    content+="<td style='background-color:red'>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
+                                  else if (streamaMB>5000)
+                                    content+="<td style='background-color:yellow'>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
+                                  else
+                                    content+="<td>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
+                                  
 			      }
 			      );
 		}

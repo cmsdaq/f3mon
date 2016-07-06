@@ -142,6 +142,8 @@ function cluster_data_format(callback){
     var statusvar = 0.;
 
     var fumap = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
+    var fumap_tmpl = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
+    var fumap_cpu = {};
 
     if(update_funct){
     $.getJSON("api/bigPic?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
@@ -161,8 +163,11 @@ function cluster_data_format(callback){
                         nameArray.sort();
                         //console.log(nameArray);
                         for (var jc=0;jc<nameArray.length;jc++) {
+                          
+                                    //console.log(window.node_tree.list_of_bus)
                                     //console.log(jc);
                                     var j = nameArray[jc];
+                                    if (!window.node_tree.list_of_bus.hasOwnProperty(j)) continue;
                                     var vval = val[j];
 				    var diff = {};
                                     //query in pp.php only returns BUs with FUs 
@@ -204,8 +209,11 @@ function cluster_data_format(callback){
 					}
 					content+='<tr class="forhiding" style="display:table-row">'; //new bu row
 				    }
-				    content+="<td>"+j+" ("+vval.active_runs+")<br>"; //name column with active runs
-				    content+="<div style='font-size:9pt;'>[age="+vval.age+" s ; fuCPU="+vval.cpu_name+"]</div>";//and doc age
+				      content+="<td>"+j+" ("+vval.active_runs+")<br>"; //name column with active runs
+                                    if (vval.age<60)
+				      content+="<div style='font-size:9pt;'>[age="+vval.age+" s ; fuCPU="+vval.cpu_name+"]</div>";//and doc age
+                                    else
+				      content+="<div style='font-size:9pt;'>[<span style='color:red;font-weight: bold'>OFFLINE</span> ; fuCPU="+vval.cpu_name+"]</div>";//and doc age
 			            content+="</td>";
 
 				    if(true || vval.connected=="connected"){ //now always true
@@ -271,6 +279,24 @@ function cluster_data_format(callback){
 				    fumap.totalCores+=vval.idle+vval.online;//quarantined?
 				    fumap.totalQuarantinedCores+=vval.quarantined;//quarantined?
 				    fumap.totalHealthyBoxesHLT+=vval.idle_count+vval.online_count;
+
+                                    //add per cpu-type core statistics
+                                    var map_cpuname = vval.cpu_name;
+                                    if (map_cpuname==='') map_cpuname='UNKNOWN'
+                                    if (!fumap_cpu.hasOwnProperty(map_cpuname)) {
+                                      
+                                      fumap_cpu[map_cpuname]=Object.create(fumap_tmpl);
+                                    }
+                                    var fucpu = fumap_cpu[map_cpuname];
+                                    fucpu.boxes+=nnobl;
+                                    fucpu.boxes_bl+=(nall-nnobl);
+                                    fucpu.boxes_db+=pp_node_length;
+                                    fucpu.totalCores+=vval.idle+vval.online;
+                                    fucpu.totalQuarantinedCores+=vval.quarantined;//quarantined?
+                                    fucpu.totalHealthyBoxesHLT+=vval.idle_count+vval.online_count;
+				    fucpu.totalCloud+=vval.cloud;
+				    fucpu.totalHealthyBoxesCloud+=vval.cloud_nodes.length;
+
 
 				    var running_color=""
                                     if (vval.idle_count===0 && vval.online_count>0) {}//running_color="style='background-color:aquamarine'";
@@ -457,9 +483,9 @@ function cluster_data_format(callback){
                 content+="</div>"
 		if (true ||data.hasOwnProperty("fumap")) {
                     var val = fumap;
-		    content+="<tr><td style='font-size:16pt;'>fu_statistics</td>";
 		    //$('#querytime').html(val.query_time);
-		    content +="<td>boxes: <br>"+val.boxes+"(+"+val.boxes_bl+")<br>/"+val.boxes_db+"</td>";
+		    content+="<tr><td style='font-size:16pt;'>fu_statistics</td>";
+		    content +="<td>boxes up:</td>";
 
                     //var fumap = {"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
 		    //content +="<td>boxes: "+Object.keys(val).length+"</td>";
@@ -470,10 +496,38 @@ function cluster_data_format(callback){
 		    //    totalCores+=parseInt(val[index].online);
 		    //    totalCloud+=parseInt(val[index].cloud);
 		    //}
-		    content +="<td>cores<br>HLT:<br>"+val.totalCores+"</td><td/><td/>";
-		    content +="<td>cores<br>CLOUD:<br>"+val.totalCloud+"</td>";
-		    content +="<td>cores<br>QUARAN.:<br>"+val.totalQuarantinedCores+"</td>";
+		    content +="<td>cores<br>HLT:<br></td><td/><td/>";
+		    content +="<td>cores<br>CLOUD:<br></td>";
+		    content +="<td>cores<br>QUARAN.:<br></td>";
 		    content +="</tr>";
+
+/*        	    content+="<tr><td>all</td>";
+		    content +="<td>"+val.boxes+"(+"+val.boxes_bl+")<br>/"+val.boxes_db+"</td>";
+		    content +="<td>"+val.totalCores+"</td><td/><td/>";
+		    content +="<td>"+val.totalCloud+"</td>";
+		    content +="<td>"+val.totalQuarantinedCores+"</td>";
+		    content +="</tr>";
+*/
+                    for (var cput in fumap_cpu) {
+                      if (fumap_cpu.hasOwnProperty(cput)) {
+                        var cval = fumap_cpu[cput];
+		        content+="<tr><td>"+cput+"</td>";
+		        content +="<td>"+cval.boxes+"(+"+cval.boxes_bl+")<br>/"+cval.boxes_db+"</td>";
+		        content +="<td>"+cval.totalCores+"</td><td/><td/>";
+		        content +="<td>"+cval.totalCloud+"</td>";
+		        content +="<td>"+cval.totalQuarantinedCores+"</td>";
+		        content +="</tr>";
+                        }
+                    }
+                    
+        	    content+="<tr><td>all</td>";
+		    content +="<td>"+val.boxes+"(+"+val.boxes_bl+")<br>/"+val.boxes_db+"</td>";
+		    content +="<td>"+val.totalCores+"</td><td/><td/>";
+		    content +="<td>"+val.totalCloud+"</td>";
+		    content +="<td>"+val.totalQuarantinedCores+"</td>";
+		    content +="</tr>";
+
+
 		}
 		if (data.hasOwnProperty("central_server")) {
                     var val = data.central_server;

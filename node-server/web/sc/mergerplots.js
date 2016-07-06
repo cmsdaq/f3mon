@@ -1,24 +1,125 @@
 function bootstrap(){
 
+    var autoplot=false;
+    if (location.hash.length) {
+      var hashrunpos = location.hash.indexOf('run=')
+      if (hashrunpos!=-1) {
+        var hashrunstring=location.hash.substr(hashrunpos+4)
+        if (hashrunstring.indexOf('&')!=-1)
+          hashrunstring = hashrunstring.substr(0,hashrunstring.indexOf('&'))
+        $('#runno').val(hashrunstring);
+        document.title = "mergerplots run "+hashrunstring;
+        autoplot=true
+      }
+      else document.title="mergerplots";
+      var hashstreampos = location.hash.indexOf('stream=')
+      if (hashstreampos!=-1) {
+        var hashstreamstring=location.hash.substr(hashstreampos+7)
+        if (hashstreamstring.indexOf('&')!=-1)
+          hashstreamstring = hashstreamstring.substr(0,hashstreamstring.indexOf('&'))
+        if (hashstreamstring.length) {
+          $('#stream').val(hashstreamstring);
+          autoplot=true;
+        }
+      }
+      var hashpos = location.hash.indexOf('minls=')
+      if (hashpos!=-1) {
+        var hashstring=location.hash.substr(hashpos+6)
+        if (hashstring.indexOf('&')!=-1)
+          hashstring = hashstring.substr(0,hashstring.indexOf('&'))
+        if (hashstring.length)
+          $('#minls').val(hashstring);
+      }
+      else $('#minls').val()
+
+      var hashpos = location.hash.indexOf('maxls=')
+      if (hashpos!=-1) {
+        var hashstring=location.hash.substr(hashpos+6)
+        if (hashstring.indexOf('&')!=-1)
+          hashstring = hashstring.substr(0,hashstring.indexOf('&'))
+        if (hashstring.length)
+          $('#maxls').val(hashstring);
+      }
+      else $('#maxls').val()
+
+      var hashpos = location.hash.indexOf('fullrun')
+      if (hashpos!=-1) $('#fullrun').prop('checked',true)
+      else $('#fullrun').prop('checked',false)
+
+    }
+    else {
+      $('#runno').val()
+      $('#stream').val()
+      $('#minls').val()
+      $('#maxls').val()
+      $('#fullrun').prop('checked', true);
+      document.title="mergerplots";
+    }
+
+    //$('#runno').bind("propertychange change click keyup input paste", function(event){console.log('input!')});
+    //$('#runno').bind("propertychange change input", function(event){console.log('input!')});
+    //$('#fullrun_checked').val("checked");
+    //$('#fullrun').prop('checked', true);
+    //if (!$('#minls').val().length || isNaN($('#minls').val())) $('#minls').val(1);
+    var timeout_rq;
+    var run_iteration = function() {
+        if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
+	$.getJSON("api/maxls?runNumber="+$('#runno').val(),function(data) {
+          if (data.maxls!=null) {
+            //console.log(JSON.stringify(data));
+            $('#maxls').val(data.maxls);
+            $('#minls').val(1);
+          }
+        });
+    }
+    $('#runno').bind("input",
+      function(event){
+        //console.log('input!')
+        clearTimeout(timeout_rq);
+        timeout_rq = setTimeout(run_iteration,330);
+      }
+    );
+
+    $('#minls').prop('disabled',$('#fullrun').prop('checked'));
+    $('#maxls').prop('disabled',$('#fullrun').prop('checked'));
+    $('#fullrun').change(function(){
+      $('#minls').prop('disabled',$(this).is(':checked'));
+      $('#maxls').prop('disabled',$(this).is(':checked'));
+    });
+
+    run_iteration();
+
     $('#plots').hide();
     $('#disable1').hide();
     $('#target').submit(function(event){
 	    event.preventDefault();
 	    $('#plots').hide();
 	    $('#disable1').hide();
-	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val());
+	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup').val(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $("#loading_dialog").loading();
 	});
+    if (autoplot) {
+	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup').val(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+	    $("#loading_dialog").loading();
+    }
 }
-function doPlots(run,xaxis,yaxis,stream){
-
-    console.log($('#process').val());
+function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
+    //console.log(minls+' '+maxls+' '+fullrun);
+    location.hash='run='+run
+    if (stream.length) location.hash+='&stream='+stream
+    if (minls.length) location.hash+='&minls='+minls
+    if (maxls.length) location.hash+='&maxls='+maxls
+    if (fullrun) location.hash+='&fullrun'
+    //console.log($('#process').val());
     if($('#process').val()=="merger"){
-	console.log("doing merger query");
-	$.getJSON("php/mergerplots.php?setup=cdaq&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
+	//console.log("doing merger query");
+        var mergerlsparams="&minls=&maxls=";
+        if (!fullrun) mergerlsparams = '&minls='+minls+'&maxls='+maxls;
+	$.getJSON("php/mergerplots.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams,function(data){
 		plot(data["serie0"],'#plot0','micromerger time delay',xaxis,yaxis);
 		plot(data["serie1"],'#plot1','minimerger time delay',xaxis,yaxis);
 		plot(data["serie2"],'#plot2','macromerger time delay',xaxis,yaxis);
+                document.title = "mergerplots run "+data["run"];
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();
 		$('#disable1').show();
@@ -26,7 +127,7 @@ function doPlots(run,xaxis,yaxis,stream){
     }
     else if($('#process').val()=="BW"){
 	console.log("doing transfer b/w");
-	$.getJSON("php/transfer-test.php?setup=cdaq&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
+	$.getJSON("php/transfer-test.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
 		var points=[];
 		for(var stream in data){
 		    var entries = [];
@@ -43,7 +144,7 @@ function doPlots(run,xaxis,yaxis,stream){
 	    });
     }else{
 	console.log("doing transfer query");
-	query = "php/transfer-test.php?run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
+	query = "php/transfer-test.php?setup="+setup+"&run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
 	console.log(query);
 	$.getJSON(query,function(data){
 		console.log(data);

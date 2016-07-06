@@ -5,12 +5,13 @@
 <link rel="stylesheet" href="css/jquery-ui.css">
 <link rel="stylesheet" href="css/loading_spinner.css">
 
-<script src="node_modules/highcharts/themes/sand-signika.js"></script>
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
+<script src="node_modules/highcharts/highcharts.js"></script>
+<script src="node_modules/highcharts/themes/sand-signika.js"></script>
 <!--<script src="js/Highcharts/js/highcharts.js"></script>
 <script src="js/Highcharts/js/themes/dark-unica.js"></script>-->
 
-<script src="node_modules/highcharts/highcharts.js"></script>
 <script src="node_modules/highcharts/themes/dark-unica.js"></script>
 
 <script src="js/loading_spinner.js"></script>
@@ -32,6 +33,11 @@
   
     <form class="pure-form" id="target" action="">
       <br><label for="runno">Run Number </label><input id="runno" name="runno">
+      <br><br>
+	<label for="minls">LS from</label><input id="minls" name="minls"></input>
+	<label for="maxls">to</label><input id="maxls" name="maxls"></input>
+	<label for="fullrun"></label><input type="checkbox" id="fullrun" name="fullrun"></input><label for="fullrun">full range</label>
+
       <br><br><input type="submit" value="Plot">
     </form>
     <br><br><table class="pure-table" id="runinfo">
@@ -54,6 +60,37 @@
 	  </div>
 	</td>
       </tr>
+
+      <tr>
+	<td>
+	  <div id="plot10a">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot10">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot11">
+	  </div>
+	</td>
+      </tr>
+
+      <tr>
+	<td>
+	  <div id="plot12">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot13">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot3a">
+	  </div>
+	</td>
+      </tr>
+
       <tr>
 	<td>
 	  <div id="plot1">

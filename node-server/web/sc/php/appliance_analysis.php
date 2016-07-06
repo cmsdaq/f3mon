@@ -1,13 +1,20 @@
 <?php 
 $run = $_GET["run"];
 $setup = $_GET["setup"];
+$minls=null;
+$minls = $_GET["minls"];
+$maxls=null;
+$maxls = $_GET["maxls"];
 header("Content-Type: application/json");
 $response=array();
 date_default_timezone_set("UTC");
 $crl = curl_init();
 $hostname = 'es-cdaq';
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/run/_search';
-$data =  '{"sort":{"startTime":"desc"},"query":{"term":{"runNumber":'.$run.'}}}';
+if ($run)
+ $data =  '{"sort":{"startTime":"desc"},"query":{"term":{"runNumber":'.$run.'}}}';
+else
+ $data =  '{"sort":{"startTime":"desc"}}';
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -17,25 +24,56 @@ $ret = curl_exec($crl);
 $res = json_decode($ret,true);
 $start = $res["hits"]["hits"][0]["_source"]["startTime"];
 $end = $res["hits"]["hits"][0]["_source"]["endTime"];
+if(!$run){
+$run = $res["hits"]["hits"][0]["_source"]["runNumber"];
+}
 $ongoing = "";
 if($end==null){
   $end=date("Y-m-dkH:i:s.u"); $end=str_replace('k','T',$end);
   $ongoing='ongoing';
 }
+/*
 $span = strtotime($end)-strtotime($start);
 $interval=strval(max(1,floor($span/100))).'s';
 $usec = substr($start,strpos($start,".")+1);
 date_default_timezone_set("UTC");
 $startTime = strtotime($start)*1000 + round($usec/1000.);
 $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>$span, 'interval'=>$interval, 'ongoing'=>$ongoing);
+*/
+//first get timestamps
+$mints=0;
+$maxts=0;
+if ($minls && $maxls) {
+  $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';//&size=5000';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
+  curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+  curl_setopt ($crl, CURLOPT_URL,$url);
+  curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+  $ret = curl_exec($crl);
+  $res = json_decode($ret,true);
+  $start = $res["aggregations"]["minfmdate"]["value"];
+  $end = $res["aggregations"]["maxfmdate"]["value"];
+}
 
-$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
-//$data =  '{"size":100000,"query":{"query_string":{"query":"_id:run'.$run.'*"}}}';
-//$data =  '{"query":{"query_string":{"query":"_id:run'.$run.'*"}}}';
-//$data =  '{"filter":{"term":{"_parent":"'.$run.'"}}}';
-$data =  '{"size":100000,"query":{"match":{"_parent":"'.$run.'"}}}';
+$span = strtotime($end)-strtotime($start);
+$interval = strval(max(max(1,floor($span/100)),10)).'s';//5?
+//$interval=strval(max(1,floor($span/100))).'s';
+//if ($interval>200) interval=200;
+$usec = substr($start,strpos($start,".")+1);
+date_default_timezone_set("UTC");
+$startTime = strtotime($start)*1000 + round($usec/1000.);
+$response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>$span, 'interval'=>$interval, 'ongoing'=>$ongoing);
+
+
+
+if ($minls && $maxls)
+  $data =  '{"size":100000,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
+else {
+  $data =  '{"size":100000,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}}]}}}';
+}
 
 //echo $url." -d'".$data."'\n";
+$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -108,10 +146,37 @@ foreach($ratetotal as $ls=>$rate){
   $response["ratebytotal"][0]['data'][]=array($ls,$rate/23.31);
 }
 
+$scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
+$scriptcorr02 = " mysum = 0d;          mycount=0d;".
+	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
+	    "uncorr = _source['fuSysCPUFrac'][i];".
+	    "corr=0d;".
+	    "if (uncorr<0.5) {".
+	      "corr = uncorr * 1.6666666;".
+	    "} else {".
+	      "corr = (0.5+0.2*(uncorr-0.5))*1.6666666;".
+	    "};".
+	    "mysum+=corr; mycount+=1;".
+	  "};".
+	  "if (mycount>0) {".
+	    "_agg['cpuavg'].add(_source['active_resources']*mysum/(mycount*mycount));".
+	    "_agg['cpuweight'].add(_source['active_resources']/mycount);".
+	  "}";
+$scriptuncorr = "mysum = 0d;".
+          "mycount=0d;".
+	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
+	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
+	  "};".
+	  "if (mycount>0) {".
+	  "  _agg['cpuavg'].add(_source['active_resources']*mysum/(mycount*mycount));".
+	  "  _agg['cpuweight'].add(_source['active_resources']/mycount);".
+	  "}";
+
+$scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in agg.cpuavg) fsum+=a; if (agg) for (a in agg.cpuweight) fweights+=a;}; if (fweights>0d) {return fsum/fweights;} else {return 0d;}"; 
 
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
-$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":70,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}}}}}}}';
+$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}, "avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}}}}}, "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptcorr02.'","reduce_script":"'.$scriptreduce.'"}},"uncorrSysCPU":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptuncorr.'","reduce_script":"'.$scriptreduce.'"}} }} }}';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -130,6 +195,72 @@ foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
   }
 }
 
+$response['outputbw'] = array();
+foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
+  $response['outputbw'][$key]=array();
+  $response['outputbw'][$key]['name']=$value['key'];
+  $response['outputbw'][$key]['data']=array();
+  foreach($value['ovr']['buckets'] as $kkey=>$vvalue){
+    $response['outputbw'][$key]['data'][]=array($vvalue['key'],$vvalue['avgbw']['value']);
+  }
+}
+
+$response['fusyscpu'] = array();
+foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
+  $response['fusyscpu'][$key]=array();
+  $response['fusyscpu'][$key]['name']=$value['key'];
+  $response['fusyscpu'][$key]['data']=array();
+  foreach($value['ovr']['buckets'] as $kkey=>$vvalue){
+    $response['fusyscpu'][$key]['data'][]=array($vvalue['key'],$vvalue['fusyscpu']['value']);
+  }
+}
+
+$response['fusysfreq'] = array();
+foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
+  $response['fusysfreq'][$key]=array();
+  $response['fusysfreq'][$key]['name']=$value['key'];
+  $response['fusysfreq'][$key]['data']=array();
+  foreach($value['ovr']['buckets'] as $kkey=>$vvalue){
+    $response['fusysfreq'][$key]['data'][]=array($vvalue['key'],$vvalue['fusysfreq']['value']);
+  }
+}
+
+$response['fudatain'] = array();
+foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
+  $response['fudatain'][$key]=array();
+  $response['fudatain'][$key]['name']=$value['key'];
+  $response['fudatain'][$key]['data']=array();
+  foreach($value['ovr']['buckets'] as $kkey=>$vvalue){
+    $response['fudatain'][$key]['data'][]=array($vvalue['key'],$vvalue['fudatain']['value']);
+  }
+}
+
+$response['lumibw'] = array();
+foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
+  $response['lumibw'][$key]=array();
+  $response['lumibw'][$key]['name']=$value['key'];
+  $response['lumibw'][$key]['data']=array();
+  foreach($value['ovr']['buckets'] as $kkey=>$vvalue){
+    $response['lumibw'][$key]['data'][]=array($vvalue['key'],$vvalue['activeRunLSBWMB']['value']);
+  }
+}
+
+$response['fusyscpu2'] = array();
+
+$response['fusyscpu2'][]=array();
+$response['fusyscpu2'][0]['name']='avg uncorr';
+$response['fusyscpu2'][0]['data']=array();
+foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
+  $response['fusyscpu2'][0]['data'][]=array($vvalue['key'],$vvalue['uncorrSysCPU']['value']);
+}
+
+$response['fusyscpu2'][]=array();
+$response['fusyscpu2'][1]['name']='avg 20% HT corr';
+$response['fusyscpu2'][1]['data']=array();
+foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
+  $response['fusyscpu2'][1]['data'][]=array($vvalue['key'],$vvalue['corrSysCPU02']['value']);
+}
+
 
 $response["series1"]=array();
 $response["series2"]=array();
@@ -141,12 +272,14 @@ $index=0;
   $hostname = "es-local";
 
   $url = 'http://'.$hostname.':9200/run'.$run.'*/prc-in/_search';
-  $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":0,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
+  if ($minls && $maxls)
+    $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":0,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
+  else
+    $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":0,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
   $ret = curl_exec($crl);
-  //echo $ret;
   $res = json_decode($ret,true);
   foreach($res["aggregations"]["bybu"]["buckets"] as $key=>$value){
     //if($value["key"]=='bu'){
@@ -201,7 +334,10 @@ $response["series4"]=array();
   $hostname = "es-local";
 
   $url = 'http://'.$hostname.':9200/run'.$run.'*/prc-in/_search';
-  $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
+  if ($minls && $maxls)
+    $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
+  else
+    $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
