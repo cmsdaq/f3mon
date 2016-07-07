@@ -2,6 +2,8 @@
 var tic = new Date().getTime();
 //1.load modules
 var express = require('express');
+var session = require('express-session');
+var bodyParser = require('body-parser');
 var php = require('node-php');
 var http = require('http');
 var elasticsearch = require('elasticsearch');
@@ -24,17 +26,81 @@ http.globalAgent.maxSockets=Infinity;
 
 //3.init web content plugin
 var app = express();
+
+//post text decoding (for login screen)
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+//session setup
+var session = session({secret: 'higgs boson CMS 2012',resave:true,saveUninitialized:false});
+app.use(session);//always use
+
+//authentication
+var pam = require('authenticate-pam');
+var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
+
+//register passport only for links requiring auth
+var priviledged_all = ['/priv.html','/sc/testplot.html','sc/php_priv','/login'];
+app.use(priviledged_all,passport.initialize());
+app.use(priviledged_all,passport.session());
+
+//priviledged areas
+var priviledged = ['/priv.html','/sc/testplot.html'];
+app.use(priviledged,function(req, res, next) {
+    if (!req.user) res.redirect('/login.html');
+    else next();
+});
+
+app.use('sc/php_priv',function(req, res, next) {
+    if (!req.user) res.status(403).send("Forbidden. Please log in.");
+    else next();
+});
+
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/sc/php",php.cgi("web/sc/php"));
-//app.use("/phpscripts",php.cgi("web/ecd/phpscripts"));
 app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
-//app.use("/php-f3mon",php.cgi("web/ecd/php-f3mon"));
-//app.use("/f3mon-test",php.cgi("web/ecd/f3mon-test"));
-//static content
+
+//static content!
 app.use(express.static('web'));
 
+//injection/comparision of session user id
+passport.serializeUser(function(user, done) {
+  console.log('serialized '+user.id)
+  done(null, user.id); 
+});
+
+passport.deserializeUser(function(id, done) {
+  done(null, {"id":id});
+});
+
+//configure pasport auth mode
+passport.use(new LocalStrategy(
+  function(username, password, done) {
+    //PAM deliberately takes time if password is incorrect
+    pam.authenticate(username, password, function(err) {
+      if (err) done(null, false, { message: 'Incorrect username or password' });
+      else {
+        console.log('authenticated ' + username)
+        done(null, {id:username});
+      }
+    })
+  })
+);
+
+//login route
+app.post('/login',
+  passport.authenticate('local', { successRedirect: '/priv.html',
+                                   failureRedirect: '/login.html#err',
+                                   failureFlash: false })
+);
+
+//login redirect if reloaded from browser(GET)
+app.get('/login',function(req,res) {res.redirect('/login.html')});
+
+//redirect old name
+app.get('/node-f3mon', function (req, res) {  res.redirect('/f3mon');});
 
 //4.setup elasticsearch client
 var ESServer = 'localhost';  //set in each deployment, if using a different ES service
@@ -188,9 +254,6 @@ var totalTimes = {
 var dbinfo = require('./dbinfo')
 var smdb = require('./src/smdb')
 smdb.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,dbinfo)
-
-//redirect
-app.get('/node-f3mon', function (req, res) {  res.redirect('/f3mon');});
 
 //callback test 1
 app.get('/', function (req, res) {
