@@ -75,7 +75,7 @@ function doReopen(run){
 	    async: false
 		});
     total=1;
-	$.getJSON("php/openindex.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+	$.getJSON("php_priv/openindex.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
 		console.log(data);
 	    });
 	$('#progressbar').progressbar({
@@ -94,7 +94,7 @@ function doClose(run){
 	    async: false
 		});
     total=1;
-	$.getJSON("php/closeindex.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+	$.getJSON("php_priv/closeindex.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
 		console.log(data);
 	    });
 	$('#progressbar').progressbar({
@@ -152,7 +152,7 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
     refseries.splice(0,refseries.length); //delete content of refseries array from previous doPlots
     if (!fullrun) var lspart="&minls="+minls+"&maxls="+maxls;
     else var lspart="&minls=&maxls="; 
-    pippo=$.getJSON("php/appliance_analysis.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart,function(data){
+    pippo=$.getJSON("php_priv/appliance_analysis.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart,function(data){
 
 	    if(data.runinfo.start !=null){
 		$('#runinfo').show();		

@@ -59,6 +59,7 @@ app.use('sc/php_priv',function(req, res, next) {
 //old web
 app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/sc/php",php.cgi("web/sc/php"));
+app.use("/sc/php_priv",php.cgi("web/sc/php_priv"));
 app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
 
