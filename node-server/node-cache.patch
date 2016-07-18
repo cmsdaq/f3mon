@@ -1,0 +1,11 @@
+--- node_modules/node-cache/lib/node_cache.js	2016-03-21 08:37:43.000000000 +0100
++++ node_modules/node-cache/lib/node_cache.js	2016-07-18 15:43:29.047282841 +0200
+@@ -292,7 +292,7 @@
+         this._check(key, value);
+       }
+       if (startPeriod && this.options.checkperiod > 0) {
+-        this.checkTimeout = setTimeout(this._checkData, this.options.checkperiod * 1000);
++        this.checkTimeout = setTimeout(this._checkData.bind(null,startPeriod), this.options.checkperiod * 1000);
+         if (this.checkTimeout.unref != null) {
+           this.checkTimeout.unref();
+         }

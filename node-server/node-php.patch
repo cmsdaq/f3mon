@@ -1,0 +1,88 @@
+--- node_modules/node-php/main.js	2014-01-27 18:14:50.000000000 +0100
++++ node_modules/node-php/main.js	2016-07-18 15:43:35.678320322 +0200
+@@ -71,12 +71,17 @@
+ 		/*.on("error", function(){}); */
+ 		php.stdin.write(req.rawBody); 
+ 		//php.stdin.write("\n"); 
++		php.stdin.on("error", function(err) {
++			console.log("php.stdin.write error '"+err+"' on running " + file);
++                });
+ 		
+ 		//php.stdin.end(); 
++		var phpdata=false;
+ 		
+ 		php.stdout.on("data", function(data){
+ 			//console.log(data.toString()); 
+-			res += data.toString(); 
++			res += data.toString();
++			phpdata=true;
+ 		}); 
+ 		php.stderr.on("data", function(data){
+ 			err += err.toString(); 
+@@ -86,34 +91,43 @@
+ 		}); 
+ 		php.on("exit", function(){
+ 			// extract headers 
+-			php.stdin.end(); 
++			var phpexit = function() {
++				php.stdin.end(); 
+ 			 
+-			var lines = res.split("\r\n"); 
+-			var line = 0; 
+-			var html = ""; 
+-			if(lines.length){
+-				do {
+-					var m = lines[line].split(": "); 
+-					if(m[0] === "") break; 
++				var lines = res.split("\r\n"); 
++				var line = 0; 
++				var html = ""; 
++				if(lines.length){
++					do {
++						var m = lines[line].split(": "); 
++						if(m[0] === "") break; 
+ 					
+ 					//console.log("HEADER: "+m[0]+": "+m[1]); 
+-					if(m[0] == "Status"){
+-						response.statusCode = parseInt(m[1]); 
+-					}
+-					if(m.length == 2){
+-						response.setHeader(m[0], m[1]); 
+-					}
+-					line++; 
+-				} while(lines[line] !== ""); 
++						if(m[0] == "Status"){
++							response.statusCode = parseInt(m[1]); 
++						}
++						if(m.length == 2){
++							response.setHeader(m[0], m[1]); 
++						}
++						line++; 
++					} while(lines[line] !== ""); 
+ 				
+-				html = lines.splice(line+1).join("\n"); 
+-			} else {
+-				html = res; 
++					html = lines.splice(line+1).join("\n"); 
++				} else {
++					html = res; 
++				}
++				//console.log("STATUS: "+response.statusCode); 
++				//console.log(html); 
++				response.send(html, response.statusCode); 
++				response.end(); 
++                        }
++                        if (phpdata) {
++				phpexit();
++                        }
++                        else {
++				//yield
++				setTimeout(phpexit,0);
+ 			}
+-			//console.log("STATUS: "+response.statusCode); 
+-			//console.log(html); 
+-			response.send(html, response.statusCode); 
+-			response.end(); 
+ 		}); 
+ 		
+ 	} else {

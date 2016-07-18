@@ -10,6 +10,12 @@ source envoracle.sh #oracle environment
 ```
 npm install
 ```
+Try applying node-php and node-cache patches:
+```
+patch -p0 < node-cache.patch
+patch -p0 < node-php.patch
+```
+
 #deployment to custom directory:
 ```
 1. Compile f3mon, copy "dist" directory to node-server web/ and rename it to 'f3mon'.
