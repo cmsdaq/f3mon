@@ -115,20 +115,27 @@ module.exports.query = function (req, res) {
               var msgoutlen = 0;
               var seenThreadTrace=false;
               var traceCount = 0
+              var threadMode=false;
+              var allThreads=false;
+              var tcmax=5;
               for (var idx=0;idx<msgtokens.length;idx++) {
                 var token = msgtokens[idx]
                 var msglen = token.length;
                 if (token.startsWith('Thread')) {
+                  tcmax=5;
+                  threadMode=true;
                   if (htmlFormat)
                   token = token.replace(/Thread/,'<b>Thread</b>')
                   seenThreadTrace=true;
                   traceCount=0
+                  if (token.startsWith('Thread 1')) allThreads=true;
                 }
                 else {
                   if (seenThreadTrace)
                     traceCount++;
+                  if (token.indexOf('stacktrace')!=-1 || token.indexOf('sig_dostack')!=-1) {traceCount=0;tcmax=10;}
                 }
-                if (traceCount<=5) {//take only 5 lines from stack trace
+                if (traceCount<=tcmax) {//take only 5 lines from stack trace
                   if (htmlFormat) {
                     msgout+=token+'<br>';
                     msglen+=msglen+3;
@@ -148,7 +155,7 @@ module.exports.query = function (req, res) {
                   }
                   msgoutlen+=msglen;
                 }
-                if (qparam_truncateAt>0 && msgoutlen>qparam_truncateAt && idx+1<msgtokens.length)  {
+                if (qparam_truncateAt>0 && msgoutlen>qparam_truncateAt && idx+1<msgtokens.length && (!threadMode || allThreads))  {
                   if (htmlFormat)
                     msgout+="<br> <b>[ message truncated ]</b> <br>";
                   else
