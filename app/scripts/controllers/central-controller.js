@@ -935,6 +935,32 @@
           lastChartLib=$scope.chartLib;
         }
 
+        //defaults
+        $scope.chartType = "micro";
+        //state
+        var isMicro=($scope.chartLib==="micro");
+        var lastChartType = "micro";
+
+        $scope.switchChartType = function() {
+          if (lastChartType===$scope.chartType) return;
+          if (chartEnabled) {
+            destroyChart();
+          }
+          var chartTypes = {'micro':'nstates-summary','input':'istates-summary'}
+          microStatesService.stop()
+          microStatesService.setServiceResource(chartTypes[$scope.chartType]);
+
+          if ($scope.chartLib === "highcharts") {
+            startHC();
+            microStatesService.reconfigureFormat("hc",!$scope.isCollapsed)
+          }
+          if ($scope.chartLib === "nvd3") {
+           startNvd3();
+            microStatesService.reconfigureFormat("nvd3",!$scope.isCollapsed)
+          }
+          lastChartType=$scope.chartType;
+          microStatesService.start()
+        }
 
         //hc
         var chart;

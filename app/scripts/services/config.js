@@ -108,7 +108,7 @@
 
                         if (hideAllOthers) {
                             series.forEach(function(serie) {
-                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge'].indexOf(serie.name) > -1) {
+                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge','input'].indexOf(serie.name) > -1) {
                                     return
                                 } else if (serie.name == selectedName) {
                                     serie.setVisible(true, false)
@@ -129,7 +129,7 @@
                         maskedStreamList = []
                         series.forEach(function(serie) {
                               if (!serie.visible) {
-                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge'].indexOf(serie.name) <= -1)
+                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge','input'].indexOf(serie.name) <= -1)
                                   maskedStreamList.push(serie.name);
                               }
                         });

@@ -98,6 +98,7 @@
                 intervalNum: configService.nbins,
                 sysName: false,
                 streamList: false,
+                allStreams: false,
                 timePerLs: 23.31,
                 useDivisor: true,
                 accum : false
@@ -218,7 +219,8 @@
             }
 
             q.sysName = indexListService.selected.subSystem;
-            //q.streamList = runInfo.streams.join();
+            if (!runInfo.maskedStreams.length && runInfo.queryStreams.length) q.allStreams=true;
+            else q.allStreams=false;
             q.streamList = runInfo.queryStreams.join();
             q.lastLs = runInfo.lastLs;
             service.start();
@@ -405,21 +407,26 @@
         var indexInfo = indexListService.selected;
 
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/nstates-summary.php', {
-	var resource = $resource('api/nstates-summary', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
 
-        
+        var resourceType = 'nstates-summary';
+        var resource;
+
+        var setResource = function(newapi) {
+          resource =  $resource('api/'+newapi, {
+              callback: 'JSON_CALLBACK',
+          }, {
+              jsonp_get: {
+                  method: 'JSONP',
+              }
+          });
+          mypoller = undefined;
+        }
+        setResource(resourceType);
+
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
             service.pollingDelay = config.slowPollingDelay;
         });
-
 
         var service = {
             data: {},
@@ -432,6 +439,11 @@
             active:false,
             paused:false
         };
+
+        service.setServiceResource = function(api) {
+          service.queryInfo.lastTime=false;
+          setResource(api);
+        }
 
         service.resetParams = function() {
             service.data = {};
@@ -558,7 +570,7 @@
                         broadcast('updated');
                     }
                   } else
-                    console.log("wrong us format exp:"+service.queryParams.format+"recv:" + data.format)
+                    console.log("wrong us format exp:"+service.queryParams.format+" received:" + data.format)
                 })
             } else {
                 mypoller = poller.get(resource, {
