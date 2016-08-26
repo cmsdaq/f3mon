@@ -496,7 +496,8 @@ function cluster_data_format(callback){
 		    //    totalCores+=parseInt(val[index].online);
 		    //    totalCloud+=parseInt(val[index].cloud);
 		    //}
-		    content +="<td>cores<br>HLT:<br></td><td/><td/>";
+		    content +="<td>cores<br>HLT:<br></td>";
+		    content +="<td>hyper-<br>thread.:</td><td/>";
 		    content +="<td>cores<br>CLOUD:<br></td>";
 		    content +="<td>cores<br>QUARAN.:<br></td>";
 		    content +="</tr>";
@@ -511,9 +512,35 @@ function cluster_data_format(callback){
                     for (var cput in fumap_cpu) {
                       if (fumap_cpu.hasOwnProperty(cput)) {
                         var cval = fumap_cpu[cput];
+                        var htstatus = "<td/>";
+                        if (cval.boxes>0) {
+                          var cpm = (cval.totalCores+cval.totalCloud+cval.totalQuarantinedCores)/cval.boxes;
+                          if (cput=="E5-2680 v3") {
+                            if (cpm==48) htstatus="<td>on</td>";
+                            else if (cpm==24) htstatus="<td style='background-color:yellow'>off</td>";
+                            else if (cpm>24 && cpm <48) htstatus="<td style='background-color:red'>partial(HT)</td>";
+                            else if (cpm<24) htstatus="<td style='background-color:red'>partial(no HT)</td>";
+                            else htstatus="<td style='background-color:yellow'>overcommitted</td>";
+                          }
+                          else if (cput=="E5-2680 v4") {
+                            if (cpm==56) htstatus="<td>on</td>";
+                            else if (cpm==28) htstatus="<td style='background-color:yellow'>off</td>";
+                            else if (cpm>28 && cpm <56) htstatus="<td style='background-color:red'>partial(HT)</td>";
+                            else if (cpm<28) htstatus="<td style='background-color:red'>partial(no HT)</td>";
+                            else htstatus="<td style='background-color:yellow'>overcommitted</td>";
+                          }
+                          else if (cput=="E5-2670 0") {
+                            if (cpm==32) htstatus="<td>on</td>";
+                            else if (cpm==16) htstatus="<td style='background-color:yellow'>off</td>";
+                            else if (cpm>16 && cpm <32) htstatus="<td style='background-color:red'>partial(HT)</td>";
+                            else if (cpm<16) htstatus="<td style='background-color:red'>partial(no HT)</td>";
+                            else htstatus="<td style='background-color:yellow'>overcommitted</td>";
+                          }
+                        }
 		        content+="<tr><td>"+cput+"</td>";
 		        content +="<td>"+cval.boxes+"(+"+cval.boxes_bl+")<br>/"+cval.boxes_db+"</td>";
-		        content +="<td>"+cval.totalCores+"</td><td/><td/>";
+		        content +="<td>"+cval.totalCores+"</td>";
+		        content +=htstatus+"<td/>";
 		        content +="<td>"+cval.totalCloud+"</td>";
 		        content +="<td>"+cval.totalQuarantinedCores+"</td>";
 		        content +="</tr>";

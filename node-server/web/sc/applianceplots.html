@@ -15,7 +15,7 @@
 <script src="node_modules/highcharts/themes/dark-unica.js"></script>
 
 <script src="js/loading_spinner.js"></script>
-<script src="bigPlots.js"></script>
+<script src="applianceplots.js"></script>
 </head>
 <body onLoad="bootstrap();">
 
@@ -38,7 +38,8 @@
 	<label for="maxls">to</label><input id="maxls" name="maxls"></input>
 	<label for="fullrun"></label><input type="checkbox" id="fullrun" name="fullrun"></input><label for="fullrun">full range</label>
 
-      <br><br><input type="submit" value="Plot">
+      <br><br><label for="stable"></label><input type="checkbox" id="stable" name="stable"></input><label for="stable">stable beams only</label>
+      <br><br><input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
     </form>
     <br><br><table class="pure-table" id="runinfo">
       <tr><th>Fill Number</th><th>Run Number</th><th>Start Time</th><th>End Time</th><th>Duration (s)</th><th>Time tick (s)</th></tr>
@@ -52,41 +53,37 @@
     <table class="pure-table" id="plots">
       <tr>
 	<td>
+	  <div id="plot1">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot1a">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot2">
+	  </div>
+	</td>
+      </tr>
+
+      <tr>
+	  <td><div id="plot10a"></div></td>
+	  <td><div id="plot16"/></td>
+	  <td><div id="plot17"/></td>
+      </tr>
+      <tr>
+	  <td><div id="plot10b"/></td>
+	  <td><div id="plot15"/></td>
+	  <td><div id="plot13"/></td>
+      </tr>
+
+      <tr>
+	<td>
 	  <div id="plot3">
 	  </div>
 	</td>
 	<td>
-	  <div id="plot6">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot10b">
-	  </div>
-	</td>
-      </tr>
-
-      <tr>
-	<td>
-	  <div id="plot10a">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot10">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot11">
-	  </div>
-	</td>
-      </tr>
-
-      <tr>
-	<td>
 	  <div id="plot12">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot13">
 	  </div>
 	</td>
 	<td>
@@ -94,49 +91,9 @@
 	  </div>
 	</td>
       </tr>
+      <tr>
+      </tr>
 
-      <tr>
-	<td>
-	  <div id="plot1">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot2">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot2B">
-	  </div>
-	</td>
-      </tr>
-      <tr>
-	<td>
-	  <div id="plot4">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot4B">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot5">
-	  </div>
-	</td>
-      </tr>
-      <tr>
-	<td>
-	  <div id="plot7">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot8">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot9">
-	  </div>
-	</td>
-      </tr>
     </table>
 
     <div id="dialog" title="Appliance detailed view">

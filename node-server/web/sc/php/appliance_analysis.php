@@ -86,6 +86,7 @@ $scroll_id=$res["_scroll_id"];
 $ratebybu=array();
 $bwbybu=array();
 $ratetotal=array();
+$evsize=array();
 
 
 $http_status=200;
@@ -114,6 +115,9 @@ do{
       $ls=$value['_source']['ls'];
       $ratebybu[$thebu][$ls]=$value['_source']['NEvents'];
       $bwbybu[$thebu][$ls]=$value['_source']['NBytes'];
+      if ($value['_source']['NEvents']>0) {
+        $evsize[$ls]=$value['_source']['NBytes']/(1.0*$value['_source']['NEvents']);
+      }
       $ratetotal[$ls]=$value['_source']['TotalEvents'];
     }
   }
@@ -126,6 +130,7 @@ ksort($bwbybu);
 $response["ratebybu"]=array();
 $response["bwbybu"]=array();
 $response["ratebytotal"]=array();
+$response["ratebytotal2"]=array();
 $response["ratebytotal"][]=array('name'=>'totals','data'=>array());;
 foreach($ratebybu as $key=>$value){
   $response["ratebybu"][]=array('name'=>$key,'data'=>array());
@@ -144,6 +149,7 @@ foreach($bwbybu as $key=>$value){
 ksort($ratetotal);
 foreach($ratetotal as $ls=>$rate){
   $response["ratebytotal"][0]['data'][]=array($ls,$rate/23.31);
+  $response["ratebytotal2"][$ls]=$rate/23.31;
 }
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
@@ -162,6 +168,30 @@ $scriptcorr02 = " mysum = 0d;          mycount=0d;".
 	    "_agg['cpuavg'].add(_source['active_resources']*mysum/(mycount*mycount));".
 	    "_agg['cpuweight'].add(_source['active_resources']/mycount);".
 	  "}";
+
+//B: corrections from TSG (single-thread power vs. Ivy bridge
+$scriptcorrB02 = " mysum = 0d;          mycount=0d;".
+	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
+	    "uncorr = _source['fuSysCPUFrac'][i];".
+	    "corr=0d;".
+	    "if (uncorr<0.5) {".
+	      "corr = uncorr * 1.6666666;".
+	    "} else {".
+	      "corr = (0.5+0.2*(uncorr-0.5))*1.6666666;".
+	    "};".
+	    "mysum+=corr; mycount+=1;".
+	  "};".
+	  "if (mycount>0) {".
+            "cpuw = _source['active_resources']/mycount;".
+            "archw=1d;".
+            "if (cpuw==32) archw=0.96;".
+            "if (cpuw==48) archw=1.13;".
+            "if (cpuw==56) archw=1.15;".
+	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
+	    "_agg['cpuweight'].add(archw*cpuw);".
+	  "}";
+
+
 $scriptuncorr = "mysum = 0d;".
           "mycount=0d;".
 	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
@@ -172,11 +202,26 @@ $scriptuncorr = "mysum = 0d;".
 	  "  _agg['cpuweight'].add(_source['active_resources']/mycount);".
 	  "}";
 
+$scriptuncorrB = "mysum = 0d;".
+          "mycount=0d;".
+	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
+	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
+	  "};".
+	  "if (mycount>0) {".
+          "  cpuw = _source['active_resources']/mycount;".
+          "  archw=1d;".
+          "  if (cpuw==32) archw=0.96;".
+          "  if (cpuw==48) archw=1.13;".
+          "  if (cpuw==56) archw=1.15;".
+	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
+	  "  _agg['cpuweight'].add(archw*cpuw);".
+	  "}";
+
 $scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in agg.cpuavg) fsum+=a; if (agg) for (a in agg.cpuweight) fweights+=a;}; if (fweights>0d) {return fsum/fweights;} else {return 0d;}"; 
 
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
-$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}, "avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}}}}}, "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptcorr02.'","reduce_script":"'.$scriptreduce.'"}},"uncorrSysCPU":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptuncorr.'","reduce_script":"'.$scriptreduce.'"}} }} }}';
+$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}, "avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}}}}}, "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptcorrB02.'","reduce_script":"'.$scriptreduce.'"}},"uncorrSysCPU":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptuncorrB.'","reduce_script":"'.$scriptreduce.'"}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }} }}';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -184,6 +229,9 @@ curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
 
 $ret = curl_exec($crl);
 $res = json_decode($ret,true);
+
+//echo $ret;
+//exit(1);
 
 $response['ramdisk'] = array();
 foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
@@ -245,8 +293,6 @@ foreach($res['aggregations']['appliance']['buckets'] as $key=>$value){
   }
 }
 
-$response['fusyscpu2'] = array();
-
 $response['fusyscpu2'][]=array();
 $response['fusyscpu2'][0]['name']='avg uncorr';
 $response['fusyscpu2'][0]['data']=array();
@@ -255,11 +301,38 @@ foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
 }
 
 $response['fusyscpu2'][]=array();
-$response['fusyscpu2'][1]['name']='avg 20% HT corr';
+$response['fusyscpu2'][1]['name']='avg 20% ht corr';
 $response['fusyscpu2'][1]['data']=array();
 foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
   $response['fusyscpu2'][1]['data'][]=array($vvalue['key'],$vvalue['corrSysCPU02']['value']);
 }
+
+
+$response['fuetime'][]=array();
+$response['fuetime'][0]['name']='/global L1 rate';
+$response['fuetime'][1]['name']='/inst. BUFU rate';
+$response['fuetime'][0]['data']=array();
+$response['fuetime'][1]['data']=array();
+foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
+  $myLS = intval($vvalue['lsavg']['value']);
+  //echo $myLS;
+  if (array_key_exists($myLS,$response["ratebytotal2"])) {
+     $erate = $response["ratebytotal2"][$myLS];
+     if ($erate==0) continue;
+     $myval = $vvalue['uncorrSysCPU']['value'] * $vvalue['sum_res']['value'] / (1.*$erate);
+     $response['fuetime'][0]['data'][]=array($vvalue['key'],$myval);
+     //echo $myval." ".$vvalue['sum_res']['value']." ".$erate."\n";
+  }
+  //$response["ratebytotal"][0]['data']
+  if (array_key_exists($myLS,$evsize)) {
+    $esize = $evsize[$myLS];
+    $myval = $vvalue['uncorrSysCPU']['value'] * $vvalue['sum_res']['value'] / ((1048576.*$vvalue['sum_fudatain']['value'])/$esize);
+  //  echo $myval." ".$vvalue['sum_res']['value']." ".((1000000*$vvalue['sum_fudatain']['value'])/$esize)."\n";
+    $response['fuetime'][1]['data'][]=array($vvalue['key'],$myval);
+  }
+}
+
+//exit(1);
 
 
 $response["series1"]=array();

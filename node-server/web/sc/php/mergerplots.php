@@ -14,6 +14,11 @@ $minLs = $_GET["minls"];
 //$maxLs = null;
 $maxLs = $_GET["maxls"];
 
+$interval = 1;
+$interval = $_GET["interval"];
+if ($interval==null) $interval=1;
+else $interval = intval($interval);
+
 //echo var_dump($_GET);
 
 //echo $run." ".$xaxis." ".$yaxis." ".$streamTo."\n";
@@ -57,12 +62,15 @@ if ($maxLs!=null && $maxLs!="") {
   $lsterm = ',{"range":{"ls":{"from":'.$minLs.',"to":'.$maxLs.'}}}';
 }
 
+$minmaxavg = "max";
+if ($interval>1) $minmaxavg="avg";
+
 if($streamTo){
   #$data = '{"query":{"term":{"_parent":'.$run.'}},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}},"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}';
-  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}},"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 
 }else{
-  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -90,10 +98,10 @@ foreach ($res["aggregations"]["lss"]["buckets"] as $ls){
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search?size=0';
 if($streamTo){
- $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":10000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"min":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
+ $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
 }
 else {
- $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":10000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"min":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
+ $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -110,6 +118,7 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
   $microtimes[$stream["key"]]=array();
   $sizes[$stream["key"]]=array();
   foreach ($stream["lss"]["buckets"] as $ls){
+    if (!$ls["doc_count"]) continue;
     $microtimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
     $sizes[$stream["key"]][$ls["key"]]=$ls["sizes"]["value"];
   }
@@ -118,10 +127,10 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/minimerge/_search?size=0';
 $data='{}';
 if($streamTo){
-  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"host","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":10000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"host","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 
 }else{
-  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":10000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 }
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
@@ -135,6 +144,7 @@ if($streamTo){
   foreach ($res["aggregations"]["bu"]["buckets"] as $bu){  
     $minitimes[$bu["key"]]=array();
     foreach ($bu["lss"]["buckets"] as $ls){
+      if (!$ls["doc_count"]) continue;
       $minitimes[$bu["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
     }
   }
@@ -142,13 +152,14 @@ if($streamTo){
   foreach ($res["aggregations"]["streams"]["buckets"] as $stream){  
     $minitimes[$stream["key"]]=array();
     foreach ($stream["lss"]["buckets"] as $ls){
+      if (!$ls["doc_count"]) continue;
       $minitimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
     }
   }
 }
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/macromerge/_search?size=0';
-$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}}}';
+$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 $ret = curl_exec($crl);
@@ -159,6 +170,7 @@ $macrotimes=array();
 foreach ($res["aggregations"]["streams"]["buckets"] as $stream){  
   $macrotimes[$stream["key"]]=array();
   foreach ($stream["lss"]["buckets"] as $ls){
+    if (!$ls["doc_count"]) continue;
     $macrotimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
   }
 }
@@ -182,7 +194,7 @@ if($xaxis=='size'){
 	$etime = $eoltimesLast[$ls];
 	if($yaxis=='lap'){
 	  if($previoustime!=0){
-	    $microeol[count($microeol)-1]["data"][]=array($sizes[$key][$ls],(round($time)-$previoustime));
+	    $microeol[count($microeol)-1]["data"][]=array($sizes[$key][$ls],(round($time)-$previoustime)/($interval*1.0));
 	  }
 	  $previoustime=$time;
 	}else{
@@ -202,11 +214,11 @@ if($xaxis=='size'){
 	  if($previoustime!=0){
             if ($streamTo) {
               if (!array_key_exists($ls,$sizes[$streamTo])) continue;
-	      $minimicro[count($minimicro)-1]["data"][]=array($sizes[$streamTo][$ls],round($time)-$previoustime);
+	      $minimicro[count($minimicro)-1]["data"][]=array($sizes[$streamTo][$ls],(round($time)-$previoustime)/($interval*1.0));
             }
             else {
               if (!array_key_exists($ls,$sizes[$stream])) continue;
-	      $minimicro[count($minimicro)-1]["data"][]=array($sizes[$stream][$ls],round($time)-$previoustime);
+	      $minimicro[count($minimicro)-1]["data"][]=array($sizes[$stream][$ls],(round($time)-$previoustime)/($interval*1.0));
             }
 	  }
 	  $previoustime=$time;
@@ -234,7 +246,7 @@ if($xaxis=='size'){
       foreach($histo as $ls=>$time){
 	if($yaxis=='lap'){
 	  if($previoustime!=0){
-	    $macromini[count($macromini)-1]["data"][]=array($sizes[$stream][$ls],round($time)-$previoustime);
+	    $macromini[count($macromini)-1]["data"][]=array($sizes[$stream][$ls],(round($time)-$previoustime)/($interval*1.0));
 	  }
 	  $previoustime=$time;
 	}else{
@@ -257,7 +269,7 @@ if($xaxis=='size'){
 	//if($streamTo){
 	if($yaxis=='lap'){
 	  if($previoustime!=0){
-	    $microeol[count($microeol)-1]["data"][]=array(intval($ls),(round($time)-$previoustime));
+	    $microeol[count($microeol)-1]["data"][]=array(intval($ls),(round($time)-$previoustime)/($interval*1.0));
 	  }
 	  $previoustime=$time;
 	}else{
@@ -275,7 +287,7 @@ if($xaxis=='size'){
       foreach($histo as $ls=>$time){
 	if($yaxis=='lap'){
 	  if($previoustime!=0){
-	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),round($time)-$previoustime);
+	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),(round($time)-$previoustime)/($interval*1.0));
 	  }
 	  $previoustime=$time;
 	}else{
@@ -305,7 +317,7 @@ if($xaxis=='size'){
       foreach($histo as $ls=>$time){
 	if($yaxis=='lap'){
 	  if($previoustime!=0){
-	    $macromini[count($macromini)-1]["data"][]=array(intval($ls),round($time)-$previoustime);
+	    $macromini[count($macromini)-1]["data"][]=array(intval($ls),(round($time)-$previoustime)/($interval*1.0));
 	  }
 	  $previoustime=$time;
 	}else{
@@ -316,13 +328,15 @@ if($xaxis=='size'){
 	      if(array_key_exists($ls,$butime) && $butime[$ls]<$minbutime){$minbutime = $butime[$ls];}
 	    }
 	    //	    echo $ls.' '.$minbutime."\n";
-	    if($minbutime<100000000000){
+	    if($minbutime && $minbutime<100000000000){
 	      $macromini[count($macromini)-1]["data"][]=array(intval($ls),round($time)-$minbutime);
 	    }else{
 	      $macromini[count($macromini)-1]["data"][]=array(intval($ls),0);
 	    }
 	  }else if(!$streamTo){
-	    $macromini[count($macromini)-1]["data"][]=array(intval($ls),round($time)-intval($minitimes[$stream][$ls]));
+             $minitime = intval($minitimes[$stream][$ls]);
+             if ($minitime)
+	       $macromini[count($macromini)-1]["data"][]=array(intval($ls),round($time)-intval($minitimes[$stream][$ls]));
 	  }
 	}
 	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";                                      
@@ -331,6 +345,54 @@ if($xaxis=='size'){
   }
 
 }
+
+
+$interval = max(5,$interval);
+$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search';
+$data = '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},'.
+'"aggs":{'.
+'"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},'.
+'"aggs":{"size":{"sum":{"field":"filesize"}},'.
+'"phys":{   "filter":{"wildcard":{"stream":"*Physics*"}},"aggs":{"size":{"sum":{"field":"filesize"}}}},'.
+'"express":{"filter":{"wildcard":{"stream":"Express*"}}, "aggs":{"size":{"sum":{"field":"filesize"}}}},'.
+'"dqm":{    "filter":{"wildcard":{"stream":"DQM*"}},    "aggs":{"size":{"sum":{"field":"filesize"}}}},'.
+'"other":{"filter":{"bool":{"must_not":[{"wildcard":{"stream":"*Physics*"}},{"wildcard":{"stream":"Express*"}},{"wildcard":{"stream":"DQM*"}}  ]}},"aggs":{"size":{"sum":{"field":"filesize"}}}}'.
+'}}}}';
+
+curl_setopt ($crl, CURLOPT_URL,$url);
+curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+$ret = curl_exec($crl);
+$res=json_decode($ret,true);
+
+$allsizes=array();
+$allsizes[]=array();
+$allsizes[]=array();
+$allsizes[0]["name"]="HLT total output size";
+$allsizes[0]["data"]=array();
+
+$allsizes[1]["name"]="HLT Physics stream output size";
+$allsizes[1]["data"]=array();
+
+$allsizes[2]["name"]="HLT Express stream output size";
+$allsizes[2]["data"]=array();
+
+$allsizes[3]["name"]="HLT DQM stream output size";
+$allsizes[3]["data"]=array();
+
+$allsizes[4]["name"]="HLT Other streams output size";
+$allsizes[4]["data"]=array();
+
+$invf = 1.0 / ($interval * 23.31*1000000);
+foreach ($res["aggregations"]["lss"]["buckets"] as $ls){  
+  if (!$ls["doc_count"]) continue;
+  $allsizes[0]["data"][]=array($ls["key"],round($ls["size"]["value"]*$invf));
+  $allsizes[1]["data"][]=array($ls["key"],round($ls["phys"]["size"]["value"]*$invf));
+  $allsizes[2]["data"][]=array($ls["key"],round($ls["express"]["size"]["value"]*$invf));
+  $allsizes[3]["data"][]=array($ls["key"],round($ls["dqm"]["size"]["value"]*$invf));
+  $allsizes[4]["data"][]=array($ls["key"],round($ls["other"]["size"]["value"]*$invf));
+}
+$retval["allsizes"]=$allsizes;
+
 $retval["serie0"]=$microeol;
 $retval["serie1"]=$minimicro;
 $retval["serie2"]=$macromini;

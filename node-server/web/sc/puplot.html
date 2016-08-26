@@ -1,0 +1,94 @@
+<html>
+<head>
+<link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="css/pure-min.css">
+<link rel="stylesheet" href="css/jquery-ui.css">
+<link rel="stylesheet" href="css/loading_spinner.css">
+
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<script src="node_modules/highcharts/highcharts.js"></script>
+<script src="node_modules/highcharts/themes/sand-signika.js"></script>
+<!--<script src="js/Highcharts/js/highcharts.js"></script>
+<script src="js/Highcharts/js/themes/dark-unica.js"></script>-->
+
+<script src="node_modules/highcharts/themes/dark-unica.js"></script>
+
+<script src="js/loading_spinner.js"></script>
+<script src="puplot.js"></script>
+</head>
+<body onLoad="bootstrap();">
+
+<div class="pure-g">
+    <table class="pure-table" id="selector">
+     <tr>
+     <td> 
+      <div class="pure-u-1-1" style="margin-left:20px;margin-right:20px;">
+      <form class="pure-form" id="target" action="">
+        <!--<br><label for="fillno">Fill </label><input id="fillno" name="fillno">-->
+        <br><label for="runno">Run Numbers </label><input id="runno" name="runno"></input>
+        <br><label for="alternative"></label><input type="checkbox" id="alternative" name="alternative"></input><label for="alternative">alternative method</label>
+        <br><br><input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
+      </form>
+      <br><br>
+      <table class="pure-table" id="runinfo">
+        <tr><th>Fill Number</th><th>Run Number</th><th>Start Time</th><th>End Time</th><th>Duration (s)</th><th>Time tick (s)</th></tr>
+        <tr><td id="fill"><td id="run"></td><td id="start"></td><td id="end"><td id="duration"><td id="unit"></td></tr> 
+      </table>
+      </div>
+     </td>
+     <td>
+      <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+      <form class="pure-form" id="target2" action="">
+      Run/LS selector<br>
+      <button type="button" onclick='$("#runinfo2").toggle();if (this.innerHTML=="Hide") this.innerHTML="Show"; else this.innerHTML="Hide"'>Show</button>
+      <table class="pure-table" id="runinfo2">
+        <tr><th>Runs</th><th>LS from</th><th>LS to</th><th>full range</th><th>include</th>
+        <!--<tr><td>x</td><td>y</td></tr>-->
+        <!--<tr><td></td><td></td><td></td><td></td><td></td></tr>-->
+      </table>
+      </form>
+      </div>
+     </td>
+     </tr>
+    </table>
+    <br><br>
+    <table class="pure-table" id="plots">
+      <tr>
+	<td>
+	  <div id="plot13">
+	  </div>
+	</td>
+	<td>
+	  <div id="plot15">
+	  </div>
+	</td>
+      </tr>
+
+      <tr>
+	<td>
+	  <div id="plot16">
+	  </div>
+	</td>
+
+      </tr>
+
+      <tr>
+	<td>
+	  <div id="plot14">
+	  </div>
+	</td>
+
+      </tr>
+    </table>
+  </div>
+</div>
+
+<br><br><div id="progressbar"></div>
+
+
+
+
+<div class="pure-u-1-1" id="loading_dialog"></div>
+</body>
+</html>

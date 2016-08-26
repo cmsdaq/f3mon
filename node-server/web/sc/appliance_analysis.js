@@ -14,27 +14,6 @@ function bootstrap(){
             doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $("#loading_dialog").loading();
         });
-    $('#open').click(function(){
-	    $('#progressbar').progressbar({
-		    value: 0
-			});
-	    $('#open').prop("disabled",true);
-	    $('#close').prop("disabled",true);
-	    $('#progressbar').show();
-	    doReopen($('#runno').val());
-            doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
-	    $('#close').prop("disabled",false);
-        });
-    $('#close').click(function(){
-            $('#progressbar').progressbar({
-                    value: 0
-                        });
-            $('#progressbar').show();
-	    $('#open').prop("disabled",true);
-	    $('#close').prop("disabled",true);
-	    doClose($('#runno').val());
-	    $('#open').prop("disabled",false);
-        });
     $('#maxls').val("");
     $('#minls').val("");
     $('#fullrun').prop('checked',true);
@@ -67,44 +46,6 @@ function bootstrap(){
     });
     run_iteration();
 
-}
-
-function doReopen(run){
-    console.log("called doReopen for run "+run+" setup "+$('input[name=setup]:checked', '#setups').val());
-    $.ajaxSetup({
-	    async: false
-		});
-    total=1;
-	$.getJSON("php_priv/openindex.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
-		console.log(data);
-	    });
-	$('#progressbar').progressbar({
-		value: 1/total*100
-		    });
-
-    $.ajaxSetup({
-	    async: true
-		});
-
-    
-}
-function doClose(run){
-    console.log("called doClose for run "+run+" setup "+$('input[name=setup]:checked', '#setups').val());
-    $.ajaxSetup({
-	    async: false
-		});
-    total=1;
-	$.getJSON("php_priv/closeindex.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
-		console.log(data);
-	    });
-	$('#progressbar').progressbar({
-                value: 1/total*100
-		    });
-
-    $.ajaxSetup({
-	    async: true
-		});
-    
 }
 
 function toggleBu(racks){
@@ -210,15 +151,15 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 
 
 		plot('#plot1','ls duration from index','line',data["series1"],'','LS','time in seconds');
-		plot('#plot2','rate from index','line',data["series2"],'','LS','rate (1/s)');
-		plot('#plot2B','bandwidth from index','line',data["series3"],'','LS','rate (B/s)');
+		//plot('#plot2','rate from index','line',data["series2"],'','LS','rate (1/s)');
+		//plot('#plot2B','bandwidth from index','line',data["series3"],'','LS','rate (B/s)');
 		plot('#plot3','ramdisk','line',data["ramdisk"],'datetime','time','fraction used');
 		plot('#plot3a','output to BU','line',data["outputbw"],'datetime','time','MB/s');
 		plot('#plot4','rate from eol','line',data["ratebybu"]);
 		plot('#plot4B','bandwidh from eol','line',data["bwbybu"]);
 		plot('#plot5','aggregated rate from eol','line',data["ratebytotal"]);
-		plot('#plot7','starttimes','line',data["begins"],'datetime','time','ls');
-		plot('#plot8','endtimes','line',data["ends"],'datetime','time','ls');
+		//plot('#plot7','starttimes','line',data["begins"],'datetime','time','ls');
+		//plot('#plot8','endtimes','line',data["ends"],'datetime','time','ls');
 		plot('#plot9','ratebyfile','line',data["series3"],'datetime','time','rate');
 		plot('#plot10','fu sys cpu usage frac','line',data["fusyscpu"],'datetime','time','fraction');
 		plot('#plot10a','fu sys cpu usage frac avg','line',data["fusyscpu2"],'datetime','time','fraction');
@@ -234,12 +175,6 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 		}
 		if(data["series1"].length!=refseries.length){
 		    console.log(data["series1"].length+' vs.'+refseries.length)
-			$('#progressbar').hide();
-		    if(data["series1"].length==0){
-			$('#close').prop("disabled",true);
-		    }
-		    $('#open').prop("disabled",false);
-		    $('#dialog').dialog();
 		}
 	    }else{
 		$('#run').html(data.runinfo.run);

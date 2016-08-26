@@ -42,6 +42,27 @@ function bootstrap(){
       }
       else $('#maxls').val()
 
+      var hashpos = location.hash.indexOf('int=')
+      if (hashpos!=-1) {
+        var hashstring=location.hash.substr(hashpos+4)
+        if (hashstring.indexOf('&')!=-1)
+          hashstring = hashstring.substr(0,hashstring.indexOf('&'))
+        if (hashstring.length)
+          $('#interval').val(hashstring);
+      }
+      else $('#interval').val(1)
+
+      var hashpos = location.hash.indexOf('yaxis=')
+      if (hashpos!=-1) {
+        var hashstring=location.hash.substr(hashpos+6)
+        if (hashstring.indexOf('&')!=-1)
+          hashstring = hashstring.substr(0,hashstring.indexOf('&'))
+        if (hashstring.length)
+          $('#yaxis').val(hashstring);
+      }
+      else $('#yaxis').val("diff")
+
+
       var hashpos = location.hash.indexOf('fullrun')
       if (hashpos!=-1) $('#fullrun').prop('checked',true)
       else $('#fullrun').prop('checked',false)
@@ -52,6 +73,8 @@ function bootstrap(){
       $('#stream').val()
       $('#minls').val()
       $('#maxls').val()
+      $('#interval').val(1)
+      $('#yaxis').val("diff")
       $('#fullrun').prop('checked', true);
       document.title="mergerplots";
     }
@@ -109,16 +132,23 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
     if (stream.length) location.hash+='&stream='+stream
     if (minls.length) location.hash+='&minls='+minls
     if (maxls.length) location.hash+='&maxls='+maxls
+    var interval = parseInt($('#interval').val());
+    if (interval>1) location.hash+="&int="+interval
+    location.hash+="&yaxis="+$('#yaxis').val();
     if (fullrun) location.hash+='&fullrun'
     //console.log($('#process').val());
+    var interval = $('#interval').val();
+    var intervalStr = "";
+    if (interval>1) intervalStr="&interval="+interval;
     if($('#process').val()=="merger"){
 	//console.log("doing merger query");
         var mergerlsparams="&minls=&maxls=";
         if (!fullrun) mergerlsparams = '&minls='+minls+'&maxls='+maxls;
-	$.getJSON("php/mergerplots.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams,function(data){
+	$.getJSON("php/mergerplots.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams+intervalStr,function(data){
 		plot(data["serie0"],'#plot0','micromerger time delay',xaxis,yaxis);
 		plot(data["serie1"],'#plot1','minimerger time delay',xaxis,yaxis);
 		plot(data["serie2"],'#plot2','macromerger time delay',xaxis,yaxis);
+		plot(data["allsizes"],'#plot3','HLT output bw',xaxis,"MB/s");
                 document.title = "mergerplots run "+data["run"];
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();

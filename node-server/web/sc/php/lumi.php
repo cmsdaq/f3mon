@@ -6,7 +6,6 @@ $fill=0;
 $run = $_GET["run"];
 $fill = $_GET["fill"];
 $response=array();
-
 $dbinfo = file_get_contents("../../../dbinfo.json");
 $dbjsn = json_decode($dbinfo,true);
 $connp = $dbjsn["cdaq"];
@@ -76,6 +75,8 @@ oci_close($conn);
 $response["fill"] = array("name"=>"fill","data"=>$fill);
 $response["lumi"][] = array("name"=>"instlumi","data"=>$tabli);
 $response["lumi"][] = array("name"=>"pileup","data"=>$tablp);
+$response["lumi1"][] = array("name"=>"instlumi","data"=>$tabli);
+$response["plumi1"][] = array("name"=>"pileup","data"=>$tablp);
 $response["ilumi"][] = array("name"=>"delivlumi","data"=>$tabld);
 $response["ilumi"][] = array("name"=>"livelumi","data"=>$tabll);
 $response["run"][] = array("name"=>"runnumber","data"=>$tablr); 
