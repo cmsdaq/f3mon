@@ -15,13 +15,13 @@ module.exports.query = function (req, res) {
     var cb = req.query.callback;
     //console.log(cb);
     var requestKey = qname;
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.serverStatus; //cached ES response ttl (in seconds) 
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.serverStatus; //cached ES response ttl (in seconds) 
 
     var pending = false;
     if (requestValue=="requestPending"){
         pending=true;
-	requestValue = this.f3MonCacheSec.get(requestKey);
+	requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue === undefined) {
@@ -29,12 +29,12 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       var _this = this;
 
       //query elasticsearch health and bind return function to reply to the server
-      this.client.cluster.health().then(function(body) {
+      global.client.cluster.health().then(function(body) {
         try {
         took+=body.took
         var retObj = {'status':body['status']};

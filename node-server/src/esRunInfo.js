@@ -17,8 +17,8 @@ module.exports.query = function (req, res) {
     var qparam_activeRuns  = this.checkDefault(req.query.activeRuns,false);
 
     var requestKey = qname+'?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName+'&active='+qparam_activeRuns;
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.runInfo; //cached ES response ttl (in seconds)
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.runInfo; //cached ES response ttl (in seconds)
 
     var retObj = {};
     var _this = this
@@ -28,7 +28,7 @@ module.exports.query = function (req, res) {
 
       _this.queryJSON1.query.term._parent = qparam_runNumber;
 
-      _this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'eols',
       body : JSON.stringify(_this.queryJSON1)
@@ -63,7 +63,7 @@ module.exports.query = function (req, res) {
         },
         "sort": {"stream": {"order": "asc"}}
       }
-      _this.client.search({
+      global.client.search({
        index: 'runindex_'+qparam_sysName+'_read',
        type: 'stream_label',
        body : JSON.stringify(queryJSONs)
@@ -93,7 +93,7 @@ module.exports.query = function (req, res) {
 
       _this.queryJSON2.query.term._parent = qparam_runNumber;
 
-      _this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'stream-hist',
         body : JSON.stringify(_this.queryJSON2)
@@ -124,7 +124,7 @@ module.exports.query = function (req, res) {
       if (qparam_activeRuns)
         queryJSON["query"]= {"constant_score":{"filter":{"missing":{"field":"endTime"}}}};
 
-      _this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body : JSON.stringify(queryJSON)
@@ -151,7 +151,7 @@ module.exports.query = function (req, res) {
     var pending=false
     if (requestValue=="requestPending"){
       pending=true
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue === undefined) {
@@ -159,7 +159,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
        }
-       this.f3MonCache.set(requestKey, "requestPending", ttl);
+       global.f3MonCache.set(requestKey, "requestPending", ttl);
        q1();
 
     } else 

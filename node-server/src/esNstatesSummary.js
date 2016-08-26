@@ -1,10 +1,5 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
 var queryJSON1;
 var queryJSON2;
 
@@ -16,12 +11,7 @@ var excpEscES = function (res, error){
 
 module.exports = {
 
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN1,queryJSN2) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
+  setup : function(queryJSN1,queryJSN2) {
     queryJSON1 = queryJSN1;
     queryJSON2 = queryJSN2;
   },
@@ -42,8 +32,8 @@ module.exports = {
     if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
     var requestKey = 'nstates-summary?runNumber='+qparam_runNumber+'&timeRange='+qparam_timeRange+'&sysName='+qparam_sysName;
-    var requestValue = f3MonCache.get(requestKey);
-    var ttl = ttls.nstatesSummary; //cached ES response ttl (in seconds)
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.nstatesSummary; //cached ES response ttl (in seconds)
 
 
     var retObj = {
@@ -53,9 +43,9 @@ module.exports = {
     };
 
     var sendResult = function(){
-	    f3MonCache.set(requestKey, [retObj,ttl], ttl);
+	    global.f3MonCache.set(requestKey, [retObj,ttl], ttl);
 	    var srvTime = (new Date().getTime())-eTime;
-	    totalTimes.queried += srvTime;
+	    global.totalTimes.queried += srvTime;
 	    console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
 	    res.set('Content-Type', 'text/javascript');
             res.header("Cache-Control", "no-cache, no-store");
@@ -73,7 +63,7 @@ module.exports = {
     var q1 = function(callback){
       queryJSON1.query.filtered.query.term._parent = qparam_runNumber;
 
-      client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'microstatelegend',
         body : JSON.stringify(queryJSON1)
@@ -142,7 +132,7 @@ module.exports = {
 	    queryJSON2.query.bool.must[1].range.date.from = 'now-'+qparam_timeRange+'s';
 	    queryJSON2.query.bool.must[0].term._parent = qparam_runNumber;
 
-	    client.search({
+	    global.client.search({
               index: 'runindex_'+qparam_sysName+'_read',
               type: ustatetype,
               body : JSON.stringify(queryJSON2)
@@ -227,17 +217,17 @@ module.exports = {
     }//end q2
 
     if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       q1(q2); //call q1 with q2 as its callback
 
     }else{
       var srvTime = (new Date().getTime())-eTime;
-      totalTimes.cached += srvTime;
+      global.totalTimes.cached += srvTime;
       console.log('nstates-summary (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
       res.set('Content-Type', 'text/javascript');
       res.header("Cache-Control", "no-cache, no-store");

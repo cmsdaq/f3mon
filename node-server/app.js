@@ -8,6 +8,9 @@ var php = require('node-php');
 var http = require('http');
 var elasticsearch = require('elasticsearch');
 
+var heapdump = require('heapdump');
+//var memwatch = require('memwatch');
+
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
 var serverPort = 3002;
@@ -100,12 +103,9 @@ app.post('/login',
 //login redirect if reloaded from browser(GET)
 app.get('/login',function(req,res) {res.redirect('/login.html')});
 
-//redirect old name
-app.get('/node-f3mon', function (req, res) {  res.redirect('/f3mon');});
-
 //4.setup elasticsearch client
 var ESServer = 'localhost';  //set in each deployment, if using a different ES service
-var client = new elasticsearch.Client({
+global.client = new elasticsearch.Client({
   host: ESServer+':9200',
   //log: 'trace'
   //log: 'debug'
@@ -118,7 +118,7 @@ var client = new elasticsearch.Client({
 });
 
 //currently used only for checking cluster health
-var clientESlocal = new elasticsearch.Client({
+global.clientESlocal = new elasticsearch.Client({
   host: 'es-local:9200',
   //log: 'trace'
   //log: 'debug'
@@ -219,21 +219,22 @@ initializeQueries(); //load query declarations in memory for faster access
 //9.cache init
 var NodeCache = require('node-cache');
 //use
-var f3MonCache = new NodeCache({checkperiod: 0.55}); //global cache container
+global.f3MonCache = new NodeCache({checkperiod: 0.55}); //global cache container
 
 
 
-f3MonCache.on("expired", function(key,obj){
+global.f3MonCache.on("expired", function(key,obj){
 	if (obj!=="requestPending"){
 		f3MonCacheSec.set(key,obj,obj[1]);
 	}
 });
 
 //secondary cache holds expired objects with the same ttl while server executes queries
-var f3MonCacheSec = new NodeCache();
+//var f3MonCacheSec = new NodeCache({checkperiod: 30});
+global.f3MonCacheSec = new NodeCache();
 
 //tertiary cache holds reply objects for requests arrived while other same-key request was being handled
-var f3MonCacheTer = new NodeCache({useClones:false});
+global.f3MonCacheTer = new NodeCache({useClones:false});
 
 f3MonCacheTer.on("expired", function(key,obj){
         if (obj!==undefined)
@@ -243,9 +244,9 @@ f3MonCacheTer.on("expired", function(key,obj){
 });
 
 //ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
-var ttls = getQuery("ttls.json").ttls;
-
-var totalTimes = {
+global.ttls = getQuery("ttls.json").ttls;
+//time stats
+global.totalTimes = {
 	"queried" : 0,
 	"cached" : 0
 }
@@ -253,12 +254,26 @@ var totalTimes = {
 //10. load f3mon specific modules and define f3mon web callbacks
 //F3Mon DB query module
 var dbinfo = require('./dbinfo')
-var smdb = require('./src/smdb')
-smdb.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,dbinfo)
+global.smdb = require('./src/smdb')
+global.smdb.setup(dbinfo)
 
 //callback test 1
 app.get('/', function (req, res) {
   res.send('Hello World!');
+});
+
+app.get('/gc', function (req, res) {
+  global.gc();
+  res.send("GC " + process.memoryUsage().heapUsed);
+});
+
+app.get('/heap', function (req, res) {
+  global.gc();
+  var nd = new Date();
+  var filename = '/tmp/node-' + serverPort + '-hdump-' + nd+'.heapsnapshot';
+  heapdump.writeSnapshot(filename);
+  console.log('dump written to', filename);
+  res.send("HEAP dump done:"+filename);
 });
 
 //callback test 2
@@ -271,97 +286,98 @@ app.get('/test', function (req, res) { setTimeout(function(){
 //***F3MON CALLBACKS***
 //callback 1
 var esServerStatus = require('./src/esServerStatus')
-esServerStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
+esServerStatus.setup();
 app.get('/f3mon/api/serverStatus', esServerStatus.query.bind(esServerStatus));
 
 //callback 2
 var esIndices = require('./src/esIndices')
-esIndices.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
+esIndices.setup();
 app.get('/f3mon/api/getIndices', esIndices.query.bind(esIndices));
 
 //callback 3
 var esDisksStatus = require('./src/esDisksStatus')
-esDisksStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("disks.json"));
+esDisksStatus.setup(getQuery("disks.json"));
 app.get('/f3mon/api/getDisksStatus', esDisksStatus.query.bind(esDisksStatus));
 
 //callback 4
 var esRunList = require('./src/esRunList')
-esRunList.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes);
+esRunList.setup();
 //added layer of redirection (bind) because express 'drops' this namespace
 app.get('/f3mon/api/runList', esRunList.query.bind(esRunList));
 app.get('/sc/api/runList', esRunList.query.bind(esRunList));
 
 //callback 5
 var esRiverStatus = require('./src/esRiverStatus')
-esRiverStatus.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("riverstatus.json"));
+esRiverStatus.setup(getQuery("riverstatus.json"));
 app.get('/f3mon/api/riverStatus', esRiverStatus.query.bind(esRiverStatus));
 
 //callback 6
 var esRunListTable = require('./src/esRunListTable')
-esRunListTable.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("rltable.json"));
+esRunListTable.setup(getQuery("rltable.json"));
 app.get('/f3mon/api/runListTable', esRunListTable.query.bind(esRunListTable));
 
 //callback 7
 var esRiverListTable = require('./src/esRiverListTable')
-esRiverListTable.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("runrivertable-meta.json"));
+esRiverListTable.setup(getQuery("runrivertable-meta.json"));
 app.get('/f3mon/api/runRiverListTable', esRiverListTable.query.bind(esRiverListTable));
 app.get('/sc/api/runRiverListTable', esRiverListTable.query.bind(esRiverListTable));
 
 //callback 8
 var esCloseRun = require('./src/esCloseRun')
-esCloseRun.setup(client);
+esCloseRun.setup();
 app.get('/f3mon/api/closeRun', esCloseRun.query);
 
 //callback 9
 var esStartCollector = require('./src/esStartCollector');
-esStartCollector.setup(client);
+esStartCollector.setup();
 app.get('/f3mon/api/startCollector', esStartCollector.query);
 
 //callback 10
 var esLogTable = require('./src/esLogTable')
-esLogTable.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("logmessages.json"));
+esLogTable.setup(getQuery("logmessages.json"));
 app.get('/f3mon/api/logtable', esLogTable.query.bind(esLogTable));
 
 //callback 11
-var esNstatesSummary = require('./src/esMicrostates');
-esNstatesSummary.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("ulegenda.json"),getQuery("aggnstates.json"),getQuery("teolsminmax.json"));
-app.get('/f3mon/api/nstates-summary', esNstatesSummary.query.bind(esNstatesSummary));
+var esMicrostates = require('./src/esMicrostates');
+esMicrostates.setup(getQuery("ulegenda.json"),getQuery("aggnstates.json"),getQuery("teolsminmax.json"));
+app.get('/f3mon/api/nstates-summary', esMicrostates.query.bind(esMicrostates));
+app.get('/f3mon/api/istates-summary', esMicrostates.queryInput.bind(esMicrostates));
 
 //not yet ported to esCommon:
 //callback 12
 var esRunInfo = require('./src/esRunInfo');
-esRunInfo.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("lastls.json"),getQuery("streamsinrun.json"));
+esRunInfo.setup(getQuery("lastls.json"),getQuery("streamsinrun.json"));
 app.get('/f3mon/api/runInfo', esRunInfo.query.bind(esRunInfo));
 app.get('/sc/api/runInfo', esRunInfo.query.bind(esRunInfo));
 
 //callback 13
 var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
-esMiniMacroPerStream.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
-app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query); 
+esMiniMacroPerStream.setup(getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
+app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query.bind(esMiniMacroPerStream)); 
 
 //callback 14
 var esMiniMacroPerHost = require('./src/esMiniMacroPerHost');
-esMiniMacroPerHost.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("minimacroperbu.json"),getQuery("macroperhost.json"),getQuery("teolsperbu.json"),getQuery("teolsperstream.json"));
-app.get('/f3mon/api/minimacroperhost', esMiniMacroPerHost.query); 
+esMiniMacroPerHost.setup(getQuery("minimacroperbu.json"),getQuery("macroperhost.json"),getQuery("teolsperbu.json"),getQuery("teolsperstream.json"));
+app.get('/f3mon/api/minimacroperhost', esMiniMacroPerHost.query.bind(esMiniMacroPerHost)); 
 
 //callback 15
 var esStreamHist = require('./src/esStreamHist');
-esStreamHist.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"));
+esStreamHist.setup(getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"));
 app.get('/f3mon/api/streamhist', esStreamHist.query.bind(esStreamHist)); 
 
 //callback 16
 var esGetStreamList =  require('./src/esGetStreamList');
-esGetStreamList.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("streamlabel.json"));
-app.get('/f3mon/api/getstreamlist', esGetStreamList.query);
+esGetStreamList.setup(getQuery("streamlabel.json"));
+app.get('/f3mon/api/getstreamlist', esGetStreamList.query.bind(esGetStreamList));
 
 //callback 17
 var esGetConfig =  require('./src/esGetConfig');
-esGetConfig.setup(f3MonCache,f3MonCacheSec,client,ttls,totalTimes,getQuery("config.json"));
+esGetConfig.setup(getQuery("config.json"));
 app.get('/f3mon/api/getConfig', esGetConfig.query);
 
 //callback 18
 var esBigPic =  require('./src/esBigPic');
-esBigPic.setup(f3MonCache,f3MonCacheSec,f3MonCacheTer,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
+esBigPic.setup(getQuery("config.json"));
 app.get('/sc/api/bigPic', esBigPic.query.bind(esBigPic));
 
 //callback 19
@@ -377,25 +393,76 @@ app.get('/f3mon/api/maxls', esBigPic.maxls.bind(esBigPic));
 
 //callback 21
 app.get('/sc/api/transfer', function (req, res) {
-  smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
+  global.smdb.runTransferQuery(req.query,req.connection.remoteAddress,res,true,null);
 });
 
 //callback 22
 app.get('/sc/api/pp', function (req, res) {
-  smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
+  global.smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
 });
 
 //callback 23
 var esSmallPic =  require('./src/esSmallPic');
-esSmallPic.setup(f3MonCache,f3MonCacheSec,client,clientESlocal,smdb,ttls,totalTimes,getQuery("config.json"));
+esSmallPic.setup(getQuery("config.json"));
 app.get('/sc/api/fuhistos', esSmallPic.fuhistos);
+
+app.get('/test/cachekeys1',function(req,res) {
+  res.send(JSON.stringify(global.f3MonCache.keys()));
+});
+
+app.get('/test/cachekeys2',function(req,res) {
+  res.send(JSON.stringify(global.f3MonCacheSec.keys()));
+});
+
+app.get('/test/cachekeys3',function(req,res) {
+  res.send(JSON.stringify(global.f3MonCacheTer.keys()));
+});
+
+app.get('/test/getttl1',function(req,res) {
+  var srvTime = new Date().getTime();
+  var keys = global.f3MonCache.keys();
+  var str = "";
+  for (var i=0;i<keys.length;i++) {
+    var exptime = global.f3MonCache.getTtl(keys[i]);
+    if (exptime!==undefined && exptime!==0) exptime-=srvTime;
+    str+=keys[i]+">>> "+exptime+"<br>";
+  }
+  res.send("KEYS:\n"+str);
+});
+
+app.get('/test/getttl2',function(req,res) {
+  var srvTime = new Date().getTime();
+  var keys = global.f3MonCacheSec.keys();
+  var str = "";
+  for (var i=0;i<keys.length;i++) {
+    var exptime = global.f3MonCacheSec.getTtl(keys[i]);
+    if (exptime!==undefined && exptime!==0) exptime-=srvTime;
+    str+=keys[i]+">>> "+exptime+"<br>";
+  }
+  res.send("KEYS:\n"+str);
+});
+
+app.get('/test/getttl3',function(req,res) {
+  var srvTime = new Date().getTime();
+  var keys = global.f3MonCacheTer.keys();
+  var str = "";
+  for (var i=0;i<keys.length;i++) {
+    var exptime = global.f3MonCacheTer.getTtl(keys[i]);
+    if (exptime!==undefined && exptime!==0) exptime-=srvTime;
+    str+=keys[i]+">>> "+exptime+"<br>";
+  }
+  res.send("KEYS:\n"+str);
+});
+
+
+
 
 //11. start http server
 var server = app.listen(serverPort, function () {
 
    // test elasticsearch connection (test)
-   client.ping();
-   clientESlocal.ping();
+   global.client.ping();
+   global.clientESlocal.ping();
    //client.cat.aliases({name: 'runindex*cdaq*'},function (error, response) { console.log(JSON.stringify(response.split('\n')));});
    var port = server.address().port;
    console.log('Server listening at port:'+port);
@@ -416,7 +483,7 @@ var server = app.listen(serverPort, function () {
 
 //12. start cache state logging
 var statsLogger =  require('./src/statsLogger');
-statsLogger.start(client,f3MonCache,totalTimes);
+statsLogger.start();
 
 
 //log start time

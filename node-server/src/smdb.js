@@ -4,11 +4,6 @@ var oracledb = require('oracledb'); //module that enables db access
 oracledb.outFormat = oracledb.OBJECT //returns query result-set row as a JS object (equiv. to OCI_ASSOC param in php oci_fetch_array call)
 oracledb.maxRows = 50000; //approx 2000 lumis x 25 streams
 
-var f3MonCache;
-var f3MonCacheSec;
-var client;
-var ttls;
-var totalTimes;
 var dbInfo;
 
 //escapes client hanging upon an ES request error by sending http 500
@@ -25,12 +20,7 @@ var excpEscOracle = function (res, error){
 
 
 module.exports = {
-setup : function(cache,cacheSec,cl,ttl,totTimes,dbinfo) {
-  f3MonCache = cache
-  f3MonCacheSec = cacheSec
-  client = cl
-  ttls = ttl
-  totalTimes = totTimes
+setup : function(dbinfo) {
   dbInfo = dbinfo
 },
 
@@ -51,17 +41,17 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
  if (aggregate!==null) stream = null;
 
  var requestKey = 'sc_transfer?run='+run+'&stream='+stream+'&xaxis='+xaxis+'&formatchart='+formatchart+'&formatstrip='+formatstrip;
- var requestValue = f3MonCache.get(requestKey);
- var ttl = ttls.sctransfer; //cached db response ttl (in seconds)
+ var requestValue = global.f3MonCache.get(requestKey);
+ var ttl = global.ttls.sctransfer; //cached db response ttl (in seconds)
  //var reply=doreply;
   
 
  var getFromDB = function(){ 
   var retObj; //request formatted response
   var sendResult = function(){
-     f3MonCache.set(requestKey, [retObj,ttl], ttl);
+     global.f3MonCache.set(requestKey, [retObj,ttl], ttl);
      var srvTime = (new Date().getTime())-eTimeT;
-     totalTimes.queried += srvTime;
+     global.totalTimes.queried += srvTime;
      console.log('sc_transfer (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
      if (!reply) return;
      res.set('Content-Type', 'text/javascript');
@@ -273,7 +263,7 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
 	"size":1,
 	"sort":{"startTime":"desc"}
 	};
-    client.search({
+    global.client.search({
      index: 'runindex_cdaq_read',
      type: 'run',
      body : JSON.stringify(queryJSON)
@@ -300,11 +290,11 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
  }//end getFromDB
 
   if (requestValue=="requestPending"){
-  	requestValue = f3MonCacheSec.get(requestKey);
+  	requestValue = global.f3MonCacheSec.get(requestKey);
   }
 
   if (requestValue == undefined){
-	f3MonCache.set(requestKey, "requestPending", ttl);
+	global.f3MonCache.set(requestKey, "requestPending", ttl);
         if (!reply) {
 	  getFromDB();
           return null;
@@ -328,7 +318,7 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
         }
         else {
           var srvTime = (new Date().getTime())-eTimeT;
-          totalTimes.cached += srvTime;
+          global.totalTimes.cached += srvTime;
           console.log('sc_transfer (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
           res.set('Content-Type', 'text/javascript');
           res.header("Cache-Control", "no-cache, no-store");
@@ -345,7 +335,7 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
 
 runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
 
-  var ttl = ttls.pp;
+  var ttl = global.ttls.pp;
   var eTimeT = new Date().getTime();
 
   var setup = reqQuery.setup;
@@ -360,23 +350,24 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
   var cb = reqQuery.cb;//angular callback (optional)
 
   var requestKey = 'sc_pp?setup='+setup
-  var requestValue = f3MonCache.get(requestKey);
+  var requestValue = global.f3MonCache.get(requestKey);
   if (requestValue=="requestPending")
-  	requestValue = f3MonCacheSec.get(requestKey);
+  	requestValue = global.f3MonCacheSec.get(requestKey);
 
   var retObj = {};
+  var retObjSer;
 
   var sendResult = function(){
-     f3MonCache.set(requestKey, [retObj,ttl], ttl);
+     //global.f3MonCache.set(requestKey, [JSON.stringify(retObj),ttl], ttl);//already done
      var srvTime = (new Date().getTime())-eTimeT;
-     totalTimes.queried += srvTime;
+     global.totalTimes.queried += srvTime;
      console.log('sc_pp (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
      res.set('Content-Type', 'text/javascript');
      res.header("Cache-Control", "no-cache, no-store");
      if (cb === undefined)
-       res.send(JSON.stringify(retObj));
+       res.send(retObjSer);
      else
-       res.send(cb +' ('+JSON.stringify(retObj)+')');
+       res.send(cb +' ('+retObjSer+')');
   }
 
   if (requestValue !== undefined){
@@ -389,15 +380,15 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
      res.set('Content-Type', 'text/javascript');
      res.header("Cache-Control", "no-cache, no-store");
      if (cb === undefined)
-       res.send(JSON.stringify(requestValue[0]));
+       res.send(requestValue[0]);
      else
-       res.send(cb +' ('+JSON.stringify(requestValue[0])+')');
+       res.send(cb +' ('+requestValue[0]+')');
     }
     return;
   }
 
   //not found in cache: run query
-  f3MonCache.set(requestKey, "requestPending", ttl);
+  global.f3MonCache.set(requestKey, "requestPending", ttl);
 
   //connection and query to Oracle DB
   oracledb.getConnection(
@@ -443,7 +434,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
     	  if (err) {
       	    console.error(err.message);
             //clear key on error?
-	    //f3MonCache.set(requestKey, [{},ttl], ttl);
+	    //global.f3MonCache.set(requestKey, [{},ttl], ttl);
             if (!reply)
               callback(null);
             else
@@ -498,7 +489,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
     	        if (err) {
       	          console.error(err.message);
                   //clear key on error?
-	          //f3MonCache.set(requestKey, [{},ttl], ttl);
+	          //global.f3MonCache.set(requestKey, [{},ttl], ttl);
                   if (!reply)
                     callb(null);
                   else
@@ -511,7 +502,8 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
                 //console.log(bulist)
                 retObj['list_of_bus']=bulist;
 
-	        f3MonCache.set(requestKey, [retObj,ttl], ttl);
+                retObjSer = JSON.stringify(retObj);
+	        global.f3MonCache.set(requestKey, [retObjSer,ttl], ttl);
 
                 if (!reply)
                   callb(retObj);

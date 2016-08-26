@@ -4,15 +4,7 @@ function Common() {};
 
 Common.prototype.test = function () {console.log('Hello!')};
 
-Common.prototype.setup = function (cache,cacheSec,cacheTer,client,clientESlocal,smdb,ttls,totalTimes,json1,json2,json3,json4) {
-    this.f3MonCache = cache;
-    this.f3MonCacheSec = cacheSec;
-    this.f3MonCacheTer = cacheTer;
-    this.client=client;
-    this.clientESlocal=clientESlocal;
-    this.smdb=smdb;
-    this.ttls = ttls;
-    this.totalTimes = totalTimes;
+Common.prototype.setup = function (json1,json2,json3,json4) {
     //optional
     this.queryJSON1=json1;
     this.queryJSON2=json2;
@@ -30,13 +22,13 @@ Common.prototype.exCb = function(res,error,requestKey){
     console.log(error.stack)
     res.status(500).send(msg);
 
-    var cachedPending = this.f3MonCacheTer.get(requestKey);
+    var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending) {
       cachedPending.forEach(function(item) {
         item.res.status(500).send(msg);
       });
       //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
-      this.f3MonCacheTer.del(requestKey);
+      global.f3MonCacheTer.del(requestKey);
     }
 }
 
@@ -46,13 +38,13 @@ Common.prototype.excpEscES = function(res,error,requestKey){
     var msg = 'Internal Server Error (Elasticsearch query error during the request execution, expert should seek further info in the logs). Msg:'+error.message;
     res.status(500).send(msg);
 
-    var cachedPending = this.f3MonCacheTer.get(requestKey);
+    var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending) {
       cachedPending.forEach(function(item) {
         item.res.status(500).send(msg);
       });
       //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
-      this.f3MonCacheTer.del(requestKey);
+      global.f3MonCacheTer.del(requestKey);
     }
 }
 
@@ -84,16 +76,19 @@ Common.prototype.checkDefault = function(value,defaultValue) {
 Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eTime,ttl,took) {
   //var srvTime = (new Date().getTime())-eTime;
   var srvTime = this.gethrms() - eTime;
-  this.totalTimes.queried += srvTime;
+  global.totalTimes.queried += srvTime;
+  var responseObject;
   if (cached) {
     //console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
+    responseObject = obj
   } else {
     var usettl = ttl;
     if (took!==undefined) { //adaptive ttl
       var tookSec = took/1000.;
       if (tookSec>ttl && tookSec<ttl*4) usettl+=tookSec;
     }
-    this.f3MonCache.set(requestKey, [obj,usettl], usettl);
+    responseObject = JSON.stringify(obj);//need to serialize of object is not cached
+    global.f3MonCache.set(requestKey, [responseObject,usettl], usettl);
     if (this.verbose) console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }
   var time_now = new Date().getTime();
@@ -102,22 +97,24 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
   res.set('Content-Type', 'text/javascript');
   res.header("Cache-Control", "no-cache, no-store");
   if (cb!==undefined)
-    res.send(cb +' ('+JSON.stringify(obj)+')');
+    //res.send(cb +' ('+JSON.stringify(obj)+')');
+    res.send(cb +' ('+responseObject+')');
   else
-    res.send(JSON.stringify(obj));
+    //res.send(JSON.stringify(obj));
+    res.send(responseObject);
 
   var _this = this;
 
   //send pending items
   if (!cached) {
-    var cachedPending = this.f3MonCacheTer.get(requestKey);
+    var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending) {
       //console.log('responding to cached pending requests...')
       cachedPending.forEach(function(item) {
-        _this.sendResult(item.req,item.res,requestKey,item.cb,true,obj,qname,item.eTime,ttl);
+        _this.sendResult(item.req,item.res,requestKey,item.cb,true,responseObject,qname,item.eTime,ttl);
       });
       //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
-      this.f3MonCacheTer.del(requestKey);
+      global.f3MonCacheTer.del(requestKey);
     }
   }
 }
@@ -125,9 +122,9 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
 Common.prototype.putInPendingCache = function(replyCache,requestKey,ttl) {
 
   //console.log('putting in pending cache...')
-  var cachedval = this.f3MonCacheTer.get(requestKey)
+  var cachedval = global.f3MonCacheTer.get(requestKey)
   if (cachedval===undefined) 
-    this.f3MonCacheTer.set(requestKey,[replyCache],ttl*10); //large(r) expiration time for this
+    global.f3MonCacheTer.set(requestKey,[replyCache],ttl*10); //large(r) expiration time for this
   else
     cachedval.push(replyCache);
 }

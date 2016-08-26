@@ -1,6 +1,5 @@
 'use strict';
 
-var client;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -10,8 +9,7 @@ var excpEscES = function (res, error){
 
 module.exports = {
 
-  setup : function(cl) {
-    client=cl;
+  setup : function() {
   },
 
   query : function (req, res) {
@@ -44,7 +42,7 @@ module.exports = {
       callback();
       return;
     
-      client.indices.delete({
+      global.client.indices.delete({
         index: 'river',
         type: 'instance',
         id: 'river_'+qparam_sysName+'_'+qparam_runNumber
@@ -61,12 +59,12 @@ module.exports = {
     var write_endtime = function (callback){
   
       var time = new Date().toISOString(); //current timestamp
-      client.update({
+      global.client.update({
         index: 'runindex_'+qparam_sysName+'_write',
         type: 'run',
         id: qparam_runNumber,
         refresh:true, //make sure this is written when reply is received
-        body: {doc:{endTime : time},activeBUs:0}
+        body: {doc:{endTime : time,activeBUs:0}}
       }).then (function(body){
         retObj.runDocument = body;
         callback(sendResult);

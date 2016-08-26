@@ -11,7 +11,7 @@ module.exports.query = function (req, res) {
     if (this.verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
     var eTime = this.gethrms();
-    var ttl = this.ttls.bigpic; //cached ES response ttl (in seconds)
+    var ttl = global.ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
     var cb = req.query.callback;
@@ -19,10 +19,10 @@ module.exports.query = function (req, res) {
 
     var requestKey = qname+'?sysName='+qparam_sysName;
 
-    var requestValue = this.f3MonCache.get(requestKey);
+    var requestValue = global.f3MonCache.get(requestKey);
     var pending=false;
     if (requestValue=="requestPending"){
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
       pending=true;
     }
 
@@ -93,7 +93,7 @@ module.exports.query = function (req, res) {
         }
       };
 
-      _this.client.search({
+      global.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'boxinfo',
         body: JSON.stringify(queryJSON)
@@ -197,7 +197,7 @@ module.exports.query = function (req, res) {
                       };
 
 
-      _this.client.search({
+      global.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
@@ -274,7 +274,7 @@ module.exports.query = function (req, res) {
                         }
                       };
 
-      _this.client.search({
+      global.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'boxinfo',
         body: JSON.stringify(queryJSON)
@@ -337,7 +337,7 @@ module.exports.query = function (req, res) {
 
     //first check cluster health
     var healthQuery = function(callback) {
-      _this.client.cluster.health().then (function(body) {
+      global.client.cluster.health().then (function(body) {
         try {
         took += body.took;
         retObj["central_server"] = {
@@ -354,7 +354,7 @@ module.exports.query = function (req, res) {
     }
 
     var healthQueryESlocal = function() {
-      _this.clientESlocal.cluster.health().then (function(body) {
+      global.clientESlocal.cluster.health().then (function(body) {
         try {
         took += body.took;
         retObj["eslocal_server"] = {
@@ -379,7 +379,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
       healthQuery(healthQueryESlocal);
     }else
       this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
@@ -394,7 +394,7 @@ module.exports.teols = function (req, res) {
     if (this.verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
     var eTime = this.gethrms();
-    var ttl = this.ttls.bigpic; //cached ES response ttl (in seconds)
+    var ttl = global.ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
     var cb = req.query.callback;
@@ -404,10 +404,10 @@ module.exports.teols = function (req, res) {
 
     var requestKey = qname+'?sysName='+qparam_sysName+'&rn='+qparam_runNumber;//+'&to='+qparam_to;
 
-    var requestValue = this.f3MonCache.get(requestKey);
+    var requestValue = global.f3MonCache.get(requestKey);
     var pending=false;
     if (requestValue=="requestPending"){
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
       pending=true;
     }
     var _this = this;
@@ -426,7 +426,7 @@ module.exports.teols = function (req, res) {
         }
       };
 
-      _this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'eols',
         body: JSON.stringify(queryJSON)
@@ -467,7 +467,7 @@ module.exports.teols = function (req, res) {
         }
       };
 
-      _this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'stream-hist',
         body: JSON.stringify(queryJSON)
@@ -500,7 +500,7 @@ module.exports.teols = function (req, res) {
     };
 
     if (requestValue == undefined) {
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
       qmaxls();
     }else {
       this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
@@ -517,7 +517,7 @@ module.exports.maxls = function (req, res) {
     if (this.verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
 
     var eTime = this.gethrms();
-    var ttl = this.ttls.bigpic; //cached ES response ttl (in seconds)
+    var ttl = global.ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
     var cb = req.query.callback;
@@ -527,10 +527,10 @@ module.exports.maxls = function (req, res) {
 
     var requestKey = qname+'?rn='+qparam_runNumber;
 
-    var requestValue = this.f3MonCache.get(requestKey);
+    var requestValue = global.f3MonCache.get(requestKey);
     var pending=false;
     if (requestValue=="requestPending"){
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
       pending=true;
     }
     var _this = this;
@@ -549,9 +549,9 @@ module.exports.maxls = function (req, res) {
         }
       };
 
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
-      _this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'eols',
         body: JSON.stringify(queryJSON)

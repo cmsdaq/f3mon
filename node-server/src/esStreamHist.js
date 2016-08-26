@@ -35,10 +35,6 @@ var percColor2 = function (percent,hasErrors){
 }
 
 
-var Common = require('./esCommon')
-
-module.exports = new Common()
-
 module.exports.query = function (req, res) {
 
   var qname = 'streamhist'
@@ -57,6 +53,7 @@ module.exports.query = function (req, res) {
   var qparam_timePerLs = req.query.timePerLs;
   var qparam_useDivisor = req.query.useDivisor;
   var qparam_accum = req.query.accum;
+  var qparam_allStreams = req.query.allStreams;
 
   if (qparam_runNumber == null){qparam_runNumber = 0;}
   if (qparam_from == null){qparam_from = 1;}
@@ -67,6 +64,8 @@ module.exports.query = function (req, res) {
   if (qparam_streamList == null){qparam_streamList = '';}
   if (qparam_timePerLs == null){qparam_timePerLs = 23.31;}
   if (qparam_useDivisor == null){qparam_useDivisor = false;} else {qparam_useDivisor = (req.query.useDivisor === 'true');}
+  if (qparam_allStreams == null) qparam_allStreams=false;
+  if (qparam_allStreams == 'false') qparam_allStreams=false;
 
   //calculate interval length taking into account integer rounding
   var interval = Math.round((qparam_to - qparam_from)/qparam_intervalNum) || 1;
@@ -106,12 +105,18 @@ module.exports.query = function (req, res) {
     if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')) allDQM=false;
   });
 
-  var requestKey = 'streamhist?runNumber='+qparam_runNumber+'&='+qparam_from+'&='+qparam_to
+  var requestKey;
+  if (!qparam_allStreams)
+    requestKey = 'streamhist?'+qparam_runNumber+'&='+qparam_from+'&='+qparam_to
                    +'&='+qparam_lastLs+'&='+qparam_intervalNum+'&='+qparam_sysName
                    +'&='+qparam_streamList+'&='+qparam_timePerLs+'&='
                    +qparam_useDivisor+'&='+qparam_accum;
+  else
+    requestKey = 'streamhist?'+qparam_runNumber+'&='+qparam_from+'&='+qparam_to
+                   +'&='+qparam_lastLs+'&='+qparam_intervalNum+'&='+qparam_sysName
+                   +'&='+qparam_timePerLs+'&='+qparam_useDivisor+'&='+qparam_accum;
 
-  var ttl = this.ttls.streamhist; //cached ES response ttl (in seconds)
+  var ttl = global.ttls.streamhist; //cached ES response ttl (in seconds)
 
   //helper variables with cb-wide scope
   var lastTimes = [];
@@ -145,7 +150,7 @@ module.exports.query = function (req, res) {
     if( lsList.length==0) {callback();return;}
 
     var trReqObj = {"run": qparam_runNumber, "binary":true , "aggregate":true}
-    var transferInfo = smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false,null);
+    var transferInfo = global.smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false,null);
     if (transferInfo===null) {
       callback();
       return;
@@ -260,11 +265,11 @@ module.exports.query = function (req, res) {
 
         queryJSON1.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
         streamListArray.forEach(function(s) {
-        if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
-           queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
+          if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
+            queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
         });
 
-	_this.client.search({
+	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'macromerge',
          body : JSON.stringify(queryJSON1)
@@ -378,10 +383,10 @@ module.exports.query = function (req, res) {
 
         queryJSON1.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
         streamListArray.forEach(function(s) {
-         if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
-           queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
+          if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
+            queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
         });
-	_this.client.search({
+	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'minimerge',
          body : JSON.stringify(queryJSON1)
@@ -507,7 +512,7 @@ module.exports.query = function (req, res) {
           queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"avg": { "field": "filesize"}}
        }
 
-    _this.client.search({
+    global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
       type: 'stream-hist',
       body : JSON.stringify(queryJSON2)
@@ -532,7 +537,8 @@ module.exports.query = function (req, res) {
       var nStreamsMicro=0;
 
       for (var i=0;i<streams.length;i++){
-		 if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
+
+		if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
                         continue;
                 }
                 nStreamsMicro+=1;
@@ -641,10 +647,10 @@ module.exports.query = function (req, res) {
 
 			//var p = {"x":ls,"y":percent};
 			//var pproc = {"x":ls,"y":percent};
+			
 			sout.dataOut.push(d);
 			sout.fileSize.push(f);
                         sout.sizePerEvt.push(se);
-			//sout.pMicro.push(pproc);
 
 		}//end for j
 		streamData.data.push(sout);
@@ -738,7 +744,7 @@ module.exports.query = function (req, res) {
     queryJSON3.query.filtered.query.range.ls.to = qparam_to;
     queryJSON3.aggregations.sumbefore.filter.range.ls.to = 0;//not used, taken from previous agg
 
-    _this.client.search({
+    global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
       type: 'eols',
       body : JSON.stringify(queryJSON3)
@@ -828,7 +834,7 @@ module.exports.query = function (req, res) {
     queryJSON3.query.filtered.query.range.ls.to = nav_to;//qparam_lastLs;
     queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
 
-    _this.client.search({
+    global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
       type: 'eols',
       body : JSON.stringify(queryJSON3)
@@ -897,12 +903,12 @@ module.exports.query = function (req, res) {
 
   }//end q1
 
-  var requestValue = this.f3MonCache.get(requestKey);
+  var requestValue = global.f3MonCache.get(requestKey);
   var pending=false;
 
   if (requestValue=="requestPending") {
     //console.log('pending...')
-    requestValue = this.f3MonCacheSec.get(requestKey);
+    requestValue = global.f3MonCacheSec.get(requestKey);
     pending=true;
   }
 
@@ -911,7 +917,7 @@ module.exports.query = function (req, res) {
       this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
       return;
     }
-    this.f3MonCache.set(requestKey, "requestPending", ttl);
+    global.f3MonCache.set(requestKey, "requestPending", ttl);
     q1(this);
   }else{
     this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);

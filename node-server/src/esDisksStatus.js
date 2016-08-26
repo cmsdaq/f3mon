@@ -7,7 +7,7 @@ module.exports.query = function (req, res) {
 
     var qname = 'getDisksStatus';
     //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+qname+' request');
-    var ttl = this.ttls.getDisksStatus; //cached ES response ttl (in seconds) 
+    var ttl = global.ttls.getDisksStatus; //cached ES response ttl (in seconds) 
     var eTime = this.gethrms();
 
     //GET query string params (needed to parameterize the query)
@@ -22,11 +22,11 @@ module.exports.query = function (req, res) {
 
     var requestKey = qname+'?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
 
-    var requestValue = this.f3MonCache.get(requestKey);
+    var requestValue = global.f3MonCache.get(requestKey);
     var pending=false;
     if (requestValue=="requestPending"){
       pending=true;
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue !== undefined) {
@@ -36,7 +36,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       //this.queryJSON1.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
 
@@ -95,7 +95,7 @@ module.exports.query = function (req, res) {
         }
 
         //submits query to the ES and returns formatted response to the app client
-        _this.client.search({
+        global.client.search({
           index: 'boxinfo_'+qparam_sysName+'_read',
           type: 'resource_summary',
           body : JSON.stringify(queryJSON2)
@@ -172,7 +172,7 @@ module.exports.query = function (req, res) {
         }
 
         //submits query to the ES and returns formatted response to the app client
-        _this.client.search({
+        global.client.search({
           index: 'boxinfo_'+qparam_sysName+'_read',
           type: 'boxinfo',
           body : JSON.stringify(qJSON)
@@ -217,7 +217,7 @@ module.exports.query = function (req, res) {
 
 
       //submits query to the ES and returns formatted response to the app client
-      this.client.search({
+      global.client.search({
         index: 'boxinfo_'+qparam_sysName+'_read',
         type: 'boxinfo',
         body : JSON.stringify(this.queryJSON1)

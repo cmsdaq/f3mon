@@ -42,13 +42,13 @@ module.exports.query = function (req, res) {
                      +'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='
                      +qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
 
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.logtable; //cached ES response ttl (in seconds)
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.logtable; //cached ES response ttl (in seconds)
 
     var pending=false
     if (requestValue=="requestPending"){
       pending=true
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue === undefined) {
@@ -56,7 +56,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       //parameterize query
       this.queryJSON1.size = qparam_size;
@@ -93,7 +93,7 @@ module.exports.query = function (req, res) {
       }
       var _this = this
 
-      this.client.search({
+      global.client.search({
         index: 'hltdlogs_'+qparam_sysName+'_read',
         type: qparam_docType,
         body: JSON.stringify(_this.queryJSON1)
@@ -200,7 +200,7 @@ module.exports.query = function (req, res) {
             delete queryJSON2.aggs;
             qparam_docType='hltdlog'
 
-            _this.client.search({
+            global.client.search({
               index: 'hltdlogs_'+qparam_sysName+'_read',
               type: qparam_docType,
               body: JSON.stringify(queryJSON2)
@@ -225,7 +225,7 @@ module.exports.query = function (req, res) {
             delete queryJSON2.aggs;
             qparam_docType='cmsswlog'
 
-            _this.client.search({
+            global.client.search({
               index: 'hltdlogs_'+qparam_sysName+'_read',
               type: qparam_docType,
               body: JSON.stringify(queryJSON2)
@@ -280,7 +280,7 @@ module.exports.findLog = function (req, res) {
 
     var _this = this
  
-    this.client.search({
+    global.client.search({
         index: 'hltdlogs_'+qparam_setup+'_read',
         type: 'cmsswlog',
         body: JSON.stringify(queryJSON)

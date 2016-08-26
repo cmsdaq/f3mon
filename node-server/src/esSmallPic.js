@@ -1,13 +1,5 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var smdb;
-var clientESlocal;
-
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
   //message can be augmented with info from error
@@ -42,11 +34,11 @@ function getIntervalTail(interval) {
 
 var sendResult = function(req,res,requestKey,cb,cached,obj,qname,eTime,ttl) {
   var srvTime = (new Date().getTime())-eTime;
-  totalTimes.queried += srvTime;
+  global.totalTimes.queried += srvTime;
   if (cached) {
     console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
   } else {
-    f3MonCache.set(requestKey, [obj,ttl], ttl);
+    global.f3MonCache.set(requestKey, [obj,ttl], ttl);
     console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }
   res.set('Content-Type', 'text/javascript');
@@ -60,14 +52,7 @@ var sendResult = function(req,res,requestKey,cb,cached,obj,qname,eTime,ttl) {
 
 module.exports = {
 
-  setup : function(cache,cacheSec,cl,cleslocal,smdbm,ttl,totTimes,queryJSN) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    clientESlocal=cleslocal;
-    ttls = ttl;
-    totalTimes = totTimes;
-    smdb = smdbm
+  setup : function(queryJSN) {
     //queryJSON = queryJSN;
   },
 
@@ -76,7 +61,7 @@ module.exports = {
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'small request');
 
     var eTime = new Date().getTime();
-    var ttl = ttls.bigpic; //cached ES response ttl (in seconds)
+    var ttl = global.ttls.bigpic; //cached ES response ttl (in seconds)
 
     //GET query string params
     var cb = req.query.callback;
@@ -123,7 +108,7 @@ module.exports = {
 
       if (!perbuv) delete queryJSON.aggs.hlt.perbu;
 
-      client.search({
+      global.client.search({
         index: 'boxinfo_'+qparam_setup+'_read',
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
@@ -216,7 +201,7 @@ module.exports = {
 
       queryJSON.sort[monitored]="asc";
 
-      client.search({
+      global.client.search({
         index: 'boxinfo_'+qparam_setup+'_read',
         type: 'fu-box-status',
         body: JSON.stringify(queryJSON)
@@ -305,13 +290,13 @@ module.exports = {
 
     }
 
-    var requestValue = f3MonCache.get(requestKey);
+    var requestValue = global.f3MonCache.get(requestKey);
     if (requestValue=="requestPending"){
       requestValue = f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue == undefined) {
-      f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
       if (qparam_int>=1)
         q();
       else q2();

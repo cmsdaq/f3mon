@@ -13,7 +13,7 @@ module.exports.query = function (req, res) {
 
     //query const
     var qname = 'runList';
-    var ttl = this.ttls.runList;
+    var ttl = global.ttls.runList;
 
     //GET query string params
     var cb = req.query.callback;
@@ -25,10 +25,10 @@ module.exports.query = function (req, res) {
     //build key and check in caches
     var requestKey = 'runList?sysName='+qparam_sysName+'&from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size;
 
-    var requestValue = this.f3MonCache.get(requestKey);
+    var requestValue = global.f3MonCache.get(requestKey);
     var pending=false;
     if (requestValue=="requestPending") {
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
       pending=true;
     }
 
@@ -44,7 +44,7 @@ module.exports.query = function (req, res) {
       }
       
       //set cache pending
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       //set up and run query
       var queryJSON = {
@@ -67,7 +67,7 @@ module.exports.query = function (req, res) {
       var _this = this;
 
       //search ES
-      this.client.search({
+      global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body: JSON.stringify(queryJSON)
@@ -93,13 +93,13 @@ module.exports.query = function (req, res) {
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
 /*
         //lookup for pending queries cached in the meantime
-        var cachedPending = _this.f3MonCacheTer.get(requestKey);
+        var cachedPending = _global.f3MonCacheTer.get(requestKey);
         if (cachedPending) {
           cachedPending.forEach(function(item) {
             _this.sendResult(item.req,item.res,requestKey,item.cb,true,retObj,qname,item.eTime,ttl);
           });
           //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
-          _this.f3MonCacheTer.del(requestKey);
+          _global.f3MonCacheTer.del(requestKey);
         }
 */
         } catch (e) {_this.exCb(res,e,requestKey)}

@@ -18,8 +18,8 @@ module.exports.query = function (req, res) {
 
     var qparam_query = 'riverstatus';
     var requestKey = qname+'?size='+qparam_size+'&query='+qparam_query;
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.riverStatus; //cached ES response ttl (in seconds)
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.riverStatus; //cached ES response ttl (in seconds)
 
     //parameterize query fields 
     this.queryJSON1.size = qparam_size;
@@ -29,7 +29,7 @@ module.exports.query = function (req, res) {
     //search ES - Q2 (get meta)
     var q1 = function (){
 
-      _this.client.search({
+      global.client.search({
         index:'river',
         type:'instance',
         body: JSON.stringify(_this.queryJSON1)
@@ -105,7 +105,7 @@ module.exports.query = function (req, res) {
     var pending=false;
     if (requestValue=="requestPending"){
       pending=true
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue == undefined) {
@@ -113,7 +113,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
       //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
       q1();
     }else

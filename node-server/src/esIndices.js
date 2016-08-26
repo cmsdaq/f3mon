@@ -13,13 +13,13 @@ module.exports.query = function (req, res) {
     var cb = req.query.callback;
 
     var requestKey = 'getIndices';
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.getIndices; //cached ES response ttl (in seconds) 
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.getIndices; //cached ES response ttl (in seconds) 
 
     var pending=false;
     if (requestValue=="requestPending"){
         pending=true;
-        requestValue = this.f3MonCacheSec.get(requestKey);
+        requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue === undefined) {
@@ -27,10 +27,10 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
       var _this = this
 
-      this.client.cat.aliases({
+      global.client.cat.aliases({
        name: 'runindex*read'}
       ).then(function (body) {
         try {

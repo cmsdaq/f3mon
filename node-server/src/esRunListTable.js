@@ -27,13 +27,13 @@ module.exports.query = function (req, res) {
     if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
     var requestKey = qname+'?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&sysName='+qparam_sysName;
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.runListTable; //cached ES response ttl (in seconds)
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.runListTable; //cached ES response ttl (in seconds)
 
     var pending=false
     if (requestValue=="requestPending"){
       pending=true
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue === undefined) {
@@ -41,7 +41,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       //parameterize query fields
       this.queryJSON1.size =  qparam_size;
@@ -92,7 +92,7 @@ module.exports.query = function (req, res) {
 
       var _this = this
       //search ES
-      this.client.search({
+      global.client.search({
         index:'runindex_'+qparam_sysName+'_read',
         type: 'run',
         body: JSON.stringify(qsubmitted)

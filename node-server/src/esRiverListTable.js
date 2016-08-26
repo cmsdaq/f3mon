@@ -26,8 +26,8 @@ module.exports.query = function (req, res) {
     var qparam_sortOrder = this.checkDefault(req.query.sortOrder,'');
 
     var requestKey = qname+'?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder;
-    var requestValue = this.f3MonCache.get(requestKey);
-    var ttl = this.ttls.runRiverListTable; //cached ES response ttl (in seconds)
+    var requestValue = global.f3MonCache.get(requestKey);
+    var ttl = global.ttls.runRiverListTable; //cached ES response ttl (in seconds)
 
     var _this = this
     //search ES - Q1 (get meta)
@@ -49,7 +49,7 @@ module.exports.query = function (req, res) {
         _this.queryJSON1.sort = outer;
       }
 
-      _this.client.search({
+      global.client.search({
         index:'river',
         type:'instance',
         body: JSON.stringify(_this.queryJSON1)
@@ -93,7 +93,7 @@ module.exports.query = function (req, res) {
     var pending=false
     if (requestValue=="requestPending"){
       pending=true
-      requestValue = this.f3MonCacheSec.get(requestKey);
+      requestValue = global.f3MonCacheSec.get(requestKey);
     }
 
     if (requestValue == undefined) {
@@ -101,7 +101,7 @@ module.exports.query = function (req, res) {
         this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
         return;
       }
-      this.f3MonCache.set(requestKey, "requestPending", ttl);
+      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
       //q1 is executed and then passes to its callback, q2

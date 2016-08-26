@@ -1,11 +1,6 @@
 'use strict';
 
-var f3MonCache;
-var f3MonCacheSec;
-var ttls;
-var client;
-var totalTimes;
-var queryJSON;
+var configJSON;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -15,13 +10,8 @@ var excpEscES = function (res, error){
 
 module.exports = {
 
-  setup : function(cache,cacheSec,cl,ttl,totTimes,queryJSN) {
-    f3MonCache = cache;
-    f3MonCacheSec =  cacheSec;
-    client=cl;
-    ttls = ttl;
-    totalTimes = totTimes;
-    queryJSON = queryJSN;
+  setup : function(configJSN) {
+    configJSON = configJSN;
   },
 
   query : function (req, res) {
@@ -32,7 +22,7 @@ module.exports = {
   var cb = req.query.callback;
   res.set('Content-Type', 'text/javascript');
   res.header("Cache-Control", "no-cache, no-store");
-  res.send(cb +' ('+JSON.stringify(queryJSON)+')');
+  res.send(cb +' ('+JSON.stringify(configJSON)+')');
 
 /*
 //idx refresh for one index
@@ -43,7 +33,7 @@ console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddres
 var qparam_indexAlias = req.query.indexAlias;
 if (qparam_indexAlias == null){qparam_indexAlias = '';}
 
-client.indices.refresh({
+this.client.indices.refresh({
   index: qparam_indexAlias
   }).then (function(body){
 	res.set('Content-Type', 'text/javascript');

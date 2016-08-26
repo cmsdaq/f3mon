@@ -2,11 +2,8 @@
 var fs = require('fs');
 var util = require('util');
 
-var f3MonCache;
-var totalTimes;
 var stats_file;
 var times_file;
-var client;
 var init_logindex=false;
 
 var instance = global.serverPort==80 ? 'prod': serverPort=='4000' ? 'test' : 'dev';
@@ -16,10 +13,12 @@ var tests=false ; // false
 var cachestatslogger = function (){
   var outObj = {
     "time" : new Date().toUTCString(),
-    "stats" : f3MonCache.getStats()
+    "stats" : global.f3MonCache.getStats(),
+    "stats2" : global.f3MonCacheSec.getStats(),
+    "stats3" : global.f3MonCacheTer.getStats()
   };
   stats_file.write(util.format(JSON.stringify(outObj)+'\n'));
-  times_file.write(util.format(JSON.stringify(totalTimes)+'\n'));
+  times_file.write(util.format(JSON.stringify(global.totalTimes)+'\n'));
   //console.log('-Wrote out cache statistics -------------------------------------------------------------------------------------------------');
 
   bulk_inject()
@@ -34,17 +33,14 @@ var bulk_inject = function() {
       item.instance = instance
       bulk_tmp.push(item)
     })
-    client.bulk({body:bulk_tmp},function(body) {},function(error){console.log(error.message)})
+    global.client.bulk({body:bulk_tmp},function(body) {},function(error){console.log(error.message)})
   }
   global.bulk_buffer.length=0
 }
 
 
 module.exports = {
-  start : function(cl,cache,totTimes) {
-    client = cl
-    f3MonCache = cache;
-    totalTimes = totTimes;
+  start : function() {
     bulk_buffer = global.bulk_buffer
     //cumulative time of requests serving in milliseconds
     //dev helper for cache statistics
@@ -76,7 +72,7 @@ module.exports = {
 
     //initialize elasticsearch loggin index
     if  (instance!=='dev' || tests)
-      client.indices.create({
+      global.client.indices.create({
         index: 'f3mon_stats',
         body : JSON.stringify(index_body),
       }).then(function (body){

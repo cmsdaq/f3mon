@@ -1,6 +1,5 @@
 'use strict';
 
-var client;
 
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
@@ -10,8 +9,7 @@ var excpEscES = function (res, error){
 
 module.exports = {
 
-  setup : function(cl) {
-    client=cl;
+  setup : function() {
   },
 
   query : function (req, res) {
@@ -43,7 +41,7 @@ module.exports = {
 
     //start collector
     var q4 = function(callback){
-      client.index({
+      global.client.index({
         index:'_river',
         type:'runriver_'+qparam_runNumber,
         id:'_meta',
@@ -59,7 +57,7 @@ module.exports = {
 
     //put dynamic mapping
     var q3 = function(callback){
-      client.indices.putMapping({
+      global.client.indices.putMapping({
         index:'_river',
         type:'runriver_'+qparam_runNumber,
         body:mapping
@@ -74,7 +72,7 @@ module.exports = {
 
     //deleting old instances
     var q2 = function(callback){
-      client.indices.deleteMapping({
+      global.client.indices.deleteMapping({
         index:'_river',
         type:'runriver_'+qparam_runNumber
       }).then (function(body){
@@ -92,7 +90,7 @@ module.exports = {
  *-initial version-
  * retrieves all entries from an index type (first step on bulk operations on these entries)
 var getAllEntries = function(callback){
-  client.search({
+  global.client.search({
    index: '_river',
    type: 'runriver_'+qparam_runNumber,
    body: JSON.stringify({
@@ -114,7 +112,7 @@ var getAllEntries = function(callback){
     //get parameters from the main river
     var q1 = function (callback){
       var runIndex = 'runindex_'+qparam_sysName+'_read';
-      client.search({
+      global.client.search({
         index: '_river',
         type: 'runriver',
         body : JSON.stringify({
