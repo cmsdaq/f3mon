@@ -12,7 +12,9 @@
     "passport": "*",
     "passport-local": "*",
     "body-parser": "*",
-    "express-session":"*"
+    "express-session":"*",
+    "heapdump":"*",
+    "memwatch":"*"
   },
   "engines": {
     "node": ">=0.10.0"
