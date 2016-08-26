@@ -264,7 +264,11 @@ app.get('/', function (req, res) {
 
 app.get('/gc', function (req, res) {
   global.gc();
-  res.send("GC " + process.memoryUsage().heapUsed);
+  res.send(new Date() + " - GC executed. Current heap size is " + process.memoryUsage().heapUsed/1000000.0 + ' MB');
+});
+
+app.get('/heapsize', function (req, res) {
+  res.send(new Date() + " - Current heap size is " + process.memoryUsage().heapUsed/1000000.0 + ' MB');
 });
 
 app.get('/heap', function (req, res) {
