@@ -150,7 +150,7 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 		$('#bus').append('</tr>');
 
 
-		plot('#plot1','ls duration from index','line',data["series1"],'','LS','time in seconds');
+		//plot('#plot1','ls duration from index','line',data["series1"],'','LS','time in seconds');
 		//plot('#plot2','rate from index','line',data["series2"],'','LS','rate (1/s)');
 		//plot('#plot2B','bandwidth from index','line',data["series3"],'','LS','rate (B/s)');
 		plot('#plot3','ramdisk','line',data["ramdisk"],'datetime','time','fraction used');
@@ -160,7 +160,7 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 		plot('#plot5','aggregated rate from eol','line',data["ratebytotal"]);
 		//plot('#plot7','starttimes','line',data["begins"],'datetime','time','ls');
 		//plot('#plot8','endtimes','line',data["ends"],'datetime','time','ls');
-		plot('#plot9','ratebyfile','line',data["series3"],'datetime','time','rate');
+		//plot('#plot9','ratebyfile','line',data["series3"],'datetime','time','rate');
 		plot('#plot10','fu sys cpu usage frac','line',data["fusyscpu"],'datetime','time','fraction');
 		plot('#plot10a','fu sys cpu usage frac avg','line',data["fusyscpu2"],'datetime','time','fraction');
 		plot('#plot10b','fu sys avg event time','line',data["fuetime"],'datetime','time','seconds');
