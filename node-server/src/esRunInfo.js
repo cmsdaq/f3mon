@@ -17,7 +17,6 @@ module.exports.query = function (req, res) {
     var qparam_activeRuns  = this.checkDefault(req.query.activeRuns,false);
 
     var requestKey = qname+'?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName+'&active='+qparam_activeRuns;
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.runInfo; //cached ES response ttl (in seconds)
 
     var retObj = {};
@@ -148,22 +147,9 @@ module.exports.query = function (req, res) {
 
     }//end q1
 
-    var pending=false
-    if (requestValue=="requestPending"){
-      pending=true
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-       }
-       global.f3MonCache.set(requestKey, "requestPending", ttl);
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
        q1();
-
-    } else 
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    } 
     
   }
 

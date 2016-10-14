@@ -27,22 +27,9 @@ module.exports.query = function (req, res) {
     if (qparam_sysName == null){qparam_sysName = 'cdaq';}
 
     var requestKey = qname+'?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&sysName='+qparam_sysName;
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.runListTable; //cached ES response ttl (in seconds)
 
-    var pending=false
-    if (requestValue=="requestPending"){
-      pending=true
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
-
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
       //parameterize query fields
       this.queryJSON1.size =  qparam_size;
       this.queryJSON1.from = qparam_from;
@@ -121,7 +108,6 @@ module.exports.query = function (req, res) {
         console.trace(error.message);
       });
 
-    } else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    }
   }
 

@@ -48,6 +48,23 @@ Common.prototype.excpEscES = function(res,error,requestKey){
     }
 }
 
+//escapes client hanging upon an Oracle request error by sending http 500
+Common.prototype.excpEscOracle = function(res,error,requestKey){
+    //message can be augmented with info from error
+    var msg = 'Internal Server Error (Oracle DB query error during the request execution, an admin should seek further info in the logs). Msg:'+ JSON.stringify(error);
+    res.status(500).send(msg);
+
+    var cachedPending = global.f3MonCacheTer.get(requestKey);
+    if (cachedPending) {
+      cachedPending.forEach(function(item) {
+        item.res.status(500).send(msg);
+      });
+      //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
+      global.f3MonCacheTer.del(requestKey);
+    }
+}
+
+
 /*
 //escapes client hanging upon a nodejs code exception/error by sending http 500
 var excpEscJS = function (res, error){
@@ -88,7 +105,8 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
       if (tookSec>ttl && tookSec<ttl*4) usettl+=tookSec;
     }
     responseObject = JSON.stringify(obj);//need to serialize of object is not cached
-    global.f3MonCache.set(requestKey, [responseObject,usettl], usettl);
+    if (global.useCaches)
+      global.f3MonCache.set(requestKey, [responseObject,usettl], usettl);
     if (this.verbose) console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }
   var time_now = new Date().getTime();
@@ -108,7 +126,7 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
   //send pending items
   if (!cached) {
     var cachedPending = global.f3MonCacheTer.get(requestKey);
-    if (cachedPending) {
+    if (cachedPending !== undefined) {
       //console.log('responding to cached pending requests...')
       cachedPending.forEach(function(item) {
         _this.sendResult(item.req,item.res,requestKey,item.cb,true,responseObject,qname,item.eTime,ttl);
@@ -127,6 +145,32 @@ Common.prototype.putInPendingCache = function(replyCache,requestKey,ttl) {
     global.f3MonCacheTer.set(requestKey,[replyCache],ttl*10); //large(r) expiration time for this
   else
     cachedval.push(replyCache);
+}
+
+Common.prototype.respondFromCache = function(req,res,cb,eTime,requestKey,qname,ttl) {
+
+    var requestValue = global.f3MonCache.get(requestKey);
+    var pending=false
+    if (requestValue=="requestPending"){
+      pending=true
+      requestValue = global.f3MonCacheSec.get(requestKey);
+    }
+
+    if (requestValue === undefined) {
+      if (pending) {
+        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
+        return true;
+      }
+      if (global.useCaches)
+        global.f3MonCache.set(requestKey, "requestPending", ttl);
+      //response tells nothing is cached, continue querying
+      return false;
+    }
+    else {
+      //respond from cache
+      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+      return true;
+    }
 }
 
 Common.prototype.gethrms = function() {

@@ -26,7 +26,6 @@ module.exports.query = function (req, res) {
     var qparam_sortOrder = this.checkDefault(req.query.sortOrder,'');
 
     var requestKey = qname+'?from='+qparam_from+'&size='+qparam_size+'&sortBy='+qparam_sortBy+'&sortOrder='+qparam_sortOrder;
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.runRiverListTable; //cached ES response ttl (in seconds)
 
     var _this = this
@@ -70,9 +69,14 @@ module.exports.query = function (req, res) {
           var role = "main";
           if (results[index]._source.hasOwnProperty("runNumber") && results[index]._source.runNumber!=0)
             role = "collector";
+          var nametks = results[index]._source.instance_name.split("_");
+          var name;
+          if (nametks.length>2) name = nametks[2];
+          else name = results[index]._source.instance_name;
           var o = {
             //"name" : results[index]._source.instance_name.substr(6), //after river_
-            "name" : results[index]._source.instance_name.split("_")[2],
+            //"name" : results[index]._source.instance_name.split("_")[2],
+            "name" : name,
             "subSystem" : results[index]._source.subsystem,
             "host" : host, //todo:adapt river tables
             "status" : nstatus,
@@ -90,23 +94,8 @@ module.exports.query = function (req, res) {
       });
     }//end q1
 
-    var pending=false
-    if (requestValue=="requestPending"){
-      pending=true
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue == undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
-
-      //chaining of the two queries (output of Q1 is combined with Q2 hits to form the response) 
-      //q1 is executed and then passes to its callback, q2
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
       q1();
-    } else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    }
   }
 

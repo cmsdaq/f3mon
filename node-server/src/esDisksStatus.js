@@ -22,21 +22,7 @@ module.exports.query = function (req, res) {
 
     var requestKey = qname+'?runNumber='+qparam_runNumber+'&sysName='+qparam_sysName;
 
-    var requestValue = global.f3MonCache.get(requestKey);
-    var pending=false;
-    if (requestValue=="requestPending"){
-      pending=true;
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue !== undefined) {
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
-    } else {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
 
       //this.queryJSON1.query.wildcard.activeRuns.value =  '*'+qparam_runNumber+'*';
 

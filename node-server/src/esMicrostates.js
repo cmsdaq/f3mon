@@ -63,7 +63,6 @@ module.exports.query = function (req, res) {
                            +'&'+qparam_format
     //make hash out of string
     var requestKey = qname+'?runNumber=' + qparam_runNumber +requestKeySuffix;//+ requestKeySuffix.reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.nstatesSummary; //cached ES response ttl (in seconds)
 
 
@@ -350,28 +349,19 @@ module.exports.query = function (req, res) {
 
     }//end q3
 
-    var pending=false
-    if (requestValue=="requestPending"){
-      pending=true
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
 
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false)
+    {
+      //nothing in cache, run query
       if (qparam_minLs!=null && qparam_maxLs!==null) {
         q1();
       }
       else {
         q2(); //call q1 with q2 as its callback
       }
+    }
 
-    } else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   }
 
 
@@ -449,7 +439,6 @@ module.exports.queryInput = function (req, res) {
                            +'&'+qparam_format
     //make hash out of string
     var requestKey = qname+'?runNumber=' + qparam_runNumber +requestKeySuffix;//+ requestKeySuffix.reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.nstatesSummary; //cached ES response ttl (in seconds)
 
 
@@ -629,27 +618,16 @@ module.exports.queryInput = function (req, res) {
       q3();
     }
 
-    var pending=false
-    if (requestValue=="requestPending"){
-      pending=true
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
-
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false)
+    {
+      //nothing in cache, run query
       if (qparam_minLs!=null && qparam_maxLs!==null) {
         q1();
       }
       else {
         q2(); //call q1 with q2 as its callback
       }
+    }
 
-    } else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   }
 

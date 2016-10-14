@@ -3,6 +3,7 @@ var plots=[];
 
 
 function bootstrap(){
+    Highcharts.setOptions(Highcharts.theme_du);
     //$("#loading_dialog").loading();
 	    //    $('#loading_dialog').hide();
     $('#dialog').hide();

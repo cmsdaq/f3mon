@@ -1,11 +1,14 @@
-var refseries=[];
+//'use strict';
+
 var plots=[];
 
+var datadbbak = undefined;
 
 function bootstrap(){
+    Highcharts.setOptions(Highcharts.theme_du);
 
-    autoplot=false
-    minmax=false
+    var autoplot=false
+    var minmax=false
     //console.log(location.hash.length)
     if (location.hash.length) {
       var hashpos = location.hash.indexOf('run=')
@@ -63,7 +66,9 @@ function bootstrap(){
               $.getJSON("api/runInfo?sysName="+$('input[name=setup]:checked', '#setups').val()+"&activeRuns=true",function(adata){
 	        if (adata.runNumber && !isNaN(run = parseInt(adata.runNumber))) {
                   document.title = 'run ' + adata.runNumber;
-                  doPlots(adata.runNumber,$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+	          $.getJSON("api/maxls?runNumber="+adata.runNumber,function(bdata) {
+                    doPlots(adata.runNumber,1,bdata.maxls,$('#fullrun').is(':checked'));
+                  });
 	          $("#loading_dialog").loading();
                 }
                 else
@@ -72,13 +77,15 @@ function bootstrap(){
             }
             else {
              document.title = 'run ' + $('#runno').val();
-             doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+             //can be multiple runs
+             console.log('plotting')
+             doPlots($('#runno').val(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	     $("#loading_dialog").loading();
             }
         });
     
     var timeout_rq;
-    var run_iteration = function() {
+    var run_iteration = function(cb) {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
 	$.getJSON("api/maxls?runNumber="+$('#runno').val(),function(data) {
           if (data.maxls!=null) {
@@ -86,8 +93,10 @@ function bootstrap(){
             $('#maxls').val(data.maxls);
             $('#minls').val(1);
           }
+          if (cb!==undefined) cb();
         });
     }
+
     $('#runno').bind("input",
       function(event){
         //console.log('input!')
@@ -103,9 +112,13 @@ function bootstrap(){
       $('#maxls').prop('disabled',$(this).is(':checked'));
     });
     if (autoplot) {
-            //console.log('autoplotting')
-            run_iteration();
-            doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+            console.log('autoplotting')
+            var callb = function() {
+              doPlots($('#runno').val(), $('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+            }
+            if ($('#runno').val().indexOf(',')!==-1) callb();
+            else
+              run_iteration(callb);//pass callback to run after maxls is retrieved
 	    $("#loading_dialog").loading();
     }
     else
@@ -121,29 +134,55 @@ function setlink() {
     } 
 }
 
-function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
+var data_copy = {};
+var htmlruns = [];
+var htmldur=0;
+
+function doPlots(runstr,minls,maxls,fullrun)
+{
+    $('#start').html("");
+    data_copy = {}
+    htmlruns = [];
+    htmldur=0;
+    var htmlticks=0;
+    if (runstr)
+      var list_of_runs = runstr.split(',');
+    else var list_of_runs = []
+    if (list_of_runs.length>1)
+      doPlot(list_of_runs,-1,-1,true,true,true);
+    else
+      doPlot(list_of_runs,minls,maxls,fullrun,false,false);
+}
+
+function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
+    if (runs.length==0 || runs.length==1 && runs[0]=='') {
+      //finalize and plot 
+      //finished
+      return
+    }
+    run = runs[0]
+    runs = runs.splice(1)
     $.ajaxSetup({
 	    async: true
 		});
     plots=[];
-    refseries.splice(0,refseries.length); //delete content of refseries array from previous doPlots
     if (!fullrun) var lspart="&minls="+minls+"&maxls="+maxls;
     else var lspart="&minls=&maxls="; 
 
     $.getJSON("php/lumi.php?run="+run,function(datadb){
+      //console.log('0 '+JSON.stringify(datadb.plumi1[0]));
       $('#fill').html(datadb.fill.data);
-
-
-      //console.log(JSON.stringify(datadb["plumi1"]));
       var pileupmap = {};
       var minsb=0;
       var maxsb=0;
       var filterstable = $('#stable').is(':checked');
+      var sbpart = "";
+      
       if (datadb["plumi1"][0].data.length) {
         var minpu = datadb["plumi1"][0].data[datadb["plumi1"][0].data.length-1][1];
         //console.log(minpu)
         for (var j=0;j<datadb["plumi1"][0].data.length;j++) {
-          item = datadb["plumi1"][0].data[j];
+          var item = datadb["plumi1"][0].data[j];
           var stable = datadb["run"][1].data[j][1];//stable beams
           if (stable && item[1]>minpu && item[1]>1.)//min PU value shown
            pileupmap[item[0]]=item[1];
@@ -153,90 +192,155 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
           }
         }
       }
-      var sbpart = "";
-      if (filterstable && minsb>0) sbpart="&minsb="+minsb+"&maxsb="+maxsb;
 
+      //maxls and minls query doesn't work currently with multirun
+      if (multirun) minsb=0;
+      if ($('#timeaxis').is(':checked')) multirun=true;
+
+      if (multirun)
+        var multipart = "&multirun=1";
+      else
+        var multipart = "&multirun=0";
+      
       //filter
       if (!fullrun || minsb) {
         var dvec;var nvec;
         dvec = datadb["lumi1"][0].data;
         nvec = [];
-        for (var i=0;i<dvec.length;i++) if (dvec[i][0]>=minls && dvec[i][0]<=maxls && (!filterstable || (dvec[i][0]>=minsb && dvec[i][0]<=maxsb))) nvec.push(dvec[i]);
+        for (var i=0;i<dvec.length;i++) if ((maxls=="" || (dvec[i][0]>=minls && dvec[i][0]<=maxls)) && (!filterstable || (dvec[i][0]>=minsb && dvec[i][0]<=maxsb))) nvec.push(dvec[i]);
         datadb["lumi1"][0].data=nvec;
         dvec = datadb["plumi1"][0].data;
         nvec = [];
-        for (var i=0;i<dvec.length;i++) if (dvec[i][0]>=minls && dvec[i][0]<=maxls && (!filterstable || (dvec[i][0]>=minsb && dvec[i][0]<=maxsb))) nvec.push(dvec[i]);
+        for (var i=0;i<dvec.length;i++) if ((maxls=="" || (dvec[i][0]>=minls && dvec[i][0]<=maxls)) && (!filterstable || (dvec[i][0]>=minsb && dvec[i][0]<=maxsb))) nvec.push(dvec[i]);
         datadb["plumi1"][0].data=nvec;
       }
-      plot('#plot1','inst lumi vs ls','line',datadb["lumi1"]);
-      plot('#plot1a','pileup vs ls','line',datadb["plumi1"]);
 
-      pippo=$.getJSON("php/applianceplots.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart+sbpart,function(data){
+      if (!multirun) {
+        plot('#plot1','inst lumi vs ls','line',datadb["lumi1"],'','LS','',undefined,undefined,undefined,undefined);
+        plot('#plot1a','pileup vs ls','line',datadb["plumi1"]);
+        if (filterstable && minsb>0) sbpart="&minsb="+minsb+"&maxsb="+maxsb;
+      }
+
+      var pippo=$.getJSON("php/applianceplots.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart+sbpart+multipart,function(data) {
 
 	    if(data.runinfo.start !=null){
-		$('#runinfo').show();		
-		$('#run').html(data.runinfo.run);
-		$('#start').html(data.runinfo.start);
-		$('#end').html(data.runinfo.end+'<br>('+data.runinfo.ongoing+')');
-		$('#duration').html(data.runinfo.duration);
-		$('#unit').html(data.runinfo.interval);
 
-		plot('#plot3','ramdisk','line',data["ramdisk"],'datetime','time','fraction used',undefined,undefined,0,undefined);
-		plot('#plot3a','output to BU','line',data["outputbw"],'datetime','time','MB/s',undefined,undefined,0,undefined);
-		plot('#plot2','aggregated rate from eol','line',data["ratebytotal"],undefined,undefined,0,undefined);
-		plot('#plot10a','fu sys CPU usage/budget avg','line',data["fusyscpu2"],'datetime','time','fraction',undefined,undefined,0,undefined);
-		plot('#plot10b','fu sys avg event time','line',data["fuetime"],'datetime','time','seconds',undefined,undefined,0,undefined);
-		plot('#plot12','fu data input','line',data["fudatain"],'datetime','time','MB/s',undefined,undefined,0,undefined);
+                data["lumi1"]=[ {name:datadb["lumi1"][0].name,data:[]}];
+                data["plumi1"]=[{name:datadb["plumi1"][0].name,data:[]}];
 
-		//combine with PU
-                //console.log(JSON.stringify(data["fuetimels"][0]))
-		var datavec = []
-                var origvec = data["fuetimels"][0].data
-
-                //console.log(JSON.stringify(data["fuetimels"][0].data));
-		for (var i=0;i<origvec.length;i++) {
-                  var ls = origvec[i][0];
-                  if (pileupmap.hasOwnProperty(ls))
-                    datavec.push([pileupmap[ls],origvec[i][1]])
-                    
+                if (multirun) {
+                  datadb.lumi1[0].data.forEach(function(item) {
+                    if (data.lstimes.hasOwnProperty(item[0]))
+                      data.lumi1[0].data.push([data.lstimes[item[0]],item[1]]);
+                  });
+                  datadb.plumi1[0].data.forEach(function(item) {
+                    if (data.lstimes.hasOwnProperty(item[0]))
+                      data.plumi1[0].data.push([data.lstimes[item[0]],item[1]])
+                  });
                 }
-                datavec.sort(function(a, b){return a[0]>b[0]});
-                data["fuetimels"][0].data = datavec;
-
-		var datavec = []
-                var origvec = data["fuetimels"][1].data
-                //console.log(JSON.stringify(data["fuetimels"][0].data));
-		for (var i=0;i<origvec.length;i++) {
-                  var ls = origvec[i][0];
-                  if (pileupmap.hasOwnProperty(ls))
-                    datavec.push([pileupmap[ls],origvec[i][1]])
-                    
-                }
-                datavec.sort(function(a, b){return a[0]>b[0]});
-                data["fuetimels"][1].data = datavec;
-
-                
-                data["fuetimels2"]=[];
-                for (var j=0;j<data["fuetimelsres"].length;j++) {
-		  datavec = []
-                  origvec = data["fuetimelsres"][j].data;
-                  //console.log(JSON.stringify(data["fuetimels2"][j]));
+                //console.log('2 '+JSON.stringify(data.lumi1[0]));
+                {
+		  //combine with PU
+		  var datavec = []
+                  var origvec = data["fuetimels"][0].data
 		  for (var i=0;i<origvec.length;i++) {
                     var ls = origvec[i][0];
                     if (pileupmap.hasOwnProperty(ls))
                       datavec.push([pileupmap[ls],origvec[i][1]])
                   }
                   datavec.sort(function(a, b){return a[0]>b[0]});
-                  //data["fuetimels2"][j].data = datavec;
-                  data["fuetimels2"].push({'name': data["fuetimelsres"][j].name, 'data' : datavec});
+                  data["fuetimels"][0].data = datavec;
+		  var datavec = []
+                  var origvec = data["fuetimels"][1].data
+		  for (var i=0;i<origvec.length;i++) {
+                    var ls = origvec[i][0];
+                    if (pileupmap.hasOwnProperty(ls))
+                      datavec.push([pileupmap[ls],origvec[i][1]])
+                  }
+                  datavec.sort(function(a, b){return a[0]>b[0]});
+                  data["fuetimels"][1].data = datavec;
+                  data["fuetimels2"]=[];
+                  //for (var j=0;j<data["fuetimelsres"].length;j++) {
+                  for (var j=0;j<data["fuetimelsresls"].length;j++) {
+                    //console.log('x'  + data["fuetimelsresls"][j].name)
+		    datavec = []
+                    //origvec = data["fuetimelsres"][j].data;
+                    origvec = data["fuetimelsresls"][j].data;
+		    for (var i=0;i<origvec.length;i++) {
+                      var ls = origvec[i][0];
+                      if (pileupmap.hasOwnProperty(ls))
+                        datavec.push([pileupmap[ls],origvec[i][1]])
+                    }
+                    datavec.sort(function(a, b){return a[0]>b[0]});
+                    //use name from non-LS array
+                    data["fuetimels2"].push({'name': data["fuetimelsres"][j].name, 'data' : datavec});
+                    //data["fuetimels2"].push({'name': data["fuetimelsresls"][j].name, 'data' : datavec});
+                  }
                 }
 
-		plot('#plot13','fu sys avg event time vs pileup','scatter',data["fuetimels2"],'','pileup','seconds',undefined,50,0,0.5);
-		plot('#plot14','fu event time (BUs)','line',data["fuetimelsbu"],'','LS','seconds',undefined,undefined,0,undefined);
-		plot('#plot15','fu event time (appliance/resources)','line',data["fuetimelsres"],'','LS','seconds',undefined,undefined,0,undefined);
-		plot('#plot16','fu sys CPU usage (appliance/resources)','line',data["fucpures"],'','LS','fraction',undefined,undefined,0,undefined);
-		plot('#plot17','fu CPU budget (appliance/resources)','line',data["fucpures2"],'','LS','fraction',undefined,undefined,0,undefined);
+                var merge_whitelist = ["fusyscpu2","fudatain","fuetime","ramdisk","outputbw","fuetimelsres","fucpures","fucpures2","ratebytotal","lumi1","plumi1","fuetimels2"]
+
+                merge_whitelist.forEach(function(hitem) {
+                  console.log(Object.keys(data[hitem]))
+                  if (!data_copy.hasOwnProperty(hitem)) {
+                    data_copy[hitem]=data[hitem];
+                  }
+                  else {
+                    Object.keys(data[hitem]).forEach(function(item) {
+                      if (!data_copy[hitem].hasOwnProperty(item))
+                        data_copy[hitem][item] = data[hitem][item]
+                      else {
+                        var reverse = false;
+                        if (data_copy[hitem][item]['data'].length && data[hitem][item]['data'].length)
+                          if (data_copy[hitem][item]['data'][0][0] > data[hitem][item]['data'][0][0]) reverse=true;
+
+                        if (hitem=="fuetimels2") reverse = !reverse; //pu is dropping
+
+                        if (reverse) data_copy[hitem][item]['data'] = data[hitem][item]['data'].concat(data_copy[hitem][item]['data']);
+                        else data_copy[hitem][item]['data'] = data_copy[hitem][item]['data'].concat(data[hitem][item]['data']);
+                      }
+                      
+                    });
+                  
+                  }
+                });
+
+		if (htmlruns.length==0) $('#start').html(data.runinfo.start);
+                htmlruns.push(data.runinfo.run)
+                htmldur+=parseInt(data.runinfo.duration)
+
+                if (runs.length) {
+                  doPlot(runs,-1,-1,true,true,true);
+                  return;
+                }
                 
+
+		$('#runinfo').show();
+		$('#run').html(htmlruns.join());
+		$('#start').html(data.runinfo.start);
+		$('#end').html(data.runinfo.end);
+		$('#duration').html(htmldur);
+		//$('#unit').html(data.runinfo.interval);
+
+
+		plot('#plot10a','fu sys CPU usage/budget avg','line',data_copy["fusyscpu2"],'datetime','time','fraction',undefined,undefined,0,undefined);
+		plot('#plot12','fu data input','line',data_copy["fudatain"],'datetime','time','MB/s',undefined,undefined,0,undefined);
+		plot('#plot10b','fu sys avg event time','line',data_copy["fuetime"],'datetime','time','seconds',undefined,undefined,0,undefined);
+		plot('#plot3','ramdisk','line',data_copy["ramdisk"],'datetime','time','fraction used',undefined,undefined,0,undefined);
+		plot('#plot3a','output to BU','line',data_copy["outputbw"],'datetime','time','MB/s',undefined,undefined,0,undefined);
+
+		plot('#plot15','fu event time (appliance/resources)','line',data_copy["fuetimelsres"],multirun ? 'datetime':'',multirun?'time':'LS','seconds',undefined,undefined,0,undefined);
+		plot('#plot16','fu sys CPU usage (appliance/resources)','line',data_copy["fucpures"],multirun ? 'datetime':'',multirun?'time':'LS','fraction',undefined,undefined,0,undefined);
+		plot('#plot17','fu CPU budget (appliance/resources)','line',data_copy["fucpures2"],multirun?'datetime':'',multirun?'time':'LS','fraction',undefined,undefined,0,undefined);
+		plot('#plot2','aggregated rate from eol','line',data_copy["ratebytotal"],multirun?'datetime':'',multirun?'time':'LS','events/s',undefined,undefined,0,undefined);
+
+                if (multirun) {
+                  plot('#plot1','inst lumi vs ls','line',data_copy["lumi1"],'datetime','time','',undefined,undefined,undefined,undefined);
+                  plot('#plot1a','pileup vs ls','line',data_copy["plumi1"],'datetime','time','',undefined,undefined,undefined,undefined);
+                }
+
+		plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels2"],'','pileup','seconds',undefined,50,0,0.5);
+
 	    }else{
 		$('#run').html(data.runinfo.run);
 		$('#start').html('not found / not started');
@@ -249,15 +353,12 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 
 }
 
-function makeSeriesMap(series){
-}
-
 function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
     xaxis = typeof xaxis !== 'undefined' ? xaxis : '';
     xtitle = typeof xtitle !== 'undefined' ? xtitle : 'LS';
     ytitle = typeof ytitle !== 'undefined' ? ytitle : 'A.U.';
-    plottype = type;
-    plotoptions = type == 'column' ? {
+    var plottype = type;
+    var plotoptions = type == 'column' ? {
 	column: {
 	    pointPadding: 0,
 	    borderWidth: 0,
@@ -291,7 +392,7 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
 	}
     };
 
-    chartvar = {
+    var chartvar = {
 
 	    chart: { 
 		animation : {

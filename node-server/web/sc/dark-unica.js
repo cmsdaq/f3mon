@@ -10,7 +10,7 @@ Highcharts.createElement('link', {
 	type: 'text/css'
 }, null, document.getElementsByTagName('head')[0]);
 
-Highcharts.theme = {
+Highcharts.theme_du = {
 	colors: ["#2b908f", "#90ee7e", "#f45b5b", "#7798BF", "#aaeeee", "#ff0066", "#eeaaee",
 		"#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
 	chart: {
@@ -210,4 +210,4 @@ Highcharts.theme = {
 };
 
 // Apply the theme
-Highcharts.setOptions(Highcharts.theme);
+//Highcharts.setOptions(Highcharts.theme_du);

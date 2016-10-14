@@ -255,7 +255,8 @@ global.totalTimes = {
 //F3Mon DB query module
 var dbinfo = require('./dbinfo')
 global.smdb = require('./src/smdb')
-global.smdb.setup(dbinfo)
+global.smdb.setupDB(dbinfo)
+global.smdb.setup()
 
 //callback test 1
 app.get('/', function (req, res) {
@@ -279,6 +280,14 @@ app.get('/heap', function (req, res) {
   console.log('dump written to', filename);
   res.send("HEAP dump done:"+filename);
 });
+
+global.useCaches = true;
+
+app.get('/togglecaching', function (req, res) {
+  res.send("call on caching flag: "+global.useCaches + " ; new setting:"+!global.useCaches);
+  global.useCaches = !global.useCaches;
+});
+
 
 //callback test 2
 app.get('/test', function (req, res) { setTimeout(function(){
@@ -401,14 +410,16 @@ app.get('/sc/api/transfer', function (req, res) {
 });
 
 //callback 22
-app.get('/sc/api/pp', function (req, res) {
+/*app.get('/sc/api/pp', function (req, res) {
   global.smdb.runPPquery(req.query, req.connection.remoteAddress,res,true,null);
-});
+});*/
+app.get('/sc/api/pp', global.smdb.runPPquery.bind(global.smdb))
 
 //callback 23
+
 var esSmallPic =  require('./src/esSmallPic');
 esSmallPic.setup(getQuery("config.json"));
-app.get('/sc/api/fuhistos', esSmallPic.fuhistos);
+app.get('/sc/api/fuhistos', esSmallPic.fuhistos.bind(esSmallPic));
 
 app.get('/test/cachekeys1',function(req,res) {
   res.send(JSON.stringify(global.f3MonCache.keys()));

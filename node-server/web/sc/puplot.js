@@ -6,13 +6,27 @@ var runlsinfo = {};
 
 function bootstrap(){
 
-
     //console.log('Hash1:'+location.hash);
     autoplot=false
     minmax=false
     var templsmap = {}
     //console.log(location.hash.length)
     if (location.hash.length) {
+      var hashpos = location.hash.indexOf('&theme=blue')
+      if (hashpos!=-1) {
+        $('#blue').attr('checked',true);
+        location.hash=location.hash.substr(0,hashpos) //strip temp hash
+      }
+      var hashpos = location.hash.indexOf('&theme=black')
+      if (hashpos!=-1) { 
+        $('#black').attr('checked',true);
+        location.hash=location.hash.substr(0,hashpos)
+      }
+      var hashpos = location.hash.indexOf('&theme=white')
+      if (hashpos!=-1) {
+        $('#white').attr('checked',true);
+        location.hash=location.hash.substr(0,hashpos)
+      }
       var hashpos = location.hash.indexOf('run=')
       if (hashpos!=-1) {
         var hashstring=location.hash.substr(hashpos+4)
@@ -95,8 +109,8 @@ function bootstrap(){
         var obj = runlsinfo[item];
         //console.log(item+' '+JSON.stringify(obj[2]))
         if (obj[0]) {
-          var in1 ='<input class="pure-form" id="minls'+item+'" action="" value="'+obj[3]+'" change="toggleMinLS(this)"/>';
-          var in2 ='<input class="pure-form" id="maxls'+item+'" action="" value="'+obj[4]+'" change="toggleMaxLS(this)"/>';
+          var in1 ='<input size="4" class="pure-form" id="minls'+item+'" action="" value="'+obj[3]+'" change="toggleMinLS(this)"/>';
+          var in2 ='<input size="4" class="pure-form" id="maxls'+item+'" action="" value="'+obj[4]+'" change="toggleMaxLS(this)"/>';
 
           var in3 ='<input type="checkbox" id="fullr'+item+'" name="alternative" checked="'+obj[2]+'" onchange="toggleFull(this)"/>';
           var in4 ='<input type="checkbox" id="include'+item+'" name="alternative" checked="'+obj[1]+'" onchange="toggleInclude(this)"/>';
@@ -191,6 +205,9 @@ function setlink() {
     location.hash='run='+hstrvec.join(',');
 }
 
+function setThemeHash(theme) {
+location.hash+="&theme="+theme
+}
 
 function toggleMinLS(obj) {
   //console.log('toggle maxls '+obj.id.substring(5)+' ' +obj.value)
@@ -220,7 +237,7 @@ function toggleInclude(obj) {
   //console.log('toggle include '+obj.id.substring(7))
   //console.log(JSON.stringify(runlsinfo[obj.id.substring(7)]))
   runlsinfo[obj.id.substring(7)][1]=!runlsinfo[obj.id.substring(7)][1]
-  console.log(JSON.stringify(runlsinfo[obj.id.substring(7)]))
+  //console.log(JSON.stringify(runlsinfo[obj.id.substring(7)]))
 }
 
 
@@ -234,9 +251,45 @@ var manyruns;
 var minpu1;
 var runlist_copy;
 var hadsomething=false;
+var pumask=[];
 
 function doPlots(runs){
     console.log('H-:'+location.hash);
+
+    //(re)set highcharts theme
+    //console.log('blue ' +$('#blue').is(':checked'));
+    //console.log('black '+$('#black').is(':checked'));
+    if ($('#blue').is(':checked'))
+      Highcharts.setOptions(Highcharts.theme_db);
+    else if ($('#black').is(':checked'))
+      Highcharts.setOptions(Highcharts.theme_du);
+    else
+      Highcharts.setOptions(undefined);
+
+    pumask=[];
+    var pumaskstr=$('#maskpu').val();
+    pumaskstr.split(',').forEach(function(item) {
+      var tks = item.split('-');
+      console.log(item + ' : '+ tks.length)
+      if (!tks.length) return;
+      else if (tks.length!=2) {
+        if (tks.length==1) {
+          var pval1=parseFloat(tks[0])//-0.00001;
+          var pval2=parseFloat(tks[0])+0.01;
+          if (isNaN(pval1) || isNaN(pval2)) console.log('could not parse' + tks)
+          else pumask.push([pval1,pval2]);
+        } else
+          console.log('could not parse '+ item)
+      }
+      else {
+        var pval1=parseFloat(tks[0])//-0.00001;
+        var pval2=parseFloat(tks[1])//+0.00001;
+        if (isNaN(pval1) || isNaN(pval2)) console.log('could not parse' + tks)
+        else pumask.push([pval1,pval2]);
+      }
+    });
+    console.log('pumask ' + JSON.stringify(pumask));
+
     //if (location.hash.length)  setlink();//override last haslink run
     $.ajaxSetup({
 	    async: true
@@ -249,7 +302,7 @@ function doPlots(runs){
     manyruns = $('#runno').val().split(',').length>1;
     minpu1=-1;
     runlist_copy = JSON.parse(JSON.stringify(runlsinfo)); 
-    console.log('X:'+JSON.stringify(runlsinfo))
+    //console.log('X:'+JSON.stringify(runlsinfo))
     runlist_keys = Object.keys(runlist_copy).sort();
     //doPlot($('#runno').val().split(','))
     if (runlist_keys.length>0)
@@ -261,19 +314,54 @@ function doPlots(runs){
 
 function createPlots() {
 
-              //console.log(JSON.stringify(data_copy))
-              plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,50,0,0.5);
-              if (method1)
-              plot('#plot15','avg event size vs pileup','scatter',data_copy["fuesizels"],'','Pileup','size',undefined,50,undefined,2000000);
+              var maxpu_plot = 60;
+              var maxpu =  $('#maxpu').val();
+              maxpu_glob = maxpu;
+              if (isNaN(parseInt(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=60; else maxpu=50;} else maxpu=parseInt(maxpu);
+              if (parseInt(maxpu)<20) maxpu=20; else maxpu=parseInt(maxpu);
+              if (!isNaN(parseInt(maxpu))) maxpu_plot=parseInt(maxpu);
 
+              console.log(JSON.stringify(data_copy.fuetimels))
+              if ($("#fitputime").is(':checked')) {
+                //data_copy["fuetimels"][0].showInLegend=false;
+                data_copy["fuetimels"][0].regression=true;
+                data_copy["fuetimels"][0].regressionSettings = {
+                  type: 'polynomial',
+                  color: 'rgba(223, 83, 83, .9)',
+                  useAllSeries:true,
+                  extrapolate:30,
+                  step:1,
+                  xmax:maxpu_plot
+                }
+                if (method1) {
+                data_copy["fuesizels"][0].regression=true;
+                data_copy["fuesizels"][0].regressionSettings = {
+                  type: 'polynomial',
+                  color: 'rgba(223, 83, 83, .9)',
+                  useAllSeries:true,
+                  extrapolate:30,
+                  step:1,
+                  xmax:maxpu_plot,
+                  order:1
+                }}
+              }
+              //var maxpu =  $('#maxpu').val();
+              //maxpu_glob = maxpu;
+              //if (isNaN(parseInt(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=60; else maxpu=50;} else maxpu=parseInt(maxpu);
+              //if (parseInt(maxpu)<20) maxpu=20; else maxpu=parseInt(maxpu);
+              plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,maxpu,0,0.5);
+              if (method1)
+              plot('#plot15','avg event size vs pileup','scatter',data_copy["fuesizels"],'','Pileup','size',undefined,maxpu,undefined,2000000);
               //console.log(minpu1)
+              if (method1) {
               if (minpu1==-1)
-                plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',undefined,50,0,undefined);
+                plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',undefined,maxpu,0,undefined);
               else
-                plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',minpu1,50,0,undefined);
+                plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',minpu1,maxpu,0,undefined);
+              }
 
               if (method1 && !manyruns)
-              plot('#plot14','fu sys avg event time vs pileup','scatter',data_copy2["fuetimels2"],'','Pileup','seconds',undefined,50,0,0.5);
+              plot('#plot14','fu sys avg event time vs pileup','scatter',data_copy2["fuetimels2"],'','Pileup','seconds',undefined,maxpu,0,0.5);
               //plot('#plot14','fu sys avg event time vs pileup','scatter',data["fuetimels2"],'','Pileup','seconds',undefined,50,0,0.5);
 	      $("#loading_dialog").loading("loadStop");
 	      $('#plots').show();
@@ -292,24 +380,6 @@ function doPlot(runlist) {
       }
       else if (hadsomething){
               createPlots();
-              //console.log(JSON.stringify(data_copy))
-              /*
-              plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,50,0,0.5);
-              if (method1)
-              plot('#plot15','avg event size vs pileup','scatter',data_copy["fuesizels"],'','Pileup','size',undefined,50,undefined,2000000);
-
-              //console.log(minpu1)
-              if (minpu1==-1)
-                plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',undefined,50,0,undefined);
-              else
-                plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',minpu1,50,0,undefined);
-
-              if (method1 && !manyruns)
-              plot('#plot14','fu sys avg event time vs pileup','scatter',data_copy2["fuetimels2"],'','Pileup','seconds',undefined,50,0,0.5);
-              //plot('#plot14','fu sys avg event time vs pileup','scatter',data["fuetimels2"],'','Pileup','seconds',undefined,50,0,0.5);
-	      $("#loading_dialog").loading("loadStop");
-	      $('#plots').show();
-              */
       }
       return;
     }
@@ -320,7 +390,7 @@ function doPlot(runlist) {
     }
     $.getJSON("php/lumi.php?run="+run,function(datadb){
       $('#fill').html(datadb.fill.data);
-      plot('#plot1a','pileup vs ls','scatter',datadb["plumi1"]);
+      plot('#plot1a','pileup vs ls','scatter',datadb["plumi1"]);//? needs to be plotted??
       //console.log(JSON.stringify(datadb["plumi1"]));
       var pileupmap = {};
       if (datadb["plumi1"][0].data.length) {
@@ -331,7 +401,12 @@ function doPlot(runlist) {
           item = datadb["plumi1"][0].data[j];
           var stable = datadb["run"][1].data[j];//stable beams
           if (stable && item[1]>minpu && item[1]>1.)//min PU value shown
-            pileupmap[item[0]]=item[1];
+            {
+             var ismasked=false;
+             pumask.forEach(function(maskitm){if (item[1]>=maskitm[0] && item[1]<maskitm[1]) ismasked=true;});
+             if (!ismasked)
+               pileupmap[item[0]]=item[1];
+            }
         }//);
       }
 
@@ -502,6 +577,8 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
 	}
     };
 
+    //console.log(JSON.stringify(data))
+
     chartvar = {
 
 	    chart: { 
@@ -509,15 +586,19 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
 		    duration : 500
 		},
 		type: plottype,
-		zoomType: 'xy'
+		zoomType: 'xy',
+                width:538
 	    },
 	    plotOptions: plotoptions,
 	    xAxis: {
 		type: xaxis,
+	        tickInterval: 2,
 		title : {text : xtitle}
 	    },
 	    yAxis: {
-		title : {text : ytitle}
+		title : {text : ytitle},
+	        //tickInterval: undefined
+                tickPixelInterval:24
 	    },
 	    title: {
 		text: title,
@@ -535,6 +616,7 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
 	    },
 	    series: data
     };
+    //if (ytitle==='seconds') chartvar.yAxis.tickInterval=0.05;
     if (xmin!==undefined) chartvar.xAxis["min"]=xmin;
     if (xmax!==undefined) chartvar.xAxis["max"]=xmax;
     if (ymin!==undefined) chartvar.yAxis["min"]=ymin;
@@ -544,3 +626,49 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
     plots.push($(tag).highcharts());
     return chart;
 }
+
+function plotToCsv(filenamesuffix,data) {
+
+  var filename = $('#runno').val()+'-'+filenamesuffix+'-'+new Date()+'.csv'
+  var outvec = []
+  var outstr = "";
+  var arr = data_copy[data];
+  //console.log(JSON.stringify(data_copy[data]));
+  for (var i=0;i<arr.length;i++) {
+    var arr2 = arr[i].data
+    for (var j=0;j<arr2.length;j++) {
+      var item = arr2[j];
+      outvec.push(item);
+      //outstr += item[0]+','+item[1]+"\n";
+      //else  outstr += item[0]+','+item[1];
+    }
+  }
+  outvec.sort(function(a, b){return a[0]>b[0]});
+  for (var i=0;i<outvec.length;i++) {
+    var item=outvec[i];
+    if (i+1<outvec.length) outstr += item[0]+','+item[1]+"\n";
+    else  outstr += item[0]+','+item[1];
+  }
+
+  //console.log(outstr)
+  var csvblob = new Blob([outstr], { type: 'text/csv;charset=utf-8;' });
+
+  // http://stackoverflow.com/questions/14964035/how-to-export-javascript-array-info-to-csv-on-client-side
+  if (navigator.msSaveBlob) { // IE 10+
+    navigator.msSaveBlob(blob, filename);
+  } else {
+    var link = document.createElement("a");
+    if (link.download !== undefined) { // feature detection
+      // Browsers that support HTML5 download attribute
+      var url = URL.createObjectURL(csvblob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+}
+
+

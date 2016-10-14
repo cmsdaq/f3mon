@@ -6,13 +6,16 @@ $minls = $_GET["minls"];
 $maxls=null;
 $maxls = $_GET["maxls"];
 
+$multirun =intval($_GET["multirun"]);
+$perls =intval($_GET["perls"]);
+$interval = intval($_GET["int"]);
 //$minsb=0;
 $minsb = $_GET["minsb"]!=null ? intval($_GET["minsb"]):0;
 $maxsb = $_GET["maxsb"]!=null ? intval($_GET["maxsb"]):0;
 
 header("Content-Type: application/json");
-$response=array();
 date_default_timezone_set("UTC");
+$response=array();
 $crl = curl_init();
 $hostname = 'es-cdaq';
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/run/_search';
@@ -56,7 +59,9 @@ $span = strtotime($end)-strtotime($start);
 if ($span==0)
   $span = ($end-$start)*0.001;
 
-$interval = strval(max(floor($span/50),20)).'s';//5? 
+if ($interval==0)
+  $interval = strval(max(floor($span/50),20)).'s';//5? 
+else $interval = $interval.'s';
 
 $usec = substr($start,strpos($start,".")+1);
 date_default_timezone_set("UTC");
@@ -83,7 +88,7 @@ $scroll_id=$res["_scroll_id"];
 $bwbybu=array();
 $ratetotal=array();
 $evsize=array();
-
+$lstimes=array();
 
 $http_status=200;
 
@@ -104,12 +109,16 @@ do{
     foreach($res['hits']['hits'] as $key=>$value){
       //$thebu = substr($value['_id'],strrpos($value['_id'],'_')+1);
       $thebu = $value['_source']['appliance'];
-      if(!array_key_exists($thebu,$bwbybu)){
-  	$bwbybu[$thebu]=array();
-      }
+      //if(!array_key_exists($thebu,$bwbybu)){
+      //$bwbybu[$thebu]=array();
+      //}
       $ls=$value['_source']['ls'];
+      $time=$value['_source']['fm_date'];
+      if (!array_key_exists($ls,$lstimes)) {
+        $lstimes[$ls]=strtotime($time)*1000;
+      }
       if ($minsb && (intval($ls)<$minsb || intval($ls)>$maxsb)) continue; 
-      $bwbybu[$thebu][$ls]=$value['_source']['NBytes'];
+      //$bwbybu[$thebu][$ls]=$value['_source']['NBytes'];
       if ($value['_source']['NEvents']>0) {
         $evsize[$ls]=$value['_source']['NBytes']/(1.0*$value['_source']['NEvents']);
       }
@@ -118,12 +127,16 @@ do{
   }
   //else echo "ERROR: ".$http_status;
 }while($http_status == 200);
+
+$response['lstimes']=$lstimes;
       
-ksort($bwbybu);
-$response["bwbybu"]=array();
+//ksort($bwbybu);
+//$response["bwbybu"]=array();
 $response["ratebytotal"]=array();
-$response["ratebytotal2"]=array();
-$response["ratebytotal"][]=array('name'=>'totals','data'=>array());;
+//$response["ratebytotal2"]=array();
+$response["ratebytotal"][]=array('name'=>'totals','data'=>array());
+
+/*
 foreach($bwbybu as $key=>$value){
   $response["bwbybu"][]=array('name'=>$key,'data'=>array());
   ksort($value);
@@ -131,12 +144,16 @@ foreach($bwbybu as $key=>$value){
     if ($minsb && (intval($ls)<$minsb || intval($ls)>$maxsb)) continue;  
     $response["bwbybu"][sizeof($response["bwbybu"])-1]['data'][]=array($ls,$rate/23.31);
   }
-}
+}*/
+
 ksort($ratetotal);
 foreach($ratetotal as $ls=>$rate){
   if ($minsb && (intval($ls)<$minsb || intval($ls)>$maxsb)) continue;
-  $response["ratebytotal"][0]['data'][]=array($ls,$rate/23.31);
-  $response["ratebytotal2"][$ls]=$rate/23.31;
+  if ($multirun==0)
+    $response["ratebytotal"][0]['data'][]=array($ls,$rate/23.31);
+  else
+    $response["ratebytotal"][0]['data'][]=array($lstimes[$ls],$rate/23.31);
+  //$response["ratebytotal2"][$ls]=$rate/23.31;
 }
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
@@ -248,6 +265,7 @@ $scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in a
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
 
 $termscript = "rack = doc['appliance'].value.substring(3,8);".
+              "if (doc['appliance'].value=='bu-c2d46-10-01') return '`16 Action(R730):'+doc['active_resources'].value;".
               "if (rack.startsWith('c2e4')) return '`16 Action:'+doc['active_resources'].value;".
               "else if (rack.startsWith('c2d3') || rack.startsWith('c2d41') || rack.startsWith('c2d42')) return '`15 Megw:'+doc['active_resources'].value;".
               "else if (rack.startsWith('c2d4')) return '`16 Action:'+doc['active_resources'].value;".
@@ -315,9 +333,16 @@ $response['fusyscpu2'][2]['data']=array();
 foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
   $myLS = intval($vvalue['lsavg']['value']);
   if ($minsb && ($myLS<$minsb || $myLS>$maxsb)) continue;
-  $response['fusyscpu2'][0]['data'][]=array($vvalue['key'],$vvalue['uncorrSysCPU']['value']);
-  $response['fusyscpu2'][1]['data'][]=array($vvalue['key'],$vvalue['corrSysCPU02']['value']);
-  $response['fusyscpu2'][2]['data'][]=array($vvalue['key'],$vvalue['corr2SysCPU02']['value']);
+  if ($perls==0) {
+    $response['fusyscpu2'][0]['data'][]=array($vvalue['key'],$vvalue['uncorrSysCPU']['value']);
+    $response['fusyscpu2'][1]['data'][]=array($vvalue['key'],$vvalue['corrSysCPU02']['value']);
+    $response['fusyscpu2'][2]['data'][]=array($vvalue['key'],$vvalue['corr2SysCPU02']['value']);
+  }
+  else {
+    $response['fusyscpu2'][0]['data'][]=array($myLS,$vvalue['uncorrSysCPU']['value']);
+    $response['fusyscpu2'][1]['data'][]=array($myLS,$vvalue['corrSysCPU02']['value']);
+    $response['fusyscpu2'][2]['data'][]=array($myLS,$vvalue['corr2SysCPU02']['value']);
+  }
 }
 
 
@@ -375,9 +400,17 @@ foreach($res['aggregations']['rescat']['buckets'] as $key=>$value){
     if ($minsb && ($myLS<$minsb || $myLS>$maxsb)) continue;
     $esize = $evsize[$myLS];
     $etime = $vvalue['eventTimeUn']['value']*$esize*$invmb;
-    $response['fuetimelsres'][$key]['data'][]=array($myLS,$etime);
-    $response['fucpures'][$key1]['data'][]=array($myLS,$vvalue['uncorrSysCPU']['value']);
-    $response['fucpures2'][$key2]['data'][]=array($myLS,$vvalue['corr2SysCPU02']['value']);
+    $response['fuetimelsresls'][$key]['data'][]=array($myLS,$etime);
+    if ($multirun==0) {
+      $response['fuetimelsres'][$key]['data'][]=array($myLS,$etime);
+      $response['fucpures'][$key1]['data'][]=array($myLS,$vvalue['uncorrSysCPU']['value']);
+      $response['fucpures2'][$key2]['data'][]=array($myLS,$vvalue['corr2SysCPU02']['value']);
+    }
+    else {
+      $response['fuetimelsres'][$key]['data'][]=array($vvalue['key'],$etime);
+      $response['fucpures'][$key1]['data'][]=array($vvalue['key'],$vvalue['uncorrSysCPU']['value']);
+      $response['fucpures2'][$key2]['data'][]=array($vvalue['key'],$vvalue['corr2SysCPU02']['value']);
+    }
   }
 }
 

@@ -8,28 +8,45 @@
 <script src="node_modules/jquery/dist/jquery.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
 <script src="node_modules/highcharts/highcharts.js"></script>
+<script src="highcharts-regression.js"></script>
 <!--<script src="node_modules/highcharts/themes/sand-signika.js"></script>-->
 <!--<script src="js/Highcharts/js/highcharts.js"></script>
 <script src="js/Highcharts/js/themes/dark-unica.js"></script>-->
 
 <!--<script src="node_modules/highcharts/themes/dark-unica.js"></script>-->
+<!--<script src="node_modules/highcharts/themes/dark-blue.js"></script>-->
+
 <script src="dark-unica.js"></script>
+<script src="dark-blue.js"></script>
 
 <script src="js/loading_spinner.js"></script>
 <script src="puplot.js"></script>
 </head>
 <body onLoad="bootstrap();">
 
-<div class="pure-g">
+<div>
     <table class="pure-table" id="selector">
      <tr>
      <td> 
       <div class="pure-u-1-1" style="margin-left:20px;margin-right:20px;">
       <form class="pure-form" id="target" action="">
         <!--<br><label for="fillno">Fill </label><input id="fillno" name="fillno">-->
-        <br><label for="runno">Run Numbers </label><input id="runno" name="runno"></input>
-        <br><label for="alternative"></label><input type="checkbox" id="alternative" name="alternative"></input><label for="alternative">alternative method</label>
+        <br>
+        <label for="runno" title="csv list of run numbers">Run Numbers </label><input id="runno" name="runno"></input>
+        <label for="maxpu" title="optionally set max PU range to be plotted. default 50 or 60 with trend option"> Max PU </label><input id="maxpu" name="maxpu" size="4"></input>
+        <label for="maskpu" title="optionally provide PU range to mask, e.g. 10.3-20,35.9-36.1,38.85"> PU Mask </label><input id="maskpu" name="maskpu" size="20"></input>
+        <br>
+        <label for="fitputime"></label><input type="checkbox" id="fitputime" name="fitputime"></input><label for="fitputime">plot time/PU trend</label>
+        <label for="alternative"></label><input type="checkbox" id="alternative" name="alternative"></input>
+        <label for="alternative" title="this method might be more accurate with high and uneven CPU usage across the cluster, but produces more spikes">alternative method</label>
         <br><br><input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
+
+	<!--<div id="radio1">-->
+	    <input type=radio name=hctheme value=blue id=blue checked=checked onClick="setThemeHash('blue');window.location.reload()"><label for="blue">blue</label>
+	    <input type=radio name=hctheme value=black id=black onClick="setThemeHash('black');window.location.reload()"><label for="black">black</label>
+	    <input type=radio name=hctheme value=white id=white onClick="setThemeHash('white');window.location.reload()"><label for="white">white</label>
+	<!--</div>-->
+
       </form>
       <br><br>
       <table class="pure-table" id="runinfo">
@@ -57,10 +74,12 @@
     <table class="pure-table" id="plots">
       <tr>
 	<td>
+           <button type="button" id="csv1" onclick='plotToCsv("cputime","fuetimels")' >CSV</button>
 	  <div id="plot13">
 	  </div>
 	</td>
 	<td>
+          <button type="button" id="csv2" onclick='plotToCsv("size","fuesizels")'>CSV</button>
 	  <div id="plot15">
 	  </div>
 	</td>
@@ -68,6 +87,7 @@
 
       <tr>
 	<td>
+          <button type="button" id="csv3" onclick='plotToCsv("rate","eolsrate")'>CSV</button>
 	  <div id="plot16">
 	  </div>
 	</td>

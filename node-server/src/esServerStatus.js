@@ -15,21 +15,9 @@ module.exports.query = function (req, res) {
     var cb = req.query.callback;
     //console.log(cb);
     var requestKey = qname;
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.serverStatus; //cached ES response ttl (in seconds) 
 
-    var pending = false;
-    if (requestValue=="requestPending"){
-        pending=true;
-	requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
 
       var _this = this;
 
@@ -45,7 +33,6 @@ module.exports.query = function (req, res) {
         console.log(err.message);
        }
       );
-    }else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
+    }
   }
 

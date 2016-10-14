@@ -19,6 +19,9 @@ $interval = $_GET["interval"];
 if ($interval==null) $interval=1;
 else $interval = intval($interval);
 
+//$threshold=1;
+//$thresholddqm=0.5;
+
 //echo var_dump($_GET);
 
 //echo $run." ".$xaxis." ".$yaxis." ".$streamTo."\n";
@@ -66,11 +69,11 @@ $minmaxavg = "max";
 if ($interval>1) $minmaxavg="avg";
 
 if($streamTo){
-  #$data = '{"query":{"term":{"_parent":'.$run.'}},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}},"lss":{"terms":{"field":"ls","size":100000,"order" : { "_term" : "asc" }},"aggs":{"timing":{"max":{"field":"fm_date"}}}}}}';
-  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
+  //$data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}, ,"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}}}}  }}';
+  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 
 }else{
-  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -81,7 +84,6 @@ $ret = curl_exec($crl);
 
 $res=json_decode($ret,true);
 $eoltimes=array();
-$eoltimesLast=array();
 if($streamTo){
   foreach ($res["aggregations"]["bu"]["buckets"] as $bu){  
     $eoltimes[$bu["key"]]=array();
@@ -90,18 +92,20 @@ if($streamTo){
     }
   }
 }
+$eoltimesLast=array();
 foreach ($res["aggregations"]["lss"]["buckets"] as $ls){
     $eoltimesLast[$ls["key"]]=$ls["timing"]["value"]/1000;
+    $eolNEvents[$ls["key"]]=$ls["events"]["value"];
 }
 
 //echo json_encode($eoltimesLast);
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search?size=0';
 if($streamTo){
- $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
+ $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
 }
 else {
- $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
+ $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -127,10 +131,10 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/minimerge/_search?size=0';
 $data='{}';
 if($streamTo){
-  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"sort":{"ls":"asc"},"aggs":{"bu":{"terms":{"field":"host","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 
 }else{
-  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 }
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
@@ -149,17 +153,21 @@ if($streamTo){
     }
   }
 }else{
-  foreach ($res["aggregations"]["streams"]["buckets"] as $stream){  
+  foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
     $minitimes[$stream["key"]]=array();
     foreach ($stream["lss"]["buckets"] as $ls){
       if (!$ls["doc_count"]) continue;
+      if ((substr($stream["key"],0,3)!="DQM" || $stream["key"]=="DQMHistograms") && $ls["events"]["value"]!=$eolNEvents[$ls["key"]]) continue;
+      //thresholds: assuming 0.8 and 0.5
+      else if (substr($stream["key"],0,3)=="DQMEventDisplay" && $ls["events"]["value"]<0.5*$eolNEvents[$ls["key"]]) continue;
+      else if ($ls["events"]["value"]<0.8*$eolNEvents[$ls["key"]]) continue;
       $minitimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
     }
   }
 }
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/macromerge/_search?size=0';
-$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 $ret = curl_exec($crl);
@@ -353,12 +361,12 @@ $data = '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lste
 '"aggs":{'.
 '"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},'.
 '"aggs":{"size":{"sum":{"field":"filesize"}},'.
-'"phys":{   "filter":{"wildcard":{"stream":"*Physics*"}},"aggs":{"size":{"sum":{"field":"filesize"}}}},'.
+'"physics":{"filter":{"bool":{"must":{"wildcard":{"stream":"*Physics*"}},"must_not":{"wildcard":{"stream":"*Parking*"}}}},"aggs":{"size":{"sum":{"field":"filesize"}}}},'.
+'"parking":{"filter":{"wildcard":{"stream":"*Parking*"}},"aggs":{"size":{"sum":{"field":"filesize"}}}},'.
 '"express":{"filter":{"wildcard":{"stream":"Express*"}}, "aggs":{"size":{"sum":{"field":"filesize"}}}},'.
-'"dqm":{    "filter":{"wildcard":{"stream":"DQM*"}},    "aggs":{"size":{"sum":{"field":"filesize"}}}},'.
-'"other":{"filter":{"bool":{"must_not":[{"wildcard":{"stream":"*Physics*"}},{"wildcard":{"stream":"Express*"}},{"wildcard":{"stream":"DQM*"}}  ]}},"aggs":{"size":{"sum":{"field":"filesize"}}}}'.
+'"dqm":    {"filter":{"wildcard":{"stream":"DQM*"}},    "aggs":{"size":{"sum":{"field":"filesize"}}}},'.
+'"other":  {"filter":{"bool":{"must_not":[{"wildcard":{"stream":"*Physics*"}},{"wildcard":{"stream":"*Parking*"}},{"wildcard":{"stream":"Express*"}},{"wildcard":{"stream":"DQM*"}}  ]}},"aggs":{"size":{"sum":{"field":"filesize"}}}}'.
 '}}}}';
-
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 $ret = curl_exec($crl);
@@ -373,23 +381,27 @@ $allsizes[0]["data"]=array();
 $allsizes[1]["name"]="HLT Physics stream output size";
 $allsizes[1]["data"]=array();
 
-$allsizes[2]["name"]="HLT Express stream output size";
+$allsizes[2]["name"]="HLT Parking stream output size";
 $allsizes[2]["data"]=array();
 
-$allsizes[3]["name"]="HLT DQM stream output size";
+$allsizes[3]["name"]="HLT Express stream output size";
 $allsizes[3]["data"]=array();
 
-$allsizes[4]["name"]="HLT Other streams output size";
+$allsizes[4]["name"]="HLT DQM stream output size";
 $allsizes[4]["data"]=array();
+
+$allsizes[5]["name"]="HLT Other streams output size";
+$allsizes[5]["data"]=array();
 
 $invf = 1.0 / ($interval * 23.31*1000000);
 foreach ($res["aggregations"]["lss"]["buckets"] as $ls){  
   if (!$ls["doc_count"]) continue;
   $allsizes[0]["data"][]=array($ls["key"],round($ls["size"]["value"]*$invf));
-  $allsizes[1]["data"][]=array($ls["key"],round($ls["phys"]["size"]["value"]*$invf));
-  $allsizes[2]["data"][]=array($ls["key"],round($ls["express"]["size"]["value"]*$invf));
-  $allsizes[3]["data"][]=array($ls["key"],round($ls["dqm"]["size"]["value"]*$invf));
-  $allsizes[4]["data"][]=array($ls["key"],round($ls["other"]["size"]["value"]*$invf));
+  $allsizes[1]["data"][]=array($ls["key"],round($ls["physics"]["size"]["value"]*$invf));
+  $allsizes[2]["data"][]=array($ls["key"],round($ls["parking"]["size"]["value"]*$invf));
+  $allsizes[3]["data"][]=array($ls["key"],round($ls["express"]["size"]["value"]*$invf));
+  $allsizes[4]["data"][]=array($ls["key"],round($ls["dqm"]["size"]["value"]*$invf));
+  $allsizes[5]["data"][]=array($ls["key"],round($ls["other"]["size"]["value"]*$invf));
 }
 $retval["allsizes"]=$allsizes;
 

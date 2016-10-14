@@ -14,13 +14,14 @@
 
 <!--<script src="node_modules/highcharts/themes/dark-unica.js"></script>-->
 <script src="dark-unica.js"></script>
+<!--<script src="node_modules/highcharts/themes/dark-blue.js"></script>-->
 
 <script src="js/loading_spinner.js"></script>
 <script src="applianceplots.js"></script>
 </head>
 <body onLoad="bootstrap();">
 
-<div class="pure-g">
+<div>
   <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
     <form class="pure-form" id="setups"><label for="radio2">setups</label>
 	  <div id="radio2">
@@ -37,14 +38,15 @@
       <br><br>
 	<label for="minls">LS from</label><input id="minls" name="minls"></input>
 	<label for="maxls">to</label><input id="maxls" name="maxls"></input>
-	<label for="fullrun"></label><input type="checkbox" id="fullrun" name="fullrun"></input><label for="fullrun">full range</label>
+	<label for="fullrun"></label><input type="checkbox" id="fullrun" name="fullrun"></input><label for="fullrun"> full range</label>
 
-      <br><br><label for="stable"></label><input type="checkbox" id="stable" name="stable"></input><label for="stable">stable beams only</label>
+      <br><br><label for="stable"></label><input type="checkbox" id="stable" name="stable"></input><label for="stable"> stable beams only</label>
+              <label for="timeaxis"></label><input type="checkbox" id="timeaxis" name="timeaxis"></input><label for="timeaxis"> always show time on x-axis</label>
       <br><br><input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
     </form>
     <br><br><table class="pure-table" id="runinfo">
-      <tr><th>Fill Number</th><th>Run Number</th><th>Start Time</th><th>End Time</th><th>Duration (s)</th><th>Time tick (s)</th></tr>
-      <tr><td id="fill"><td id="run"></td><td id="start"></td><td id="end"><td id="duration"><td id="unit"></td></tr> 
+      <tr><th>Fill Number</th><th>Run Number</th><th>Start Time</th><th>End Time</th><th>Duration (s)</th></tr>
+      <tr><td id="fill"><td id="run"></td><td id="start"></td><td id="end"><td id="duration"></tr> 
     </table>
     <table class="pure-table" id="groups">
       <tbody id="bus">

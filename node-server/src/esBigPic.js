@@ -19,13 +19,6 @@ module.exports.query = function (req, res) {
 
     var requestKey = qname+'?sysName='+qparam_sysName;
 
-    var requestValue = global.f3MonCache.get(requestKey);
-    var pending=false;
-    if (requestValue=="requestPending"){
-      requestValue = global.f3MonCacheSec.get(requestKey);
-      pending=true;
-    }
-
     var unix_time;
     var retObj = {
       "setup":qparam_sysName
@@ -337,13 +330,18 @@ module.exports.query = function (req, res) {
 
     //first check cluster health
     var healthQuery = function(callback) {
-      global.client.cluster.health().then (function(body) {
+      //global.client.cluster.health().then (function(body) {
+      global.client.cluster.stats().then (function(body) {
         try {
         took += body.took;
         retObj["central_server"] = {
           "status":body.status,
-          "number_of_data_nodes":body.number_of_data_nodes,
-          "active_primary_shards":body.active_primary_shards
+          "number_of_data_nodes":body.nodes.count.data_only + body.nodes.count.master_data,
+          "active_primary_shards":body.indices.shards.primaries,
+          "disk_free_bytes":body.nodes.fs.free_in_bytes,
+          "disk_total_bytes":body.nodes.fs.total_in_bytes
+          //"number_of_data_nodes":body.number_of_data_nodes,
+          //"active_primary_shards":body.active_primary_shards
         };
         callback();
         } catch (e) {_this.exCb(res,e,requestKey)}
@@ -354,13 +352,18 @@ module.exports.query = function (req, res) {
     }
 
     var healthQueryESlocal = function() {
-      global.clientESlocal.cluster.health().then (function(body) {
+      //global.clientESlocal.cluster.health().then (function(body) {
+      global.clientESlocal.cluster.stats().then (function(body) {
         try {
         took += body.took;
         retObj["eslocal_server"] = {
           "status":body.status,
-          "number_of_data_nodes":body.number_of_data_nodes,
-          "active_primary_shards":body.active_primary_shards
+          "number_of_data_nodes":body.nodes.count.data_only + body.nodes.count.master_data,
+          "active_primary_shards":body.indices.shards.primaries,
+          "disk_free_bytes":body.nodes.fs.free_in_bytes,
+          "disk_total_bytes":body.nodes.fs.total_in_bytes
+          //"number_of_data_nodes":body.number_of_data_nodes,
+          //"active_primary_shards":body.active_primary_shards
         };
         q1();
         } catch (e) {_this.exCb(res,e,requestKey)}
@@ -374,15 +377,9 @@ module.exports.query = function (req, res) {
     var retObj = {
       "setup":qparam_sysName
     };
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
+
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false)
       healthQuery(healthQueryESlocal);
-    }else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
   },
 
 
@@ -404,12 +401,6 @@ module.exports.teols = function (req, res) {
 
     var requestKey = qname+'?sysName='+qparam_sysName+'&rn='+qparam_runNumber;//+'&to='+qparam_to;
 
-    var requestValue = global.f3MonCache.get(requestKey);
-    var pending=false;
-    if (requestValue=="requestPending"){
-      requestValue = global.f3MonCacheSec.get(requestKey);
-      pending=true;
-    }
     var _this = this;
 
     var maxls;//should bind it
@@ -499,12 +490,8 @@ module.exports.teols = function (req, res) {
     var retObj = {
     };
 
-    if (requestValue == undefined) {
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false)
       qmaxls();
-    }else {
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
-    }
     
   }//end
 
@@ -526,18 +513,10 @@ module.exports.maxls = function (req, res) {
     //var qparam_to = req.query.to;
 
     var requestKey = qname+'?rn='+qparam_runNumber;
-
-    var requestValue = global.f3MonCache.get(requestKey);
-    var pending=false;
-    if (requestValue=="requestPending"){
-      requestValue = global.f3MonCacheSec.get(requestKey);
-      pending=true;
-    }
     var _this = this;
-
     var retObj = { "maxls":0 };
 
-    if (requestValue == undefined) {
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) == false) {
 
       var queryJSON = {
         "size":0,
@@ -548,8 +527,6 @@ module.exports.maxls = function (req, res) {
           }
         }
       };
-
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
 
       global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
@@ -567,10 +544,6 @@ module.exports.maxls = function (req, res) {
         _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
       });
-    }
-    else
-    {
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
     }
 }
 

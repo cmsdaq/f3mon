@@ -25,27 +25,7 @@ module.exports.query = function (req, res) {
     //build key and check in caches
     var requestKey = 'runList?sysName='+qparam_sysName+'&from='+qparam_from+'&to='+qparam_to+'&size='+qparam_size;
 
-    var requestValue = global.f3MonCache.get(requestKey);
-    var pending=false;
-    if (requestValue=="requestPending") {
-      requestValue = global.f3MonCacheSec.get(requestKey);
-      pending=true;
-    }
-
-    if (requestValue !== undefined) {
-      //respond from cache
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
-    }
-    else {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-
-        return;//reply from other query will handle this
-      }
-      
-      //set cache pending
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
-
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
       //set up and run query
       var queryJSON = {
         "fields": ["_source","startTime"],
@@ -91,17 +71,6 @@ module.exports.query = function (req, res) {
 	  };
         }
         _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
-/*
-        //lookup for pending queries cached in the meantime
-        var cachedPending = _global.f3MonCacheTer.get(requestKey);
-        if (cachedPending) {
-          cachedPending.forEach(function(item) {
-            _this.sendResult(item.req,item.res,requestKey,item.cb,true,retObj,qname,item.eTime,ttl);
-          });
-          //delete from 3rd cache so that expire doesn't produce a spurious status 500 reply
-          _global.f3MonCacheTer.del(requestKey);
-        }
-*/
         } catch (e) {_this.exCb(res,e,requestKey)}
       },function (error){
 	_this.excpEscES(res,error,requestKey);

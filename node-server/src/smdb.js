@@ -4,8 +4,12 @@ var oracledb = require('oracledb'); //module that enables db access
 oracledb.outFormat = oracledb.OBJECT //returns query result-set row as a JS object (equiv. to OCI_ASSOC param in php oci_fetch_array call)
 oracledb.maxRows = 50000; //approx 2000 lumis x 25 streams
 
-var dbInfo;
+var Common = require('./esCommon');
+module.exports = new Common()
 
+
+
+//obsolete, will be migrated to esCommon functions
 //escapes client hanging upon an ES request error by sending http 500
 var excpEscES = function (res, error){
 	//message can be augmented with info from error
@@ -17,14 +21,13 @@ var excpEscOracle = function (res, error){
         res.status(500).send('Internal Server Error (Oracle DB query error during the request execution, an admin should seek further info in the logs)');
 }
 
+var dbInfo;
 
-
-module.exports = {
-setup : function(dbinfo) {
+module.exports.setupDB = function(dbinfo) {
   dbInfo = dbinfo
-},
+}
 
-runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
+module.exports.runTransferQuery = function (reqQuery, remoteAddr, res, reply) {
  //params definition
  var eTimeT = new Date().getTime();
  var fill=0;
@@ -333,12 +336,16 @@ runTransferQuery : function (reqQuery, remoteAddr, res, reply) {
 },//end function
 
 
-runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
+module.exports.runPPquery = function (req, res) {
 
+  var _this = this;
+  var qname = 'sc_pp';
   var ttl = global.ttls.pp;
-  var eTimeT = new Date().getTime();
 
-  var setup = reqQuery.setup;
+  var eTime = new Date().getTime();
+  var took = 0;
+
+  var setup = req.query.setup;
   var setuptag="";
   var fuprefix="";
   var buprefix="";
@@ -347,51 +354,17 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
   if (setup==="cdaq" || setup==="minidaq") {setuptag='DAQ2';fuprefix='fu-%';buprefix='bu-%'}
   if (setup==="dv") {setuptag='DAQ2VAL';fuprefix='dvrubu-%';buprefix='dvbu-%'}
 
-  var cb = reqQuery.cb;//angular callback (optional)
+  var cb = req.query.cb;//angular callback (optional)
 
   var requestKey = 'sc_pp?setup='+setup
-  var requestValue = global.f3MonCache.get(requestKey);
-  if (requestValue=="requestPending")
-  	requestValue = global.f3MonCacheSec.get(requestKey);
 
   var retObj = {};
-  var retObjSer;
+  //var retObjSer;
 
-  var sendResult = function(){
-     //global.f3MonCache.set(requestKey, [JSON.stringify(retObj),ttl], ttl);//already done
-     var srvTime = (new Date().getTime())-eTimeT;
-     global.totalTimes.queried += srvTime;
-     console.log('sc_pp (src:'+remoteAddr+')>responding from query (time='+srvTime+'ms)');
-     res.set('Content-Type', 'text/javascript');
-     res.header("Cache-Control", "no-cache, no-store");
-     if (cb === undefined)
-       res.send(retObjSer);
-     else
-       res.send(cb +' ('+retObjSer+')');
-  }
+  if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
 
-  if (requestValue !== undefined){
-    //return from cache
-    if (!reply)
-      callback(requestValue[0]);
-    else {
-     var srvTime = (new Date().getTime())-eTimeT;
-     console.log('sc_pp (src:'+remoteAddr+')>responding from cache (time='+srvTime+'ms)');
-     res.set('Content-Type', 'text/javascript');
-     res.header("Cache-Control", "no-cache, no-store");
-     if (cb === undefined)
-       res.send(requestValue[0]);
-     else
-       res.send(cb +' ('+requestValue[0]+')');
-    }
-    return;
-  }
-
-  //not found in cache: run query
-  global.f3MonCache.set(requestKey, "requestPending", ttl);
-
-  //connection and query to Oracle DB
-  oracledb.getConnection(
+    //connection and query to Oracle DB
+    oracledb.getConnection(
     {
        user          : dbInfo[setup][0],//"CMS_DAQ2_HW_CONF_R",
        password      : dbInfo[setup][1],//"mickey2mouse",	//change this before any git push!
@@ -402,7 +375,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
       if (err) {
         	console.error(err.message);
 		//equiv to (if (!$conn), err at oci_connect)
-                if (!reply)
+                if (callback!==undefined)
                   callback(null);
                 else
 		  excpEscOracle(res,err);
@@ -434,12 +407,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
     	  if (err) {
       	    console.error(err.message);
             //clear key on error?
-	    //global.f3MonCache.set(requestKey, [{},ttl], ttl);
-            if (!reply)
-              callback(null);
-            else
-              excpEscOracle(res, err);
-      	    return;
+            _this.excpEscOracle(res, err,requestKey);
    	  }
 	  var tuples = result.rows;
 	  retObj = {
@@ -468,8 +436,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
               retObj[bu] = [fu];
           }
           //overwrite obj, put in cache
-
-          var q2 = function(callb) {
+          var q2 = function() {
 
               //"select attr_name, attr_value, d.dnsname from "+
               //"DAQ_EQCFG_HOST_ATTRIBUTE ha,"+
@@ -489,12 +456,7 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
     	        if (err) {
       	          console.error(err.message);
                   //clear key on error?
-	          //global.f3MonCache.set(requestKey, [{},ttl], ttl);
-                  if (!reply)
-                    callb(null);
-                  else
-                    excpEscOracle(res, err);
-      	          return;
+                  _this.excpEscOracle(res, err,requestKey);
    	        }
 	        var tuples = result.rows;
                 var bulist = {}
@@ -502,23 +464,17 @@ runPPquery : function (reqQuery, remoteAddr, res, reply, callback) {
                 //console.log(bulist)
                 retObj['list_of_bus']=bulist;
 
-                retObjSer = JSON.stringify(retObj);
-	        global.f3MonCache.set(requestKey, [retObjSer,ttl], ttl);
+                //retObjSer = JSON.stringify(retObj);
 
-                if (!reply)
-                  callb(retObj);
-                else
-                  sendResult();
+                _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
             });
           }
-
-          q2(callback);
+          q2();
 
         }); //oracle query callback
 
-    });//connection
-
+      });//connection
+    }//cache check
   }//query function
 
-}//end exports
 

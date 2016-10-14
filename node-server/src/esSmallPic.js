@@ -1,23 +1,15 @@
 'use strict';
+var Common = require('./esCommon');
+module.exports = new Common()
 
 //escapes client hanging upon an ES request error by sending http 500
-var excpEscES = function (res, error){
-  //message can be augmented with info from error
-  res.status(500).send('Internal Server Error (Elasticsearch query error during the request execution, an admin should seek further info in the logs)');
-}
-
-var exCb = function (res, error){
-  var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
-  console.log(error.stack)
-  res.status(500).send(msg);
-}
-
+/*
 var checkDefault = function(value,defaultValue) {
   if (value === "" || value === null || value === undefined || value === 'false' || value==="null") return defaultValue;
   else return value;
 }
-
-function log10(number) { return Math.log(number) / Math.log(10); }
+*/
+//function log10(number) { return Math.log(number) / Math.log(10); }
 
 function getIntervalTail(interval) {
   //for interval that is for example 0.33, this returns log10 value of the tail of 0.03 (that should be used for rounding)
@@ -31,33 +23,9 @@ function getIntervalTail(interval) {
 
 }
 
+module.exports.fuhistos = function (req, res) {
 
-var sendResult = function(req,res,requestKey,cb,cached,obj,qname,eTime,ttl) {
-  var srvTime = (new Date().getTime())-eTime;
-  global.totalTimes.queried += srvTime;
-  if (cached) {
-    console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from cache (time='+srvTime+'ms)');
-  } else {
-    global.f3MonCache.set(requestKey, [obj,ttl], ttl);
-    console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
-  }
-  res.set('Content-Type', 'text/javascript');
-  res.header("Cache-Control", "no-cache, no-store");
-  if (cb!==undefined)
-    res.send(cb +' ('+JSON.stringify(obj)+')');
-  else
-    res.send(JSON.stringify(obj));
-}
-
-
-module.exports = {
-
-  setup : function(queryJSN) {
-    //queryJSON = queryJSN;
-  },
-
-  fuhistos : function (req, res) {
-
+    var _this = this;
     console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'small request');
 
     var eTime = new Date().getTime();
@@ -65,10 +33,10 @@ module.exports = {
 
     //GET query string params
     var cb = req.query.callback;
-    var qparam_setup = checkDefault(req.query.setup,'cdaq');
-    var qparam_int = checkDefault(req.query.interval,100);
-    var monitored = checkDefault(req.query.monitored,"cpu_MHz_avg_real");
-    var perbuv = checkDefault(req.query.perbu,false);
+    var qparam_setup = _this.checkDefault(req.query.setup,'cdaq');
+    var qparam_int = _this.checkDefault(req.query.interval,100);
+    var monitored = _this.checkDefault(req.query.monitored,"cpu_MHz_avg_real");
+    var perbuv = _this.checkDefault(req.query.perbu,false);
     //var qparam_to = req.query.to;
 
     var requestKey = 'smallpic_fuhistos?setup='+qparam_setup+'&='+qparam_int+'&='+monitored+'&='+perbuv;
@@ -165,7 +133,7 @@ module.exports = {
         }
 
 
-        sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
         //} catch (e) {_this.exCb(res,e,requestKey)}
         } catch (e) {exCb(res,e)}
 
@@ -279,7 +247,7 @@ module.exports = {
             retObjTmp[src.cpu_name][freqname][binval]=index
             retObj[src.cpu_name][freqname].push([binval,1]);
           }*/
-        sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
+        _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl);
 
         //} catch (e) {_this.exCb(res,e,requestKey)}
         } catch (e) {exCb(res,e)}
@@ -290,20 +258,11 @@ module.exports = {
 
     }
 
-    var requestValue = global.f3MonCache.get(requestKey);
-    if (requestValue=="requestPending"){
-      requestValue = f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue == undefined) {
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
+    if (_this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
       if (qparam_int>=1)
         q();
       else q2();
-    }else {
-      sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
     }
     
   }//end
-}
 

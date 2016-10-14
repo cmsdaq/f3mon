@@ -1,4 +1,5 @@
 function bootstrap(){
+    Highcharts.setOptions(Highcharts.theme_du);
 
     var autoplot=false;
     if (location.hash.length) {

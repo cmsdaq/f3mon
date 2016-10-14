@@ -130,6 +130,7 @@ foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
     $myval = $vvalue['eventTimeUn']['value'] * $esize*$invmb;
   //  echo $myval." ".$vvalue['sum_res']['value']." ".((1000000*$vvalue['sum_fudatain']['value'])/$esize)."\n";
     //$response['fuetime'][0]['data'][]=array($vvalue['key'],$myval);
+    if ($myval<0.5)//limit "wild" points
     $response['fuetimels'][0]['data'][]=array($myLS,$myval);
   }
 }

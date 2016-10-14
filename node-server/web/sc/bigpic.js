@@ -3,6 +3,7 @@ var node_tree;
 var update_funct=true;
 
 var old_setup;
+var errcount=0;
 
 function get_node_tree(callback,callback2) {
 //	$.ajaxSetup({
@@ -12,18 +13,31 @@ function get_node_tree(callback,callback2) {
 	var setup = $('input[name=setup]:checked', '#setups').val();
         console.log('setup='+setup);
 	$.getJSON("api/pp?setup="+setup,function(data){
+                $('#errmsg').html('');
+                errcount=0;
 		node_tree = data;
                 if (callback!==null) callback(callback2)
 		else
 		  callback();
 		old_setup=setup;
-	    });
+	    }).error(function(error) {
+              var refreshint = parseInt($('input[name=refreshint]:checked').val());
+              //var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
+              //refreshint*=(1+Math.sqrt(errcount/4)/4);
+              refreshint*=(1+errcount*errcount*errcount/64);
+              if (refreshint>30000) refreshint=30000;
+              $('#errmsg').html(error.statusText+' in get_node_tree, retrying in '+Math.round(refreshint/1000.)+'s...')
+              setTimeout(get_node_tree,refreshint,callback,callback2);
+              errcount++;
+            });
 }
 
 function run_data_format(){
 
     //$.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=1",function(adata){
     $.getJSON("api/runInfo?sysName="+$('input[name=setup]:checked', '#setups').val()+"&activeRuns=true",function(adata){
+            $('#errmsg').html('');
+            errcount=0;
             var run;
 	    var ls = 0;
 	    if (adata.runNumber && !isNaN(run = parseInt(adata.runNumber)) &&  $("#autoupdate").is(":checked")) {
@@ -122,8 +136,16 @@ function run_data_format(){
 		$('#currentRun').html("NO RUN ONGOING");
 	    }
 
-	});
-
+	}).error(function(error) {
+              var refreshint = parseInt($('input[name=refreshint]:checked').val());
+              //var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
+              //refreshint*=(1+Math.sqrt(errcount/4)/4);
+              refreshint*=(1+errcount*errcount*errcount/64);
+              if (refreshint>30000) refreshint=30000;
+              $('#errmsg').html(error.statusText+' in call run_data_format, retrying in '+Math.round(refreshint/1000.)+'s...')
+              setTimeout(run_data_format,refreshint);
+              errcount++;
+        });
 }
 
 function secondsToTime(s)
@@ -147,6 +169,8 @@ function cluster_data_format(callback){
 
     if(update_funct){
     $.getJSON("api/bigPic?setup="+$('input[name=setup]:checked', '#setups').val(),function(data){
+            $('#errmsg').html('');
+            errcount=0;
 	    var content="";
             if (data.setup!==$('input[name=setup]:checked', '#setups').val()) return;
 	    if (data.hasOwnProperty("appliance_clusters")) {
@@ -297,6 +321,8 @@ function cluster_data_format(callback){
 				    fucpu.totalCloud+=vval.cloud;
 				    fucpu.totalHealthyBoxesCloud+=vval.cloud_nodes.length;
 
+                                    var totalReportedCores = vval.idle+vval.online+vval.quarantined+vval.cloud;
+                                    var totalReportedMachines = vval.cloud_nodes.length+vval.idle_count+vval.online_count+vval.quarantined_nodes.length;
 
 				    var running_color=""
                                     if (vval.idle_count===0 && vval.online_count>0) {}//running_color="style='background-color:aquamarine'";
@@ -454,6 +480,16 @@ function cluster_data_format(callback){
 				    content+="<td>"+(vval.odiskused/vval.odisktotal*100).toFixed(2)+"</td>";
 				    content+="<td>"+vval.odiskused+"/"+vval.odisktotal+"</td>";
 
+                                    //HT
+                                    var htcol = 'red';
+                                    var htstatus = '-'
+                                    if (totalReportedMachines>0) {
+                                      var resPerFU = totalReportedCores/totalReportedMachines;
+                                      if      ((resPerFU==32 && vval.cpu_name=='E5-2670 0') || (resPerFU==48 && vval.cpu_name=='E5-2680 v3') || resPerFU==56) {htstatus="on";htcol="lightgreen"}
+                                      else if (resPerFU==16 || (resPerFU==24 && vval.cpu_name=='E5-2680 v3') || (resPerFU==28 && vval.cpu_name=='E5-2680 v4')) {htstatus="off";htcol="lightyellow"}
+                                      else {htstatus="?"; htcol = 'red';}
+                                    }
+                                    content+="<td style='background-color:"+htcol+"'>"+htstatus+"</td>"
                                     //rack name
 				    content+='<td style="background-color:';
 				    switch(j.split("-")[1].substring(2,3).toUpperCase()){
@@ -517,21 +553,21 @@ function cluster_data_format(callback){
                           var cpm = (cval.totalCores+cval.totalCloud+cval.totalQuarantinedCores)/cval.boxes;
                           if (cput=="E5-2680 v3") {
                             if (cpm==48) htstatus="<td>on</td>";
-                            else if (cpm==24) htstatus="<td style='background-color:yellow'>off</td>";
+                            else if (cpm==24) htstatus="<td style='background-color:lightyellow'>off</td>";
                             else if (cpm>24 && cpm <48) htstatus="<td style='background-color:red'>partial(HT)</td>";
                             else if (cpm<24) htstatus="<td style='background-color:red'>partial(no HT)</td>";
                             else htstatus="<td style='background-color:yellow'>overcommitted</td>";
                           }
                           else if (cput=="E5-2680 v4") {
                             if (cpm==56) htstatus="<td>on</td>";
-                            else if (cpm==28) htstatus="<td style='background-color:yellow'>off</td>";
+                            else if (cpm==28) htstatus="<td style='background-color:lightyellow'>off</td>";
                             else if (cpm>28 && cpm <56) htstatus="<td style='background-color:red'>partial(HT)</td>";
                             else if (cpm<28) htstatus="<td style='background-color:red'>partial(no HT)</td>";
                             else htstatus="<td style='background-color:yellow'>overcommitted</td>";
                           }
                           else if (cput=="E5-2670 0") {
                             if (cpm==32) htstatus="<td>on</td>";
-                            else if (cpm==16) htstatus="<td style='background-color:yellow'>off</td>";
+                            else if (cpm==16) htstatus="<td style='background-color:lightyellow'>off</td>";
                             else if (cpm>16 && cpm <32) htstatus="<td style='background-color:red'>partial(HT)</td>";
                             else if (cpm<16) htstatus="<td style='background-color:red'>partial(no HT)</td>";
                             else htstatus="<td style='background-color:yellow'>overcommitted</td>";
@@ -556,7 +592,13 @@ function cluster_data_format(callback){
 
 
 		}
+		if (data.hasOwnProperty("central_server") || data.hasOwnProperty("eslocal_server")) {
+		    content +="<tr><td style='font-size:16pt;'>elasticsearch</td><td>status</td><td>data<br>nodes</td>"
+                    content +="<td title='primary shards'>prim.<br>shards</td><td>%<br>used</td>"
+                    content +="</tr>";
+                }
 		if (data.hasOwnProperty("central_server")) {
+
                     var val = data.central_server;
 		    content+="<tr><td style='font-size:16pt;'>"+"central_server"+"</td>";
 		    $('#querytime').html(val.query_time);
@@ -564,6 +606,11 @@ function cluster_data_format(callback){
 			content +="<td style='background-color:"+val.status+";'>"+val.status+"</td>";
 			content +="<td>"+val.number_of_data_nodes+"</td>";
 			content +="<td>"+val.active_primary_shards+"</td>";
+                        var usedfs = 100-val.disk_free_bytes/val.disk_total_bytes*100;
+                        var usedfscol = '';
+                        if (usedfs>80) usedfscol='yellow';
+                        if (usedfs>90) usedfscol='red';
+		        content +="<td style='background-color:"+usedfscol+"'>"+usedfs.toFixed(1)+"</td>";
 			content +="</tr>";
 		}
 		if (data.hasOwnProperty("eslocal_server")) {
@@ -573,6 +620,11 @@ function cluster_data_format(callback){
 		    content +="<td style='background-color:"+val.status+";'>"+val.status+"</td>";
 		    content +="<td>"+val.number_of_data_nodes+"</td>";
 		    content +="<td>"+val.active_primary_shards+"</td>";
+                    var usedfs = 100-val.disk_free_bytes/val.disk_total_bytes*100;
+                    var usedfscol = '';
+                    if (usedfs>80) usedfscol='yellow';
+                    if (usedfs>90) usedfscol='red';
+		    content +="<td style='background-color:"+usedfscol+"'>"+usedfs.toFixed(1)+"</td>";
 		    content +="</tr>";
 		}
 
@@ -585,7 +637,18 @@ function cluster_data_format(callback){
 	    $('#statusbar').progressbar( "value", statusvar );
 
             uruns(callback);
+        //});
+	}).error(function(error) {
+              var refreshint = parseInt($('input[name=refreshint]:checked').val());
+              //var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
+              //refreshint*=(1+Math.sqrt(errcount/4)/4);
+              refreshint*=(1+errcount*errcount*errcount/64);
+              if (refreshint>30000) refreshint=30000;
+              $('#errmsg').html(error.statusText+' in cluster_data_format, retrying in '+Math.round(refreshint/1000.)+'s...')
+              setTimeout(cluster_data_format,refreshint,callback);
+              errcount++;
         });
+
     }
     else { 
             var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
@@ -677,6 +740,7 @@ var post_db = function() {
     //    $('#services td:nth-child(9),th:nth-child(9)').hide();
     $( "#autoupdate" ).prop('checked', true);
     $( "#autoupdate" ).change(function(){
+            errcount=0;
 	    if($(this).is(":checked")){
 		console.log("enabling updates");
 		update_funct = true;

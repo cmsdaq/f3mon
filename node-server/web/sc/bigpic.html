@@ -31,6 +31,7 @@
       <tr>
 	<td style="width:15%;vertical-align:top">
 	  <h1>F<sup>3</sup> General Status</h1>
+          <div id="errmsg" style="background-color:red"></div>
 	  Last Updated at <div id="timestamp"></div> 
 	  <div id="updatenotice">(this page updates automatically)</div>
 	  <!--Query time <div id="querytime"></div> -->
@@ -109,13 +110,14 @@
 	  <th title="these nodes are disconnected">discon-<br>nected FUs:<br>no datanet<br>heartbeat<br> FOUND<br></th>
 	  <th id="thide1">FU list<br>
 	  <font color="ff0000">red: FUs not in ES (age)</font></th>
-	  <th>ramdisk<br> % used</th>
+	  <th>RAM-<br>disk<br> % <br>used</th>
 	  <th id="thide2">ramdisk values (MB)</th>
-	  <th>local (FU)<br>disk %<br> quota<br> used</th>
+	  <th>local<br>(FU)<br>disk %<br> quota<br> used</th>
 	  <th id="thide3">FU disk values (MB)</th>
 	  <th>output <br>(BU)<br>disk %<br> used</th>
 	  <th id="thide4">BU spindisk values (MB)</th>
-	  <th>Rack</th>
+          <th id="htbu">HT</th>
+	  <th id="rack">Rack</th>
 	</tr>
       </thead>
       <tbody id="services" class="togglecols">

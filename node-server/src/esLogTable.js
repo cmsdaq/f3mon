@@ -42,21 +42,9 @@ module.exports.query = function (req, res) {
                      +'&sortOrder='+qparam_sortOrder+'&search='+qparam_search+'&startTime='
                      +qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
 
-    var requestValue = global.f3MonCache.get(requestKey);
     var ttl = global.ttls.logtable; //cached ES response ttl (in seconds)
 
-    var pending=false
-    if (requestValue=="requestPending"){
-      pending=true
-      requestValue = global.f3MonCacheSec.get(requestKey);
-    }
-
-    if (requestValue === undefined) {
-      if (pending) {
-        this.putInPendingCache({"req":req,"res":res,"cb":cb,"eTime":eTime},requestKey,ttl);
-        return;
-      }
-      global.f3MonCache.set(requestKey, "requestPending", ttl);
+    if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
 
       //parameterize query
       this.queryJSON1.size = qparam_size;
@@ -258,9 +246,8 @@ module.exports.query = function (req, res) {
         console.trace(error.message);
       });
 
-    } else
-      this.sendResult(req,res,requestKey,cb,true,requestValue[0],qname,eTime,ttl);
-  },
+    }
+  }
 
 module.exports.findLog = function (req, res) {
 
