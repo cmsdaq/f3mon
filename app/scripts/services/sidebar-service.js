@@ -330,7 +330,7 @@
     })
 
     //Service for the disks information panel
-    .factory('runListService', function($resource, $rootScope, poller, configService, indexListService) {
+    .factory('runListService', function($resource, $rootScope, poller, configService, indexListService, runInfoService) {
         var mypoller, cache, config;
         var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
         //var resource = $resource(prePath+'/api/runListTable.php', {
@@ -389,6 +389,13 @@
                     if (JSON.stringify(data.aaData) != cache) {
                         cache = JSON.stringify(data.aaData);
                         service.data.displayed = data.aaData;
+                        //mark currently viewed run
+                        for (var i=0;i<service.data.displayed.length;i++) {
+                          if (runInfoService.data.runNumber==service.data.displayed[i].runNumber)
+                            service.data.displayed[i].selected=true;
+                          else
+                            service.data.displayed[i].selected=false;
+                        }
                         service.data.numRuns = data.iTotalRecords;
                         service.data.displayTotal = data.iTotalDisplayRecords;
                     }
@@ -467,6 +474,16 @@
 
         $rootScope.$on('indices.selected', function(event) {
             service.start();
+        });
+
+        $rootScope.$on('runInfo.selected', function(event) {
+          for (var i=0;i<service.data.displayed.length;i++) {
+            if (runInfoService.data.runNumber==service.data.displayed[i].runNumber)
+              service.data.displayed[i].selected=true;
+            else
+              service.data.displayed[i].selected=false;
+              //break;
+          }
         });
 
         return service;

@@ -277,12 +277,14 @@
             } else {
                 mypoller.stop()
             }
+            runRanger.flipAction()
             this.broadcast('status');
         };
 
         runRanger.shutdown = function() {
             mypoller.stop();
             this.isActive = false;
+            runRanger.flipAction()
             this.broadcast('status');
         };
 

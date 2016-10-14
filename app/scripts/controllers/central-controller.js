@@ -89,13 +89,13 @@
         var chart;
         var chartConfig;
 
-        $scope.hpxdd=600;
+        $scope.hpxdd=630;
         var setPadding=function() {
           if ($window.innerWidth<992) {
             $scope.hpxdd=450;
           }
           else {
-            $scope.hpxdd=600;
+            $scope.hpxdd=630;
           }
         }
         setPadding();
@@ -240,7 +240,7 @@
             streamRatesService.intervalNum=25
             $scope.tooltip = true;
             $scope.displayAux=true;
-            $scope.hpx=600;
+            $scope.hpx=630;
           }
         }
 

@@ -147,7 +147,8 @@
                                 </tr>
                             </thead>
                             <tbody ng-show="!data.noData()">
-                                <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag">
+                                <!--<tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag" style='{{row.selected ? "background-color:rgba(255, 100, 255, 0.4);":""}}'>-->
+                                <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag" style='{{row.selected ? "background-color:rgba(173,216,230,0.4);":""}}'>
                                     <!--<td>{{row.runNumber+"&#149;"}}</td>-->
                                     <td>{{row.runNumber}}</td>
                                     <td>{{row.startTime ? ( row.startTime | amDateFormat:"DD/MM/YY HH:mm") : "N/A"}}</td>

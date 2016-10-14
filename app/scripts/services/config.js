@@ -140,7 +140,7 @@
             }
         },
         tooltip: {
-            
+            useHTML:true,
             formatter: function(tooltip) {
 
                 function padDigits(number, digits) {
@@ -155,7 +155,7 @@
 
                 // build the header
                 var tiptype;
-                if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Events')=== 0)
+                if (series.chart.yAxis[0].axisTitle==null || series.chart.yAxis[0].axisTitle.textStr.indexOf('Events')=== 0)
                   tiptype = 0;
                 else if (series.chart.yAxis[0].axisTitle.textStr.indexOf('Bytes / Event')=== 0)
                   tiptype = 2;
@@ -233,44 +233,65 @@
                     return bytes.toFixed(precision) + " " + sizes[posttxt];
                 }
 
-                var hasBSeconds = series.chart.yAxis[0].axisTitle.textStr==="Bytes/s";
+                var hasBSeconds = series.chart.yAxis[0].axisTitle!=null && series.chart.yAxis[0].axisTitle.textStr==="Bytes/s";
+                var table_open = false;
+                var even_entry = true;
+
+                var streamcount = 0;
+                items.forEach(function(item) {
+                  var name = item.series.name;
+                  if (-1==$.inArray(name,['micromerge','minimerge','macromerge','input'])) streamcount++;
+                });
 
                 // build the values
+                s.push('<table><tbody>');
                 items.forEach(function(item) {
                     var name = item.series.name;
 
                     series = item.series;
                     var isMerge = $.inArray(name,['micromerge','minimerge','macromerge']) !== -1;
+                    var isInput = name=='input';
 
                     var formatString;
-                    if (tiptype===0 || isMerge)
-                     formatString = (series.tooltipFormatter && series.tooltipFormatter(item)) ||
-                        item.point.tooltipFormatter(series.tooltipOptions.pointFormat);
-                    else
-                      formatString= '<span style="color:'+item.series.color+'">●</span> '+item.series.name+': <b>'+bytesToSize(item.point.y,2,hasBSeconds)+'</b><br/>'
-
-                    //add percentage
-                    if (name=='input'){
-                      formatString = formatString.substr(formatString.indexOf("/span>")+6);
-                    }
-                    else if (!isMerge){
-                      formatString = formatString.replace('<br/>','<i>  (' + percents[name] + '%)</i><br/>');
+                    if (!isMerge && !isInput) {
+                      var pref="";
+                      var suf="";
+                      if (streamcount>30) {
+                        if (even_entry) {even_entry=false;pref="<tr>";}
+                        else  {even_entry=true;suf="</tr>";}
+                      }
+                      else {pref="<tr>";suf="</tr>";}
+                      var ss = "padding-right:3px;text-align:right"; 
+                      if (tiptype==1) {
+                        var fact = hasBSeconds?1:23.31
+                        if (item.point.y<5000000*fact) ss+=';color:grey';
+                        else if (item.point.y<50000000*fact) ss+=';color:black';
+                        else if (item.point.y<300000000*fact) ss+=';color:darkred';
+                        else if (item.point.y<800000000*fact) ss+=';color:firebrick';
+                        else /*if (item.point.y>=700000000)*/ ss+=';color:red';
+                      }
+                      formatString=pref+'<td style="padding-right:3px"><span style="color:'+item.series.color+'">●</span>'+item.series.name
+                                   +'</td><td style="'+ss+'"><b>'+(tiptype==0 ? item.point.y.toFixed(2):bytesToSize(item.point.y,2,hasBSeconds))
+                                   +'</b></td>'+'<td style="padding-right:3px;text-align:right"><i>'+percents[name]+'%</i></td>'
+                                   +suf;
+                      s.push(formatString);
                     }
                     else {
-                      //skip color bullet
-                      formatString = formatString.replace('<br/>','%<br/>').substr(formatString.indexOf("/span>")+6);
-                      //formatString = formatString.replace('<br/>','%<br/>');
+                      formatString='<tr><td style="padding-right:3px">'+item.series.name
+                                  +'</td><td style="padding-right:3px;text-align:right"><b>'//+ (isMerge?'<td/><i>':'')
+                                  + (isInput && tiptype!=0?bytesToSize(item.point.y,2,hasBSeconds):(isInput?item.point.y.toFixed(2):item.point.y))+ (isMerge? '%':'')+'</b></td></tr>';
+                      s.push(formatString);
                     }
- 
-                    s.push(formatString);
-                    
                 });
+                if (!even_entry) s.push('</tr>');
+                s.push('</tbody></table>')
+
                 if (sumRate>=0) {
                   var sumEst = sumRate / (hasBSeconds? 1000000. :23310000.);
-                  if (sumEst>5000)
+                  if (sumEst>6000)
                     s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:red;font-weight:bold;font-size: 14px;" >' 
                            + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
-                  else if (sumEst>3000)
+                  else if (sumEst>4000)
                     s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:#FF5733;font-weight:bold;font-size:14px;" >'
                            + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
                   else

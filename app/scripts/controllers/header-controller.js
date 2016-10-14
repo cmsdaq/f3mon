@@ -74,10 +74,26 @@
         $scope.$on('runRanger.status', function(event) {
             $scope.isActive = runRangerService.isActive;
         });
+        var lastScheduled = null;
         $scope.isActive = runRangerService.isActive;
+        $scope.showTooltip = false;
         $scope.toggle = function() {
             runRangerService.toggle();
         }
+
+        runRangerService.flipAction = function() {
+          $scope.showTooltip=false;
+          clearTimeout(lastScheduled);
+          lastScheduled = setTimeout(runRangerCheck,10000);
+        }
+
+        var runRangerCheck = function() {
+          $scope.showTooltip = !$scope.showTooltip;
+          lastScheduled = setTimeout(runRangerCheck,$scope.showTooltip?10000:30000);
+        }
+        //run this after 60 seconds, every 30 seconds
+        lastScheduled = setTimeout(runRangerCheck,10000);
+
     })
 
 

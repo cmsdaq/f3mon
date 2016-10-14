@@ -12,7 +12,7 @@
                 <a class="navbar-brand"></a>
                 <ul class="nav navbar-nav navbar-left nav-tabs" rol="tablist" ng-controller="tabsCtrl">
 
-                    <li id='f3monButton' ng-class="{'active': globalStatus.isTabSelected(0)}">
+                    <li id='f3monButton' ng-class="{'active': globalStatus.isTabSelected(0)}" tooltip-placement="bottom" uib-tooltip="Click to reload">
                         <a href="" ng-click='globalStatus.changeTab(0)'><big><b>F<sup>3</sup>&nbsp;Mon</b></big></a>
                     </li>
 
@@ -83,7 +83,13 @@
 
                 <div class='btn-group' id='runRangerButton'>
                     <button type="button" class="btn navbar-btn" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="runRangerCtrl" ng-click="toggle()">
-                        <i class="fa fa-search"></i> RunRanger
+                        <style>
+                          /*tooltip*/ .tooltip.customClass .tooltip-inner {  color: #880000;background-color: #ffff32;box-shadow: 0 6px 12px rgba(0,0,0,.175);}
+                          /*arrow*/ .tooltip.customClass .tooltip-arrow {display: none;}
+                        </style>
+                        <span uib-tooltip="RunRanger is OFF! Click to monitor the live system!" tooltip-class="customClass" tooltip-is-open="showTooltip && !isActive" tooltip-placement="bottom" >
+                          <i class="fa fa-search"></i> RunRanger
+                        </span>
                     </button>
                 </div>
 
@@ -92,10 +98,10 @@
 
                 <!-- RIGHT-BAR LINKS -->
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="../sc/bigpic.html" id="tribeButton"><i class="fa fa-sitemap"></i> BigPic</a>
+                    <li><a href="../sc/bigpic.html" id="tribeButton" tooltip-placement="bottom" uib-tooltip="Status of HLT appliances"><i class="fa fa-sitemap"></i> BigPic</a>
                     </li>
 
-                    <li><a href="../index.html" id="mainMenuButton"><i class="fa fa-list"></i> Menu</a>
+                    <li><a href="../index.html" id="mainMenuButton" tooltip-placement="bottom" uib-tooltip="Links to all F3 monitoring tools"><i class="fa fa-list"></i> Menu</a>
                     </li>
  
                     <!--<li><a href="../kibana-tribe/#/dashboard/file/rateTribe"><i class="fa fa-sitemap"></i> Kibana-rateTribe</a>

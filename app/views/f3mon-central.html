@@ -13,23 +13,23 @@
                     </div>
                     <div class="pull-right" style="width:30px;margin-right:210px" id='sr-divisor'>
                         <div class="input-group input-group-xs ">
-                            <span class="input-group-addon primary"> <input ng-change='toggleAxis()' ng-disabled='isStacked && !stackedDisabled' ng-model="logAxis" type="checkbox" aria-label="..." style='vertical-align: middle'> log </span>
+                            <span class="input-group-addon primary"> <input ng-change='toggleAxis()' ng-disabled='isStacked && !stackedDisabled' ng-model="logAxis" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Logarithmic Y-axis"> log </span>
                             <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='stackedDisabled' ng-model="isStacked" type="checkbox" aria-label="..." style='vertical-align: middle'> stacked </span>
-                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='accumDisabled' ng-model="isAccum" type="checkbox" aria-label="..." style='vertical-align: middle'> accum </span>
-                            <span class="input-group-addon primary"> <input ng-change='toggleInputRate()' ng-model="showInputRate" type="checkbox" aria-label="..." style='vertical-align: middle'> input </span>
+                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='accumDisabled' ng-model="isAccum" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Cumulative rate or bandwidth in [1,LS]"> accum </span>
+                            <span class="input-group-addon primary"> <input ng-change='toggleInputRate()' ng-model="showInputRate" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Show input rate,bandwidth or event size read by HLT processes"> input </span>
                         </div>
                     </div>
 
                     <div style="margin-left:10px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
-                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Events'" ng-change='unitChanged()'>Events</label>
-                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes'" ng-change='unitChanged()'>Bytes</label>
-                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()'>B/E</label>
+                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Events'" ng-change='unitChanged()' tooltip-placement="bottom" uib-tooltip="Event rate">Events</label>
+                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes'" ng-change='unitChanged()' tooltip-placement="bottom" uib-tooltip="Byte rate">Bytes</label>
+                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()' tooltip-placement="bottom" uib-tooltip="Event size (bytes/event)">B/E</label>
                     </div>
 
                     <div class="pull-right" style="width:120px;margin-right:3px" id='sr-divisor' ng-show="displayAux">
                         <div class="input-group input-group-xs ">
                             <span class="input-group-addon primary"> <input ng-change='tooltipToggle()' ng-model="tooltip" type="checkbox" aria-label="..." style='vertical-align: middle'> tooltip </span>
-                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle'> sec/LS </span>
+                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Show rates/bandwidth normalized to a second or LS (23.31s) interval"> sec/LS </span>
                         </div>
                     </div>
 
@@ -39,7 +39,7 @@
                           Range Mode:
                         </button>
 
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-show="displayAux">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-show="displayAux" tooltip-placement="bottom" uib-tooltip="Drilldown level to display using mouse drag selection in the graph">
                           <span id="abcde">{{selectorMode}}</span>
                           <span class="caret"></span>
                         </button>

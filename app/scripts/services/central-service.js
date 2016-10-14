@@ -413,11 +413,11 @@
 
         var setResource = function(newapi) {
           resource =  $resource('api/'+newapi, {
-              callback: 'JSON_CALLBACK',
+            callback: 'JSON_CALLBACK',
           }, {
-              jsonp_get: {
-                  method: 'JSONP',
-              }
+            jsonp_get: {
+                method: 'JSONP',
+            }
           });
           mypoller = undefined;
         }
