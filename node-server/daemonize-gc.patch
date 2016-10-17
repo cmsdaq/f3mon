@@ -1,7 +1,6 @@
-diff -ur temp/node_modules/daemonize2/lib/daemonize.js node_modules/daemonize2/lib/daemonize.js
---- temp/node_modules/daemonize2/lib/daemonize.js	2016-08-25 11:50:37.793917000 +0200
-+++ node_modules/daemonize2/lib/daemonize.js		2016-08-30 19:27:22.942518000 +0200
-@@ -68,7 +68,6 @@
+--- node_modules/daemonize2/lib/daemonize-orig.js	2016-10-17 14:09:27.246660060 +0200
++++ node_modules/daemonize2/lib/daemonize.js	2016-10-17 14:09:57.332898622 +0200
+@@ -68,6 +68,7 @@
          this._options.umask = parseInt(options.umask);
  
      this._options.args = this._makeArray(options.args);
