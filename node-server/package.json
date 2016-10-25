@@ -15,7 +15,8 @@
     "express-session": "*",
     "heapdump": "*",
     "memwatch": "*",
-    "request": "*"
+    "request": "*",
+    "morgan":"*"
   },
   "engines": {
     "node": ">=0.10.0"
