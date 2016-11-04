@@ -25,6 +25,15 @@
         maxage 7
         compress
 }
+/opt/node/priv/*log {
+        copytruncate
+        dateext
+        missingok
+        size 100M
+        rotate 10
+        maxage 7
+        compress
+}
 /opt/node/test/*log {
         copytruncate
         dateext

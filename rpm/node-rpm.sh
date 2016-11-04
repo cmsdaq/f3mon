@@ -35,8 +35,10 @@ Requires: npm
 
 Provides:/opt/node/
 Provides:/opt/node/prod/
+Provides:/opt/node/priv/
 Provides:/opt/node/test/
 Provides:/etc/init.d/fff-node-server
+Provides:/etc/init.d/priv-fff-node-server
 Provides:/etc/init.d/test-fff-node-server
 Provides:/opt/node/node-daemon.js
 #Provides:/etc/logrotate.d/fff-node-server
@@ -56,10 +58,12 @@ mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/var/log/node"
 
 mkdir -p %{buildroot}/opt/node/prod
+mkdir -p %{buildroot}/opt/node/priv
 mkdir -p %{buildroot}/opt/node/test
 mkdir -p %{buildroot}/etc/init.d
 #mkdir -p %{buildroot}/etc/logrotate.d
 cp $BASEDIR/fff-node-server %{buildroot}/etc/init.d/fff-node-server
+cp $BASEDIR/priv-fff-node-server %{buildroot}/etc/init.d/priv-fff-node-server
 cp $BASEDIR/test-fff-node-server %{buildroot}/etc/init.d/test-fff-node-server
 cp $BASEDIR/node-daemon.js %{buildroot}/opt/node/node-daemon.js
 #cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
@@ -72,40 +76,49 @@ cp $BASEDIR/node-daemon.js %{buildroot}/opt/node/node-daemon.js
 #%attr( 755 ,root, root) /opt/node/
 %attr( 755 ,root, root) /var/log/node
 %attr( 755 ,root, root) /opt/node/prod
+%attr( 755 ,root, root) /opt/node/priv
 %attr( 755 ,root, root) /opt/node/test
 %attr( 755 ,root, root) /etc/init.d/fff-node-server
+%attr( 755 ,root, root) /etc/init.d/priv-fff-node-server
 %attr( 755 ,root, root) /etc/init.d/test-fff-node-server
 %attr( 755 ,root, root) /opt/node/node-daemon.js
 #%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
 
 %post
 #echo "post install trigger"
+
+/etc/init.d/fff-node-server stop || true
+/etc/init.d/priv-fff-node-server stop >& /dev/null || true
+/etc/init.d/test-fff-node-server stop >& /dev/null || true
+
 unlink /opt/node/prod/app.js >& /dev/null || true
 unlink /opt/node/prod/node_modules >& /dev/null || true
 unlink /opt/node/prod/web >& /dev/null || true
 unlink /opt/node/prod/src >& /dev/null || true
-
 ln -s /cmsnfses-web/es-web/prod/app.js /opt/node/prod/app.js
 ln -s /cmsnfses-web/es-web/prod/node_modules /opt/node/prod/node_modules
 ln -s /cmsnfses-web/es-web/prod/web /opt/node/prod/web
 ln -s /cmsnfses-web/es-web/prod/src /opt/node/prod/src
-
 unlink /opt/node/node_modules >& /dev/null || true
 ln -s /opt/node/prod/node_modules /opt/node/node_modules
 
-/etc/init.d/fff-node-server stop || true
-/etc/init.d/test-fff-node-server stop >& /dev/null || true
+unlink /opt/node/priv/app.js >& /dev/null || true
+unlink /opt/node/priv/node_modules >& /dev/null || true
+unlink /opt/node/priv/web >& /dev/null || true
+unlink /opt/node/priv/src >& /dev/null || true
+ln -s /cmsnfses-web/es-web/priv/app.js /opt/node/priv/app.js
+ln -s /cmsnfses-web/es-web/priv/node_modules /opt/node/priv/node_modules
+ln -s /cmsnfses-web/es-web/priv/web /opt/node/priv/web
+ln -s /cmsnfses-web/es-web/priv/src /opt/node/priv/src
 
 unlink /opt/node/test/app.js >& /dev/null || true
 unlink /opt/node/test/node_modules >& /dev/null || true
 unlink /opt/node/test/web >& /dev/null || true
 unlink /opt/node/test/src >& /dev/null || true
-
 ln -s /cmsnfses-web/es-web/test/app.js /opt/node/test/app.js
 ln -s /cmsnfses-web/es-web/test/node_modules /opt/node/test/node_modules
 ln -s /cmsnfses-web/es-web/test/web /opt/node/test/web
 ln -s /cmsnfses-web/es-web/test/src /opt/node/test/src
-
 
 #set user ownership
 /usr/sbin/useradd es-cdaq-runtime -g es-cdaq -s /sbin/nologin || true
@@ -113,12 +126,18 @@ ln -s /cmsnfses-web/es-web/test/src /opt/node/test/src
 #chown es-cdaq-runtime:es-cdaq -R /var/log/node/*.log || true
  
 /etc/init.d/fff-node-server start
+/etc/init.d/priv-fff-node-server start
+/etc/init.d/test-fff-node-server start || true
+
 chkconfig --add fff-node-server
+chkconfig --add priv-fff-node-server
+chkconfig --add test-fff-node-server
 
 %preun
 #echo "pre uninstall trigger"
 if [ \$1 == 0 ]; then 
   /etc/init.d/fff-node-server stop || true
+  /etc/init.d/priv-fff-node-server stop >& /dev/null || true
   /etc/init.d/test-fff-node-server stop >& /dev/null || true
   chkconfig --del fff-node-server || true
   rm -rf /var/run/*fff-node-server.pid
@@ -129,6 +148,10 @@ if [ \$1 == 0 ]; then
   unlink /opt/node/prod/node_modules >& /dev/null || true
   unlink /opt/node/prod/web >& /dev/null || true
 
+  unlink /opt/node/priv/app.js >& /dev/null || true
+  unlink /opt/node/priv/node_modules >& /dev/null || true
+  unlink /opt/node/priv/web >& /dev/null || true
+
   unlink /opt/node/test/app.js >& /dev/null || true
   unlink /opt/node/test/node_modules >& /dev/null || true
   unlink /opt/node/test/web >& /dev/null || true
@@ -136,6 +159,7 @@ if [ \$1 == 0 ]; then
   unlink /opt/node/node_modules >& /dev/null || true
 
   rm -rf /opt/node/prod/*.log
+  rm -rf /opt/node/priv/*.log
   rm -rf /opt/node/test/*.log
 
 fi
