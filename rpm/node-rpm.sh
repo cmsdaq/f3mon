@@ -122,6 +122,7 @@ ln -s /cmsnfses-web/es-web/test/src /opt/node/test/src
 
 #set user ownership
 /usr/sbin/useradd es-cdaq-runtime -g es-cdaq -s /sbin/nologin || true
+/usr/sbin/useradd es-cdaq-priv -g es-cdaq -s /sbin/nologin || true
 #chown es-cdaq-runtime:es-cdaq -R /opt/node/*.log || true
 #chown es-cdaq-runtime:es-cdaq -R /var/log/node/*.log || true
  
@@ -143,6 +144,7 @@ if [ \$1 == 0 ]; then
   rm -rf /var/run/*fff-node-server.pid
   #rm -rf /var/lock/subsys/fff-node-server
   /usr/sbin/userdel es-cdaq-runtime || true
+  /usr/sbin/userdel es-cdaq-priv || true
 
   unlink /opt/node/prod/app.js >& /dev/null || true
   unlink /opt/node/prod/node_modules >& /dev/null || true
