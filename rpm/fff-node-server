@@ -29,9 +29,9 @@
 . /etc/rc.d/init.d/functions
 
 #ugly hack to detect if this host is in es-tribe DNS alias
-thisip=`hostname -I`
-is_tribe=`nslookup es-local | grep $thisip`
-if [ "$is_tribe" != "" ]; then
+thisip=(`hostname -I`)
+is_eslocal=`nslookup es-local | grep $thisip`
+if [ "$is_eslocal" != "" ]; then
   echo "FFF web service is disabled on es-local hosts"
   if [ $1 == "start" ]; then
     exit 0;

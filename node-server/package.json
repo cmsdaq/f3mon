@@ -11,6 +11,7 @@
     "authenticate-pam": "*",
     "passport": "*",
     "passport-local": "*",
+    "passport-local-authenticate": "*",
     "body-parser": "*",
     "express-session": "*",
     "heapdump": "*",
