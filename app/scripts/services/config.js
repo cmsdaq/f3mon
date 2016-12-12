@@ -607,6 +607,71 @@
                 }
             },
         },
+        tooltip: {
+            enabled:true,
+            shared:true,
+            folowPointer:false,
+            crosshairs: [true, false], //not visible with the grid
+            useHTML:true, 
+            formatter: function(tooltip) {
+
+                var items = this.points || splat(this);
+                var series = items[0].series;
+                var s=[];
+
+                var sumHits=0;
+                var totalShow = 0;
+                items.forEach(function(item){
+                  if (item.point.y<=0) return;
+                  totalShow++;
+                  sumHits += item.point.y;
+                  
+                });
+
+                var table_open = false;
+                var even_entry = true;
+
+                // build the values
+                s.push('<table><tbody>');
+                items.forEach(function(item) {
+                  if (item.point.y<=0) return;
+                  var formatString;
+                  var pref="";
+                  var suf="";
+                  if (totalShow>30) {
+                    if (even_entry) {even_entry=false;pref="<tr>";}
+                    else  {even_entry=true;suf="</tr>";}
+                  }
+                  else {pref="<tr>";suf="</tr>";}
+                  var ss = "padding-right:3px;text-align:right"; 
+                  formatString=pref+'<td style="padding-right:3px"><span style="color:'+item.series.color+'">●</span>'+item.series.name
+                                   +'</td><td style="'+ss+'"><b>'+(item.point.y*100/sumHits).toFixed(2)+'%'
+                                   +'</b></td>'
+                                   +suf;
+                  s.push(formatString);
+                });
+                if (!even_entry) s.push('</tr>');
+                s.push('</tbody></table>')
+                // footer
+                s.push(tooltip.options.footerFormat || '');
+                return s.join('');
+            },
+            //position on the left or right side of the point only with shared:false
+            positioner: function(labelWidth, labelHeight, point) {
+                var tooltipX, tooltipY;
+                if (point.plotX + labelWidth > this.chart.plotWidth) {
+                    tooltipX = point.plotX + this.chart.plotLeft - labelWidth - 25;
+                } else {
+                    tooltipX = point.plotX + this.chart.plotLeft + 25;
+                }
+                //tooltipY = point.plotY + this.chart.plotTop - 20;
+                tooltipY = this.chart.plotTop;
+                return {
+                    x: tooltipX,
+                    y: tooltipY
+                };
+            }
+        },
         colors: Colors.colorList(),
         legend: {
             layout: "vertical",

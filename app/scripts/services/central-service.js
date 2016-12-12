@@ -122,7 +122,8 @@
 
         service.start = function() {
             service.active=true;
-            if (!runInfo.lastLs || !runInfo.streams) {
+            //if (!runInfo.lastLs || !runInfo.streams) {
+            if (!runInfo.lastLs) {
                 return;
             };
             service.ready=true;

@@ -650,7 +650,8 @@
                 type: 'line',
                 yAxis: "ratesin",
                 color: 'grey',//silver
-                zIndex: 10
+                zIndex: 10,
+                marker:{radius:2,fillColor:'grey',enabled:true}
                 //type:area,
                 //id:'navigator',
             });
@@ -721,8 +722,12 @@
             miniSerie = chart.get('minimerge');
             macroSerie = chart.get('macromerge');
                         
-            chart.hideLoading();
-            customLoading=false;
+            //if no streams yet, loading will be changed later when stream list appears
+            if (runInfoService.data.streamListINI.length || runInfoService.data.streams.length) {
+              chart.hideLoading();
+              customLoading=false;
+            }
+
             isDirty = true;
             inputSerie.setVisible($scope.showInputRate, false) //invisible by default
         }
@@ -742,7 +747,10 @@
                   chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for first end-of-lumisection file');//todo:combine with input information
                 else if (!runInfoService.data.streams.length)
                   chart.showLoading('<img src="images/wheel.gif"><br><br>waiting for stream output from HLT');
-                else customLoading=false;
+                else {
+                  customLoading=false;
+                  chart.hideLoading();
+                }
             }
             else if (customLoading && chart && !isDirty) {chart.showLoading('no monitoring information');customLoading=false;}
         });
@@ -763,9 +771,11 @@
               }
             }
             //stop chart if no stream label information is available
-            if (runInfoData.streams.length===0) {
+            if (!$scope.showInputRate) {
+              if (runInfoData.streams.length===0) {
                 if (isDirty) stopChart();
                 return;
+              }
             }
  
             if (!isDirty) {
@@ -1224,17 +1234,40 @@
         });
 
         var updateTable = function() {
-          var vvf = 'width="'+(100/splitf).toFixed(0)+'%"'
           var streamsCopy;
 	  var streams = Object.keys(service.data).sort();
 
           //reset last
-          for (var i=1;i<=16;i++) {
+          for (var i=1;i<=25;i++) {
             $scope["head"+i] = "";
             $scope["body"+i] = "";
           }
 
-          var splitlevel = Math.floor(streams.length/splitf) + ( streams.length % splitf > 0 )
+          var splitf_eff = splitf;
+          var splitlevel = Math.floor(streams.length/splitf_eff) + ( streams.length % splitf_eff > 0 );
+
+          //recalculate for cases where long stream names doen't fit
+          var checkLen=function(off,rowlen) {
+            var totLen=0;
+            for (var i=off;i<streams.length && i<off+rowlen;i++) {totLen+=streams[i].length;}
+            return totLen;
+          }
+          while (true) {
+            var too_long=false;
+            if (splitf_eff<=2) break;
+            for  (var i=1;i<=splitlevel;i++) {
+              //console.log(splitf +' '+ splitf_eff + ' ' + checkLen((i-1)*splitf_eff,splitf_eff))
+              if (checkLen((i-1)*splitf_eff,splitf_eff) < 12*splitf) continue;
+              else too_long=true;
+            }
+            if (too_long) {
+              splitf_eff--;
+              splitlevel = Math.floor(streams.length/splitf_eff) + ( streams.length % splitf_eff > 0 );
+            }
+            else break;
+          }
+          var vvf = 'width="'+(100/splitf_eff).toFixed(0)+'%"'
+
           if (!streams.length) return
 
 	  var contentTemplate = "<tr><td>micro LS<br>complete/incomplete</td>";
@@ -1242,9 +1275,9 @@
 
           var splitStreams = function() {
 	    if (!streams.length) return "";
-            var num = streams.length < splitf ? streams.length : splitf;
-            var heading = "<th>Stream</th><th "+vvf+" valign=\"top\">"+  streams.splice(0,splitf).join("</th><th "+vvf+" valign=\"top\">")  +"</th>";
-            for (var k=0;k<splitf-num;k++) heading+='<th '+vvf+' valign="top"/>'
+            var num = streams.length < splitf_eff ? streams.length : splitf_eff;
+            var heading = "<th>Stream</th><th "+vvf+" valign=\"top\">"+  streams.splice(0,splitf_eff).join("</th><th "+vvf+" valign=\"top\">")  +"</th>";
+            for (var k=0;k<splitf_eff-num;k++) heading+='<th '+vvf+' valign="top"/>';
 	    content.push(contentTemplate);
             return heading
           }
@@ -1257,7 +1290,7 @@
           for (var j=0;j<streams.length;j++) {
             var key=streams[j]
             var val = service.data[key]
-            var contidx = Math.floor(j/splitf);
+            var contidx = Math.floor(j/splitf_eff);
 	    var complete = val[0];
 	    var incomplete = val[1];
 	    if(incomplete < 3)
