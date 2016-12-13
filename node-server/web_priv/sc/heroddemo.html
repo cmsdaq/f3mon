@@ -1,0 +1,116 @@
+<html>
+<head>
+<link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="css/pure-min.css">
+<link rel="stylesheet" href="css/jquery-ui.css">
+<link rel="stylesheet" href="css/loading_spinner.css">
+
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<script src="js/loading_spinner.js"></script>
+<script src="heroddemo.js"></script>
+
+
+
+<style>
+.round-button {
+	width:25%;
+}
+.round-button-circle {
+	width: 100%;
+	height:0;
+	padding-bottom: 100%;
+    border-radius: 50%;
+	//border:10px solid #cfdcec;
+	border:10px solid darkred;
+    overflow:hidden;
+    
+    background: firebrick; 
+    box-shadow: 0 0 3px gray;
+}
+.round-button-circle:hover {
+	background:firebrick;
+	border:10px solid #630000;
+}
+.round-button-circle:active {
+	background:red;
+	border:10px solid #630000;;
+}
+.round-button a {
+    display:block;
+	float:left;
+	width:100%;
+	padding-top:50%;
+    padding-bottom:50%;
+	line-height:1em;
+	margin-top:-0.5em;
+    
+	text-align:center;
+	color:#e2eaf3;
+	color:#e2eaf3;
+    font-family:Verdana;
+    font-size:1.2em;
+    font-weight:bold;
+    text-decoration:none;
+}
+body {
+    //background-image: url("pattern1.jpg");
+    background-color: #cccccc;
+    background-size: 420px 420px;
+}
+</style>
+</head>
+<!--<table><tr  style="width:150px">-->
+<body onLoad="bootstrap()">
+
+<div class="pure-g pure-table">
+  <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+    <form class="pure-form" id="setups"><label for="radio2"></label>
+	  <div id="radio2">
+	    <input type=radio name=setup value=cdaq id=cdaq checked=checked><label for="cdaq">cdaq</label>
+	    <input type=radio name=setup value=minidaq id=minidaq onclick="console.log('minidaq!');" ><label for="minidaq">minidaq</label>
+	    <input type=radio name=setup value=dv id=dv><label for="dv">daqval</label>
+	  </div>
+    </form>
+  <div id=mdbu style="display:none">minidaq BU: <input name=minidaqbu id=minidaqbu></input></div>
+  </div>
+</div>
+
+
+
+<table class='pure-table'>
+<!--<tr><th> &nbsp; Cluster command 1 </th><th> &nbsp; Cluster command 2 </th><th> &nbsp; Cluster command 3 </th></tr>-->
+<tr>
+<td><div id="herod" title="kills all run processes in and restores all (non-cloud) resources to idle state" class="round-button" style="width:150px"><div class="round-button-circle" onclick="console.log('clicked...')">
+<a class="round-button" onclick="runcmd('herod')" id="herodbtn">HEROD <i class='fa fa-wrench'></i></a></a>
+<a class="round-button" id="herodbtnrunning" hide>running...</a></div></div></td>
+<td><div title="deletes ramdisk and output content on BU after which Herod is executed" id="tsunami" class="round-button" style="width:150px"><div class="round-button-circle" onclick="console.log('clicked...')">
+<a class="round-button" onclick="runcmd('tsunami')" id="tsunamibtn">TSUNAMI <i class='fa fa-life-ring'></i></a>
+<a class="round-button" id="tsunamibtnrunning" hide>running...</a></div></div></td>
+<td><div title="restarts hltd service in appliances" id="restart" class="round-button" style="width:150px"><div class="round-button-circle" onclick="console.log('clicked...')">
+<a class="round-button" onclick="runcmd('restart')" id="restartbtn">RESTART <i class='fa fa-cog'></i></a></a>
+<a class="round-button" id="restartbtnrunning" hide>running...</a></div></div></td>
+</tr>
+</table>
+<!--</tr></table>-->
+<br>
+Resources:
+<table class='pure-table'>
+  <tr>
+    <th>idles</th>
+    <th>used</th>
+    <th>crashed</th>
+    <th>quarantined</th>
+    <th>cloud</th>
+    <th>ramdisk</th>
+    <th>runs</th>
+  <tr>
+    <td id="idles"></td>
+    <td id="used"></td>
+    <td id="broken"></td>
+    <td id="quarantined"></td>
+    <td id="cloud"></td>
+    <td id="ramdisk"></td>
+    <td id="runs"></td>
+</tr>
+</body>
