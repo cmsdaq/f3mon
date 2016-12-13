@@ -11,8 +11,6 @@ var elasticsearch = require('elasticsearch');
 var heapdump = require('heapdump');
 //var memwatch = require('memwatch');
 
-var access_logging=false;
-
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
 var serverPort = 3002;
@@ -20,6 +18,7 @@ if (process.argv[2]!=null){
 	serverPort = process.argv[2];
 }
 global.serverPort = serverPort;
+
 var owner=process.argv[3];
 
 global.verbose = process.argv[4]|0;
@@ -36,6 +35,7 @@ var app = express();
 var path = require('path')
 var fs = require('fs');
 
+var access_logging=false;
 if (access_logging) {
   console.log('configuring morgan express logging')
   var morgan = require('morgan')
@@ -51,32 +51,43 @@ if (access_logging) {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-//session setup
-var session = session({secret: 'higgs boson CMS 2012',resave:true,saveUninitialized:false});
-app.use(session);//always use
 
-//authentication
-var pam = require('authenticate-pam');
-var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
+var priv_access=false;
+var override_secure=false;
+//based on instance port
+if  (serverPort==8080 || serverPort==8040 || override_secure) priv_access=true;
 
-//register passport only for links requiring auth
-var priviledged_all = ['/priv.html','/sc/testplot.html','/sc/php_priv','/login'];
-app.use(priviledged_all,passport.initialize());
-app.use(priviledged_all,passport.session());
+if  (priv_access) {
+  var secure_accesslog_FS = fs.openSync('./secure_access.log', 'a+');
+  var access_pwd_token = require('./pwd_token')
+  //session setup
+  //var session = session({secret: 'higgs boson CMS 2012',resave:true,saveUninitialized:false});
+  var session = session({secret: access_pwd_token.password,resave:true,saveUninitialized:false});
+  app.use(session);//always use
 
-//priviledged areas
-var priviledged = ['/priv.html','/sc/testplot.html'];
-app.use(priviledged,function(req, res, next) {
-    if (!req.user) res.redirect('/login.html');
+  //authentication
+  var pam = require('authenticate-pam');
+  var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
+
+  //register passport only for links requiring auth
+  var privileged_all = ['/sc','/login'];
+  app.use(privileged_all,passport.initialize());
+  app.use(privileged_all,passport.session());
+
+  //privileged areas
+  var privileged = ['/sc'];
+  app.use(privileged,function(req, res, next) {
+    if (!req.user && req._parsedUrl.path.startsWith('/sc/php'))  res.status(403).send("Forbidden. Please log in.");
+    else if (!req.user) res.redirect('/login.html');
     else next();
-});
+  });
 
-app.use('/sc/php_priv',function(req, res, next) {
+  app.use('/sc/php_priv',function(req, res, next) {
     if (!req.user) res.status(403).send("Forbidden. Please log in.");
     else {
-      console.log(req.path)
-      console.log(req.pathname)
-      console.log('priviledged access user:'+req.user.id + ' from:' + req.connection.remoteAddress + ' path:/sc/php_priv'+req._parsedUrl.path)
+      var msgaccess = 'privileged access user:'+req.user.id + ' from:' + req.connection.remoteAddress + ' path:/sc/php_priv'+req._parsedUrl.path; 
+      //console.log(msgaccess)
+      fs.writeSync(secure_accesslog_FS,'['+(new Date().toISOString())+'] '+ msgaccess+"\n");
       //var cache1 = []
       /*console.log(
       JSON.stringify(req, function(key, value) {
@@ -93,51 +104,78 @@ app.use('/sc/php_priv',function(req, res, next) {
       //console.log(''+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+'
       next();
     }
-});
+  });
+}
 
-//old web
+//old web and php
 app.use("/sctest",php.cgi("web/ecd/sctest"));
 app.use("/sc/php",php.cgi("web/sc/php"));
-app.use("/sc/php_priv",php.cgi("web/sc/php_priv"));
+
+if (priv_access) {
+  app.use("/sc/php_priv",php.cgi("web/sc/php_priv"));
+}
+
 app.use("/ecd",php.cgi("web/ecd/ecd"));
 app.use("/ecd-allmicrostates",php.cgi("web/ecd/ecd-allmicrostates"));
 
 //static content!
 app.use(express.static('web'));
 
-//injection/comparision of session user id
-passport.serializeUser(function(user, done) {
-  console.log('serialized '+user.id)
-  done(null, user.id); 
-});
+var exec = require('child_process').exec;
 
-passport.deserializeUser(function(id, done) {
-  done(null, {"id":id});
-});
+if (priv_access) {
+  //injection/comparision of session user id
+  passport.serializeUser(function(user, done) {
+    console.log('serialized '+user.id)
+    done(null, user.id); 
+  });
 
-//configure pasport auth mode
-passport.use(new LocalStrategy(
-  function(username, password, done) {
-    //PAM deliberately takes time if password is incorrect
-    pam.authenticate(username, password, function(err) {
-      if (err) done(null, false, { message: 'Incorrect username or password' });
-      else {
-        console.log('authenticated ' + username)
-        done(null, {id:username});
-      }
+  passport.deserializeUser(function(id, done) {
+    done(null, {"id":id});
+  });
+
+  //configure pasport auth mode
+  passport.use(new LocalStrategy(
+    function(username, password, done) {
+      var execg = exec('groups '+ username, function (error, stdout, stderr) {
+        var required_grp = 'daqoncall'
+        var found_grp = false;
+        var user_groups = stdout.substring(stdout.indexOf(':'),stdout.length).split(' ')
+        user_groups.forEach(function(grp) {
+          if (grp===required_grp) found_grp=true;
+        });
+        if (!found_grp) {
+          var errmsg = 'user '+username+' is not member of group '+required_grp+'. Logon denied.';
+          console.log(errmsg);
+          fs.writeSync(secure_accesslog_FS,'['+(new Date().toISOString())+'] '+ errmsg+"\n");
+          done(null, false, { message: errmsg });
+        }
+        else {
+          //PAM deliberately takes time if password is incorrect
+          pam.authenticate(username, password, function(err) {
+            if (err) done(null, false, { message: 'Incorrect username or password' });
+            else {
+              console.log('authenticated ' + username)
+              fs.writeSync(secure_accesslog_FS,'['+(new Date().toISOString())+'] '+ 'authenticated ' + username+"\n");
+              done(null, {id:username});
+            }
+          });
+        }
+      });
     })
-  })
-);
+  );
 
-//login route
-app.post('/login',
-  passport.authenticate('local', { successRedirect: '/priv.html',
-                                   failureRedirect: '/login.html#err',
-                                   failureFlash: false })
-);
+  //login route
+  app.post('/login',
+    passport.authenticate('local', { successRedirect: '/index.html',
+                                     failureRedirect: '/login.html#err',
+                                     failureFlash: false })
+  );
 
-//login redirect if reloaded from browser(GET)
-app.get('/login',function(req,res) {res.redirect('/login.html')});
+  //login redirect if reloaded from browser(GET)
+  app.get('/login',function(req,res) {res.redirect('/login.html')});
+
+}
 
 //4.setup elasticsearch client
 var ESServer = 'localhost';  //set in each deployment, if using a different ES service
