@@ -21,6 +21,7 @@ Common.prototype.exCb = function(res,error,requestKey){
     var msg = 'Internal Server Error (Callback Syntax Error).\nMsg:\n'+error.stack;
     console.log(error.stack)
     res.status(500).send(msg);
+    if (!global.cacheExists) return;
 
     var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending) {
@@ -37,6 +38,7 @@ Common.prototype.excpEscES = function(res,error,requestKey){
     //message can be augmented with info from error
     var msg = 'Internal Server Error (Elasticsearch query error during the request execution, expert should seek further info in the logs). Msg:'+error.message;
     res.status(500).send(msg);
+    if (!global.cacheExists) return;
 
     var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending) {
@@ -53,6 +55,7 @@ Common.prototype.excpEscOracle = function(res,error,requestKey){
     //message can be augmented with info from error
     var msg = 'Internal Server Error (Oracle DB query error during the request execution, an admin should seek further info in the logs). Msg:'+ JSON.stringify(error);
     res.status(500).send(msg);
+    if (!global.cacheExists) return;
 
     var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending) {
@@ -105,7 +108,7 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
       if (tookSec>ttl && tookSec<ttl*4) usettl+=tookSec;
     }
     responseObject = JSON.stringify(obj);//need to serialize of object is not cached
-    if (global.useCaches)
+    if (global.useCaches && global.cacheExists)
       global.f3MonCache.set(requestKey, [responseObject,usettl], usettl);
     if (this.verbose) console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }
@@ -124,7 +127,7 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
   var _this = this;
 
   //send pending items
-  if (!cached) {
+  if (!cached && global.cacheExists) {
     var cachedPending = global.f3MonCacheTer.get(requestKey);
     if (cachedPending !== undefined) {
       //console.log('responding to cached pending requests...')
@@ -148,7 +151,7 @@ Common.prototype.putInPendingCache = function(replyCache,requestKey,ttl) {
 }
 
 Common.prototype.respondFromCache = function(req,res,cb,eTime,requestKey,qname,ttl) {
-
+    if (!global.cacheExists) return false;
     var requestValue = global.f3MonCache.get(requestKey);
     var pending=false
     if (requestValue=="requestPending"){

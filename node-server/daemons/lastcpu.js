@@ -79,7 +79,8 @@ function runf(){
 
     res.on('end', function(){
       var adata = JSON.parse(body)
-      console.log('run ' + adata.runNumber)
+      if (adata.runNumber!==undefined)
+        console.log('run ' + adata.runNumber)
 
       //reset on rn change
       if (lastrun===undefined || lastrun!=adata.runNumber) clean();
@@ -187,7 +188,7 @@ var parse_cpu_avg = function(data,run,cb) {
     if (q_array.length) {
       var q_string = q_array[0];
       q_array = q_array.splice(1);
-      console.log('executing query:'+q_string)
+      if (verbose) console.log('executing query:'+q_string)
       if (testing) runQuery(q_array,qlen);
       else conn.execute(q_string,  function(err, result) {
         if (err) { console.error(err.message); process.exit(21); }

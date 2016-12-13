@@ -18,9 +18,13 @@ if len(sys.argv)>1:
 #not running on 3 hosts to avoid this script running at the same time on all 4 hosts
 host =  os.uname()[1]
 ipstr = socket.gethostbyname(host)
-threshold = 0.82
+#threshold = 0.82
 
-sleepPeriod = 3600 #1 hour check periods
+max_age_initial=720
+max_age=max_age_initial
+
+#sleepPeriod = 3600 #1 hour check periods
+sleepPeriod = 1800 #1 hour check periods
 
 res = requests.get('http://es-local.cms:9200/_cluster/health')
 cluster_name=json.loads(res.content)["cluster_name"]
@@ -42,7 +46,14 @@ while True:
   print "\n",current_time.isoformat()
   res = requests.get('http://es-local.cms:9200/_cluster/stats')
   jsres = json.loads(res.content)
-  d_frac = 1. - 1.*jsres['nodes']['fs']['free_in_bytes']/jsres['nodes']['fs']['total_in_bytes']
+  d_frac = 1. - (1.*jsres['nodes']['fs']['free_in_bytes'])/jsres['nodes']['fs']['total_in_bytes']
+  #if occupancy_fraction is too high, reduce
+  if d_frac>0.9:
+    print "fraction",d_frac,":","new max_age:",max_age*0.95
+    max_age=int(max_age*0.95)
+  elif max_age!=max_age_initial:
+    print "fraction",d_frac,": resetting to max age ",max_age_initial
+    max_age=max_age_initial
 
   closed_indices={}
   res = requests.get('http://es-local.cms:9200/_cat/indices')
@@ -60,27 +71,31 @@ while True:
         else: closed_indices[system]=[rn]
 
   print d_frac
-  for sys in closed_indices:
-    print sys,len(sorted(closed_indices[sys]))
-    mylen = len(closed_indices[sys])
+  for syst in closed_indices:
+    print syst,len(sorted(closed_indices[syst]))
+    mylen = len(closed_indices[syst])
     #if d_frac > threshold:
     delete_count = 0 
-    for r in closed_indices[sys]:
-      index = 'run'+str(r)+'_'+sys
-      res = requests.post('http://es-cdaq.cms:9200/runindex_'+sys+'/run/_search','{query:{term:{runNumber:'+str(r)+'}},sort:{endTime:"asc"}}')
+    for r in closed_indices[syst]:
+      index = 'run'+str(r)+'_'+syst
+      res = requests.post('http://es-cdaq.cms:9200/runindex_'+syst+'*/run/_search','{query:{term:{runNumber:'+str(r)+'}},sort:{endTime:"asc"}}')
       resj = json.loads(res.content)['hits']['hits']
       #print resj
       if not len(resj):
-        print "nothing to delete"
+        pass
+        #print "nothing to delete"
       else:
         age = int(round((time.time() - resj[0]['sort'][0]/1000.)/3600.))
-        if age>720 or (sys=='dv' and age>72): #1 month!
-	  print "run"+str(r)+"_"+sys,age,"hours: deleting index!"
+        if age>max_age or (syst=='dv' and age>72): #1 month!
+	  print "run"+str(r)+"_"+syst,age,"hours: deleting index!"
           res = requests.delete('http://es-local.cms:9200/'+index,timeout=30)
 	  print "result:",res.content
           time.sleep((1+int(math.sqrt(delete_count)))/4.)
           delete_count+=1
+    print "deleted",syst,":",delete_count
+      
 
+  sys.stdout.flush()
   if not doc_id:break
   else:time.sleep(sleepPeriod)
     

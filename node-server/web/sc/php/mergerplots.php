@@ -1,6 +1,7 @@
 <?php 
 include 'jsonDecode.php';
 $setup = $_GET["setup"];
+if ($setup=="cdaq") $setup="cdaq*";
 $run = 0;
 $run = $_GET["run"];
 $xaxis = 'ls';

@@ -3,6 +3,13 @@
 var Common = require('./esCommon');
 module.exports = new Common()
 
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+      position = position || 0;
+      return this.substr(position, searchString.length) === searchString;
+  };
+}
+
 module.exports.query = function (req, res) {
 
     var took = 0;
@@ -365,7 +372,8 @@ module.exports.query = function (req, res) {
   }
 
 
-var inputStateLegend =["Ignore","Init","WaitInput","NewLumi","RunEnd","ProcessingFile","WaitChunk","ChunkReceived",
+var inputStateLegend =[
+     ["Ignore","Init","WaitInput","NewLumi","RunEnd","ProcessingFile","WaitChunk","ChunkReceived",
      "ChecksumEvent","CachedEvent","ReadEvent","ReadCleanup","NoRequest","NoRequestWithIdleThreads",
      "NoRequestWithIdleAndEoLThreads","NoRequestWithGlobalEoL","NoRequestWithAllEoLThreads","NoRequestWithEoLThreads",
      "SupFileLimit", "SupWaitFreeChunk","SupWaitFreeChunkCopying", "SupWaitFreeThread","SupWaitFreeThreadCopying",
@@ -379,7 +387,25 @@ var inputStateLegend =["Ignore","Init","WaitInput","NewLumi","RunEnd","Processin
      "WaitChunk_fileLimit","WaitChunk_waitFreeChunk","WaitChunk_waitFreeChunkCopying","WaitChunk_waitFreeThread","WaitChunk_waitFreeThreadCopying",
      "WaitChunk_busy","WaitChunk_lockPolling","WaitChunk_lockPollingCopying","WaitChunk_runEnd",
      "WaitChunk_noFile","WaitChunk_newFile","WaitChunk_newFileWaitThreadCopying","WaitChunk_newFileWaitThread",
-     "WaitChunk_newFileWaitChunkCopying","WaitChunk_newFileWaitChunk"];
+     "WaitChunk_newFileWaitChunkCopying","WaitChunk_newFileWaitChunk"]
+
+     ,["Ignore","Init","WaitInput","NewLumi","NewLumiBusyEndingLS","NewLumiIdleEndingLS","RunEnd","ProcessingFile","WaitChunk","ChunkReceived",
+     "ChecksumEvent","CachedEvent","ReadEvent","ReadCleanup","NoRequest","NoRequestWithIdleThreads",
+     "NoRequestWithGlobalEoL","NoRequestWithEoLThreads",
+     "SupFileLimit", "SupWaitFreeChunk","SupWaitFreeChunkCopying", "SupWaitFreeThread","SupWaitFreeThreadCopying",
+     "SupBusy", "SupLockPolling","SupLockPollingCopying",
+     "SupNoFile", "SupNewFile", "SupNewFileWaitThreadCopying", "SupNewFileWaitThread",
+     "SupNewFileWaitChunkCopying", "SupNewFileWaitChunk",
+     "WaitInput_fileLimit","WaitInput_waitFreeChunk","WaitInput_waitFreeChunkCopying","WaitInput_waitFreeThread","WaitInput_waitFreeThreadCopying",
+     "WaitInput_busy","WaitInput_lockPolling","WaitInput_lockPollingCopying","WaitInput_runEnd",
+     "WaitInput_noFile","WaitInput_newFile","WaitInput_newFileWaitThreadCopying","WaitInput_newFileWaitThread",
+     "WaitInput_newFileWaitChunkCopying","WaitInput_newFileWaitChunk",
+     "WaitChunk_fileLimit","WaitChunk_waitFreeChunk","WaitChunk_waitFreeChunkCopying","WaitChunk_waitFreeThread","WaitChunk_waitFreeThreadCopying",
+     "WaitChunk_busy","WaitChunk_lockPolling","WaitChunk_lockPollingCopying","WaitChunk_runEnd",
+     "WaitChunk_noFile","WaitChunk_newFile","WaitChunk_newFileWaitThreadCopying","WaitChunk_newFileWaitThread",
+     "WaitChunk_newFileWaitChunkCopying","WaitChunk_newFileWaitChunk"]
+     ];
+
 
 
 module.exports.queryInput = function (req, res) {
@@ -410,6 +436,9 @@ module.exports.queryInput = function (req, res) {
     else {qparam_numIntervals = parseInt(req.query.numIntervals);}
     if (qparam_format===null) qparam_format='hc'
 
+    var legendVersion=0;
+    if (qparam_sysName=="dv" && qparam_runNumber>=1000023589) legendVersion=1;
+    if (qparam_sysName.startsWith("cdaq") && qparam_runNumber>=284094) legendVersion=1;
 
     if (qparam_timeRange == null){qparam_timeRange = "302";}
     if (qparam_maxTime == null){qparam_maxTime = "now-2s";}
@@ -568,11 +597,12 @@ module.exports.queryInput = function (req, res) {
 
 	        for (var index=0;index<entries.length;index++) {
                   var ukey = entries[index].key;
-                  var name = inputStateLegend[ukey];
+                  var name = inputStateLegend[legendVersion][ukey];
                   //if (name.startsWith('Sup')) continue;
                   //console.log( ' name: ' + name + ' ' + value)
 	          var value = entries[index].counts.value;
-                  if (ukey==0) value=0;//override \ignore' entries
+                  if (legendVersion<1)
+                    if (ukey==0) value=0;//override \ignore' entries //only v0
                   //console.log('ukey' + name +' '+ value)
                   if (hcformat) {
                     retObj.data[name][entrycnt-1][1] = value;
@@ -602,14 +632,14 @@ module.exports.queryInput = function (req, res) {
     var q2 = function() {
       if (hcformat) {
         retObj.data = {};
-        inputStateLegend.forEach(function (item) {
+        inputStateLegend[legendVersion].forEach(function (item) {
           //if (item.startsWith('Sup')) return;
 	  retObj.data[item] = [];
         });
       }
       else {
         retObj.data=[]
-        inputStateLegend.forEach(function (item) {
+        inputStateLegend[legendVersion].forEach(function (item) {
           //if (item.startsWith('Sup')) return;
           idxmap[item]=retObj.data.length;
           retObj.data.push({key:item,values:[]})

@@ -88,7 +88,9 @@ function bootstrap(){
     var timeout_rq;
     var run_iteration = function() {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
-	$.getJSON("api/maxls?runNumber="+$('#runno').val(),function(data) {
+        var mysetup = $('input[name=setup]:checked', '#setups').val();
+        if (mysetup==="cdaq") mysetup="cdaq*";
+        $.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
             $('#maxls').val(data.maxls);

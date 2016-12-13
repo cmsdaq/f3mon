@@ -11,6 +11,7 @@ var instance = global.serverPort==80 ? 'prod': serverPort=='4000' ? 'test' : 'de
 var tests=false ; // false
 
 var cachestatslogger = function (){
+  if (!global.cacheExists) return;
   var outObj = {
     "time" : new Date().toUTCString(),
     "stats" : global.f3MonCache.getStats(),

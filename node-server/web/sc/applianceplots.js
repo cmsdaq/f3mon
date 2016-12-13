@@ -63,10 +63,12 @@ function bootstrap(){
             if ($('#runno').val()=="") {
               console.log('emptyrun!');
               location.hash='';
-              $.getJSON("api/runInfo?sysName="+$('input[name=setup]:checked', '#setups').val()+"&activeRuns=true",function(adata){
+              var mysetup = $('input[name=setup]:checked', '#setups').val();
+              if (mysetup==="cdaq") mysetup="cdaq*";//pA and pp
+              $.getJSON("api/runInfo?sysName="+mysetup+"&activeRuns=true",function(adata){
 	        if (adata.runNumber && !isNaN(run = parseInt(adata.runNumber))) {
                   document.title = 'run ' + adata.runNumber;
-	          $.getJSON("api/maxls?runNumber="+adata.runNumber,function(bdata) {
+                  $.getJSON("api/maxls?runNumber="+adata.runNumber+"&setup="+mysetup,function(bdata) {
                     doPlots(adata.runNumber,1,bdata.maxls,$('#fullrun').is(':checked'));
                   });
 	          $("#loading_dialog").loading();
@@ -87,7 +89,9 @@ function bootstrap(){
     var timeout_rq;
     var run_iteration = function(cb) {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
-	$.getJSON("api/maxls?runNumber="+$('#runno').val(),function(data) {
+        var mysetup = $('input[name=setup]:checked', '#setups').val();
+        if (mysetup==="cdaq") mysetup="cdaq*";
+        $.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
             $('#maxls').val(data.maxls);
@@ -261,7 +265,7 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
                   data["fuetimels"][1].data = datavec;
                   data["fuetimels2"]=[];
                   //for (var j=0;j<data["fuetimelsres"].length;j++) {
-                  for (var j=0;j<data["fuetimelsresls"].length;j++) {
+                  if (data.fuetimelsresls) for (var j=0;j<data["fuetimelsresls"].length;j++) {
                     //console.log('x'  + data["fuetimelsresls"][j].name)
 		    datavec = []
                     //origvec = data["fuetimelsres"][j].data;

@@ -158,7 +158,7 @@ function bootstrap(){
         var checkRun = function(runs) {
           var rn = runs[0];
           runs = runs.splice(1);
-          $.getJSON("api/maxls?runNumber="+rn,function(data) {
+          $.getJSON("api/maxls?runNumber="+rn+"&setup=cdaq*",function(data) {
             if (data.maxls!=null)
               newcache[rn] = [true,true,true,1,data.maxls];
             else
@@ -315,11 +315,28 @@ function doPlots(runs){
 function createPlots() {
 
               var maxpu_plot = 60;
+              var maxpu_2 = 50;
+              var maxpu_3 = 60;
+              var minpu_2 = 20;
+              if ($("#pPb").is(':checked')) {
+                console.log('pb PU limits')
+                maxpu_plot=0.5
+                maxpu_2=0.4
+                maxpu_3=0.5
+                minpu_2=0.01
+              }
               var maxpu =  $('#maxpu').val();
               maxpu_glob = maxpu;
-              if (isNaN(parseInt(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=60; else maxpu=50;} else maxpu=parseInt(maxpu);
-              if (parseInt(maxpu)<20) maxpu=20; else maxpu=parseInt(maxpu);
-              if (!isNaN(parseInt(maxpu))) maxpu_plot=parseInt(maxpu);
+              if (!$("#pPb").is(':checked')) {
+                if (isNaN(parseInt(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=maxpu_3; else maxpu=maxpu_2;} else maxpu=parseInt(maxpu);
+                if (parseInt(maxpu)<minpu_2) maxpu=minpu_2; else maxpu=parseInt(maxpu);
+                if (!isNaN(parseInt(maxpu))) maxpu_plot=parseInt(maxpu);
+              }
+              else {
+                if (isNaN(parseFloat(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=maxpu_3; else maxpu=maxpu_2;} else maxpu=parseFloat(maxpu);
+                if (parseFloat(maxpu)<minpu_2) maxpu=minpu_2; else maxpu=parseFloat(maxpu);
+                if (!isNaN(parseFloat(maxpu))) maxpu_plot=parseFloat(maxpu);
+              }
 
               console.log(JSON.stringify(data_copy.fuetimels))
               if ($("#fitputime").is(':checked')) {
@@ -349,7 +366,7 @@ function createPlots() {
               //maxpu_glob = maxpu;
               //if (isNaN(parseInt(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=60; else maxpu=50;} else maxpu=parseInt(maxpu);
               //if (parseInt(maxpu)<20) maxpu=20; else maxpu=parseInt(maxpu);
-              plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,maxpu,0,0.5);
+              plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,maxpu,0,(!$("#pPb").is(':checked')) ? 0.5:0.8);
               if (method1)
               plot('#plot15','avg event size vs pileup','scatter',data_copy["fuesizels"],'','Pileup','size',undefined,maxpu,undefined,2000000);
               //console.log(minpu1)
@@ -361,7 +378,7 @@ function createPlots() {
               }
 
               if (method1 && !manyruns)
-              plot('#plot14','fu sys avg event time vs pileup','scatter',data_copy2["fuetimels2"],'','Pileup','seconds',undefined,maxpu,0,0.5);
+              plot('#plot14','fu sys avg event time vs pileup','scatter',data_copy2["fuetimels2"],'','Pileup','seconds',undefined,maxpu,0,(!$("#pPb").is(':checked')) ? 0.5:0.8);
               //plot('#plot14','fu sys avg event time vs pileup','scatter',data["fuetimels2"],'','Pileup','seconds',undefined,50,0,0.5);
 	      $("#loading_dialog").loading("loadStop");
 	      $('#plots').show();
@@ -389,6 +406,10 @@ function doPlot(runlist) {
       lspart = "&minls="+runinfo[3]+"&maxls="+runinfo[4];
     }
     $.getJSON("php/lumi.php?run="+run,function(datadb){
+
+      var min_puval = 1.;
+      if ($("#pPb").is(':checked')) min_puval=0.01;
+
       $('#fill').html(datadb.fill.data);
       plot('#plot1a','pileup vs ls','scatter',datadb["plumi1"]);//? needs to be plotted??
       //console.log(JSON.stringify(datadb["plumi1"]));
@@ -400,7 +421,7 @@ function doPlot(runlist) {
         //datadb["plumi1"][0].data.forEach(function(item) {
           item = datadb["plumi1"][0].data[j];
           var stable = datadb["run"][1].data[j];//stable beams
-          if (stable && item[1]>minpu && item[1]>1.)//min PU value shown
+          if (stable && item[1]>minpu && item[1]>min_puval)//min PU value shown
             {
              var ismasked=false;
              pumask.forEach(function(maskitm){if (item[1]>=maskitm[0] && item[1]<maskitm[1]) ismasked=true;});
@@ -541,6 +562,7 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
     xaxis = typeof xaxis !== 'undefined' ? xaxis : '';
     xtitle = typeof xtitle !== 'undefined' ? xtitle : 'LS';
     ytitle = typeof ytitle !== 'undefined' ? ytitle : 'A.U.';
+    var tick = !$("#pPb").is(':checked') ?  2 : 0.02;
     plottype = type;
     plotoptions = type == 'scatter' ? {
 	column: {
@@ -592,7 +614,7 @@ function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax) {
 	    plotOptions: plotoptions,
 	    xAxis: {
 		type: xaxis,
-	        tickInterval: 2,
+	        tickInterval: tick,
 		title : {text : xtitle}
 	    },
 	    yAxis: {

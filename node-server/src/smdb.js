@@ -7,7 +7,12 @@ oracledb.maxRows = 50000; //approx 2000 lumis x 25 streams
 var Common = require('./esCommon');
 module.exports = new Common()
 
-
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position){
+      position = position || 0;
+      return this.substr(position, searchString.length) === searchString;
+  };
+}
 
 //obsolete, will be migrated to esCommon functions
 //escapes client hanging upon an ES request error by sending http 500
@@ -351,7 +356,7 @@ module.exports.runPPquery = function (req, res) {
   var buprefix="";
   if (setup === "minidaq") setup="cdaq";//same db
 
-  if (setup==="cdaq" || setup==="minidaq") {setuptag='DAQ2';fuprefix='fu-%';buprefix='bu-%'}
+  if (setup.startsWith("cdaq") || setup==="minidaq") {setuptag='DAQ2';fuprefix='fu-%';buprefix='bu-%'}
   if (setup==="dv") {setuptag='DAQ2VAL';fuprefix='dvrubu-%';buprefix='dvbu-%'}
 
   var cb = req.query.cb;//angular callback (optional)

@@ -704,7 +704,8 @@ module.exports.query = function (req, res) {
 			"color" : color,
                         "err":err>0
 		};
-		micromerge.percents.push(entry);
+                if (nStreamsMicro>0) //streams must be present
+		  micromerge.percents.push(entry);
         }
 
 	retObj.streams = streamData;

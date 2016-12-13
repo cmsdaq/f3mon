@@ -11,6 +11,8 @@ var elasticsearch = require('elasticsearch');
 var heapdump = require('heapdump');
 //var memwatch = require('memwatch');
 
+var access_logging=false;
+
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
 var serverPort = 3002;
@@ -30,6 +32,21 @@ http.globalAgent.maxSockets=Infinity;
 //3.init web content plugin
 var app = express();
 
+//access logging (debug feature)
+var path = require('path')
+var fs = require('fs');
+
+if (access_logging) {
+  console.log('configuring morgan express logging')
+  var morgan = require('morgan')
+  morgan.token('date', function () {
+    return new Date().toISOString()
+  })
+  //var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access_'+serverPort+'.log'), {flags: 'a'})
+  var accessLogStream = fs.createWriteStream('/tmp/access_'+serverPort+'.log', {flags: 'a'})
+  app.use(morgan(('short :date[iso]', {stream: accessLogStream})))
+}
+
 //post text decoding (for login screen)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -43,7 +60,7 @@ var pam = require('authenticate-pam');
 var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
 
 //register passport only for links requiring auth
-var priviledged_all = ['/priv.html','/sc/testplot.html','sc/php_priv','/login'];
+var priviledged_all = ['/priv.html','/sc/testplot.html','/sc/php_priv','/login'];
 app.use(priviledged_all,passport.initialize());
 app.use(priviledged_all,passport.session());
 
@@ -54,9 +71,28 @@ app.use(priviledged,function(req, res, next) {
     else next();
 });
 
-app.use('sc/php_priv',function(req, res, next) {
+app.use('/sc/php_priv',function(req, res, next) {
     if (!req.user) res.status(403).send("Forbidden. Please log in.");
-    else next();
+    else {
+      console.log(req.path)
+      console.log(req.pathname)
+      console.log('priviledged access user:'+req.user.id + ' from:' + req.connection.remoteAddress + ' path:/sc/php_priv'+req._parsedUrl.path)
+      //var cache1 = []
+      /*console.log(
+      JSON.stringify(req, function(key, value) {
+        if (typeof value === 'object' && value !== null) {
+          if (cache1.indexOf(value) !== -1) {
+            // Circular reference found, discard key
+            return;
+          }
+            // Store value in our collection
+          cache1.push(value);
+        }
+        return value;
+      }))*/
+      //console.log(''+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+'
+      next();
+    }
 });
 
 //old web
@@ -132,7 +168,7 @@ global.clientESlocal = new elasticsearch.Client({
 
 
 //5.redirecting console log to a file
-var fs = require('fs');
+//var fs = require('fs');
 var util = require('util');
 var log_file = fs.createWriteStream('./console.log', {flags : 'a'});
 var log_stdout = process.stdout;
@@ -216,7 +252,12 @@ initializeQueries(); //load query declarations in memory for faster access
 //if get(key) does not return 'undefined', then it returns the cached response
 //any response, either cached or fresh, should be sent back including the *current* request's cb code (so NEVER cache the cb variable) 
 
+
+//must be statically set in the code
+global.cacheExists = true;
+
 //9.cache init
+if (global.cacheExists) {
 var NodeCache = require('node-cache');
 //use
 global.f3MonCache = new NodeCache({checkperiod: 0.55}); //global cache container
@@ -242,6 +283,8 @@ f3MonCacheTer.on("expired", function(key,obj){
           item.res.status(500).send("No query reply received");
         });
 });
+
+}
 
 //ttls per type of request in seconds (this can also be loaded from a file instead of hardcoding)
 global.ttls = getQuery("ttls.json").ttls;
@@ -281,7 +324,9 @@ app.get('/heap', function (req, res) {
   res.send("HEAP dump done:"+filename);
 });
 
+//can be toggled on the fly
 global.useCaches = true;
+
 
 app.get('/togglecaching', function (req, res) {
   res.send("call on caching flag: "+global.useCaches + " ; new setting:"+!global.useCaches);
@@ -495,6 +540,13 @@ var server = app.listen(serverPort, function () {
 
  });
 
+process.on('SIGTERM', function () {
+  setTimeout(function () {console.log('server drain timeout'); process.exit(0);},8000);
+  server.close(function () {
+    console.log('server drained')
+    process.exit(0);
+  });
+});
 
 //12. start cache state logging
 var statsLogger =  require('./src/statsLogger');
