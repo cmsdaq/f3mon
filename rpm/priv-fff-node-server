@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# priv-fff-node-server        Startup script for the Node.js FFF monitor servlet
+#
+# chkconfig: - 81 19
+# description: Node.js FFF monitor servlet priviledged
+# processname: node.priv
+# pidfile: /var/run/priv-fff-node-server.pid
+#
+### BEGIN INIT INFO
+# Provides: priv-fff-node-server
+# Required-Start: $local_fs $remote_fs $network $named
+# Required-Stop: $local_fs $remote_fs $network
+# Short-Description: start and stop Node3.js FFF monitor servlet (priv)
+# Description: Node.js FFF monitor servlet (priv) 
+### END INIT INFO
+
+#### BEGIN INIT INFO
+## Provides:          node-service
+## Required-Start:    $local_fs $remote_fs $network
+## Required-Stop:     $local_fs $remote_fs $network
+## Default-Start:     2 3 4 5
+## Default-Stop:      0 1 6
+## Short-Description: Start/stop node-service
+#### END INIT INFO
+
+/etc/init.d/fff-node-server $1 priv
+
