@@ -4,8 +4,9 @@
     "bool": {
       "must": [
         {
-          "term": {
-            "_parent": 0
+          "parent_id": {
+            "type":""
+            "id": 0
           }
         },
         {

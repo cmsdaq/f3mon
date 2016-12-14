@@ -409,7 +409,7 @@ module.exports.teols = function (req, res) {
 
       var queryJSON = {
         "size":0,
-        "query":{"bool":{"must":[{"term":{"_parent":qparam_runNumber}}]}},
+        "query":{"parent_id":{"type":"eols","id":qparam_runNumber}},
         "aggregations":{
           "maxls":{
             "max":{"field":"ls"}
@@ -438,7 +438,7 @@ module.exports.teols = function (req, res) {
 
       var queryJSON = {
         "size":0,
-        "query":{"bool":{"must":[{"term":{"_parent":qparam_runNumber}}]}},
+        "query":{"parent_id":{"type":"stream-hist","id":qparam_runNumber}},
         "aggregations":{
           "streams":{
             "terms":{"field":"stream","size":0},
@@ -520,7 +520,7 @@ module.exports.maxls = function (req, res) {
 
       var queryJSON = {
         "size":0,
-        "query":{"bool":{"must":[{"term":{"_parent":qparam_runNumber}}]}},
+        "query":{"parent_id":{"type":"eols","id":qparam_runNumber}},
         "aggregations":{
           "maxls":{
             "max":{"field":"ls"}

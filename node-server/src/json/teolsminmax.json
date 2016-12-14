@@ -15,8 +15,9 @@
         }
       ],
       "must":{
-        "term": {
-          "_parent":0
+        "parent_id": {
+          "type":"eols"
+          "id":0
         }
       },
       "minimum_should_match" : 1

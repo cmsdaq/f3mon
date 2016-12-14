@@ -70,11 +70,11 @@ $minmaxavg = "max";
 if ($interval>1) $minmaxavg="avg";
 
 if($streamTo){
-  //$data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}, ,"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}}}}  }}';
-  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
+  //$data = '{"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}, ,"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}}}}  }}';
+  $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 
 }else{
-  $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
+  $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":'.$run.'}}'.$lsterm.']}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -103,10 +103,10 @@ foreach ($res["aggregations"]["lss"]["buckets"] as $ls){
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search?size=0';
 if($streamTo){
- $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
+ $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
 }
 else {
- $data = '{"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
+ $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -358,7 +358,7 @@ if($xaxis=='size'){
 
 $interval = max(5,$interval);
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search';
-$data = '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":'.$run.'}}'.$lsterm.']}},'.
+$data = '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}}'.$lsterm.']}},'.
 '"aggs":{'.
 '"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},'.
 '"aggs":{"size":{"sum":{"field":"filesize"}},'.

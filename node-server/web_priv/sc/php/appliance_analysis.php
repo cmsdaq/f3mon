@@ -46,7 +46,7 @@ $mints=0;
 $maxts=0;
 if ($minls && $maxls) {
   $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';//&size=5000';
-  $data =  '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -68,9 +68,9 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 
 if ($minls && $maxls)
-  $data =  '{"size":100000,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
+  $data =  '{"size":100000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
 else {
-  $data =  '{"size":100000,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}}]}}}';
+  $data =  '{"size":100000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}}';
 }
 
 //echo $url." -d'".$data."'\n";

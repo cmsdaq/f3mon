@@ -16,8 +16,9 @@
               }
            },
            {
-              "term": {
-                 "_parent": "290011"
+              "parent_id": {
+                 "type": "eols"
+                 "id": 290011
               }
            }
          ]

@@ -7,7 +7,7 @@ $crl = curl_init();
 $timeout = 5;
 $hostname = php_uname('n');
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?size=10';
-$data = '{"sort":{"fm_date":"desc"},"query":{"term":{"_parent":"'.$run.'"}}}';
+$data = '{"sort":{"fm_date":"desc"},"query":{"parent_id":{"type":"eols","id":"'.$run.'"}}}';
 $crl = curl_init();
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);

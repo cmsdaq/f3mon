@@ -25,7 +25,7 @@ module.exports.query = function (req, res) {
     //last LS number
     var q4 = function (){
 
-      _this.queryJSON1.query.term._parent = qparam_runNumber;
+      _this.queryJSON1.query.parent_id.id = qparam_runNumber;
 
       global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
@@ -90,7 +90,7 @@ module.exports.query = function (req, res) {
     //streams
     var q2 = function (){
 
-      _this.queryJSON2.query.term._parent = qparam_runNumber;
+      _this.queryJSON2.query.parent_id.id = qparam_runNumber;
 
       global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',

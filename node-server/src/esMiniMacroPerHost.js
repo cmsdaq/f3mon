@@ -215,7 +215,7 @@ module.exports.query = function (req, res) {
   //Get totals from EoLS
   var q1 = function(callback){
 
-    _this.queryJSON3.query.bool.must[1].term._parent = qparam_runNumber;
+    _this.queryJSON3.query.bool.must[1].parent_id.id = qparam_runNumber;
     _this.queryJSON3.query.bool.must[0].range.ls.from = qparam_from;
     _this.queryJSON3.query.bool.must[0].range.ls.to = qparam_to;
 

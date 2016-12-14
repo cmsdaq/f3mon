@@ -10,8 +10,9 @@
         "date": "desc"
     },
     "query": {
-        "term": {
-                "_parent": 290011
+        "parent_id": {
+                "type": "stream-hist"
+                "id": 290011
         }
     },
     "aggs": {

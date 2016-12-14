@@ -435,7 +435,7 @@ app.get('/f3mon/api/logtable', esLogTable.query.bind(esLogTable));
 
 //callback 11
 var esMicrostates = require('./src/esMicrostates');
-esMicrostates.setup(getQuery("ulegenda.json"),getQuery("aggnstates.json"),getQuery("teolsminmax.json"));
+esMicrostates.setup(null,getQuery("aggnstates.json"),getQuery("teolsminmax.json"));
 app.get('/f3mon/api/nstates-summary', esMicrostates.query.bind(esMicrostates));
 app.get('/f3mon/api/istates-summary', esMicrostates.queryInput.bind(esMicrostates));
 

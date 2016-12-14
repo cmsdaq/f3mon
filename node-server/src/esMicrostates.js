@@ -96,7 +96,7 @@ module.exports.query = function (req, res) {
     //var properties = [];
     var q1 = function() {
 
-      _this.queryJSON3.query.bool.must.term._parent = qparam_runNumber;
+      _this.queryJSON3.query.bool.must.parent_id.id = qparam_runNumber;
       _this.queryJSON3.query.bool.should[0].term.ls = qparam_minLs;
       _this.queryJSON3.query.bool.should[1].term.ls = qparam_maxLs;
       global.client.search({
@@ -125,7 +125,7 @@ module.exports.query = function (req, res) {
 
     //Get legend
     var q2 = function() {
-      _this.queryJSON1.query.term._parent = qparam_runNumber;
+      _this.queryJSON1 = {"size": 1,"query":{"parent_id":{"type":"microstatelegend","id": qparam_runNumber}}}
       //console.log('xxxx'+JSON.stringify(queryJSON1));
 
       global.client.search({
@@ -208,7 +208,8 @@ module.exports.query = function (req, res) {
         _this.queryJSON2.aggs.f.aggs.dt.aggs.entries.aggs.keys.aggs.counts.sum.field = 'hmicro.entries.count'
 
 
-        _this.queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
+        _this.queryJSON2.query.bool.must[0].parent_id.type = ustatetype;
+        _this.queryJSON2.query.bool.must[0].parent_id.id = parseInt(qparam_runNumber);
         //TODO: use fm_date field here..(all remapped documents will contain it)
 
         //elastic 2.2 doesn't support date_histogram interval < 1 sec
@@ -491,7 +492,7 @@ module.exports.queryInput = function (req, res) {
     //var properties = [];
     var q1 = function() {
 
-      _this.queryJSON3.query.bool.must.term._parent = qparam_runNumber;
+      _this.queryJSON3.query.bool.must.parent_id.id = qparam_runNumber;
       _this.queryJSON3.query.bool.should[0].term.ls = qparam_minLs;
       _this.queryJSON3.query.bool.should[1].term.ls = qparam_maxLs;
       global.client.search({
@@ -524,7 +525,9 @@ module.exports.queryInput = function (req, res) {
         _this.queryJSON2.aggs.f.aggs.dt.aggs.entries.aggs.keys.terms.field = 'hinput.entries.key'
         _this.queryJSON2.aggs.f.aggs.dt.aggs.entries.aggs.keys.aggs.counts.sum.field = 'hinput.entries.count'
 
-        _this.queryJSON2.query.bool.must[0].term._parent = parseInt(qparam_runNumber);
+        _this.queryJSON2.query.bool.must[0].parent_id.type = ustatetype;
+        _this.queryJSON2.query.bool.must[0].parent_id.id = parseInt(qparam_runNumber);
+
         //TODO: use fm_date field here..(all remapped documents will contain it)
 
         //elastic 2.2 doesn't support date_histogram interval < 1 sec

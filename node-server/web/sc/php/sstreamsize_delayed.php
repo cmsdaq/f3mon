@@ -9,7 +9,7 @@ $crl = curl_init();
 $timeout = 5;
 $hostname = php_uname('n');
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search?size=1';
-$data = '{"query":{"bool":{"must":[{"wildcard":{"stream":"'.$stream.'"}},{"term":{"ls":'.$ls.'}},{"term":{"completion":1.0}},{"term":{"_parent":'.$run.'}}] }},"sort":{"ls":"desc"},"aggs":{"tot":{"sum":{"field":"filesize"}}}}';
+$data = '{"query":{"bool":{"must":[{"wildcard":{"stream":"'.$stream.'"}},{"term":{"ls":'.$ls.'}},{"term":{"completion":1.0}},{"parent_id":{"type":"stream-hist","id":'.$run.'}}] }},"sort":{"ls":"desc"},"aggs":{"tot":{"sum":{"field":"filesize"}}}}';
 
 $crl = curl_init();
 curl_setopt ($crl, CURLOPT_URL,$url);
