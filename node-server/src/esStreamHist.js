@@ -254,7 +254,10 @@ module.exports.query = function (req, res) {
   //Get macromerge
   var q5 = function (_this){
         var queryJSON1 = _this.queryJSON1;
-        queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
+        //queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
+        queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}} //TODO:reindex !
+        //if (parseInt(qparam_runNumber)>286591))
+        //  queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -277,9 +280,12 @@ module.exports.query = function (req, res) {
           try {
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-                  var fm_date_val = results[0].fields.fm_date[0];
-                  if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
-                  else lastTimes.push(results[0].fields.fm_date[0]);
+                  //var fm_date_val = results[0].fields.fm_date[0];
+                  //if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
+                  //else lastTimes.push(results[0].fields.fm_date[0]);
+                  /*var fm_date_val = results[0]._source.fm_date;//compatibility with old indices
+                  if (fm_date_val < 2000000000) lastTimes.push(results[0]._source.fm_date*1000);
+                  else*/ lastTimes.push(results[0].sort[0]);
 		}
 		took += body.took;
 
@@ -372,7 +378,10 @@ module.exports.query = function (req, res) {
   var q4 = function (_this){
 
         var queryJSON1 = _this.queryJSON1;
-        queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
+        //queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
+        queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}} //TODO:reindex !
+        //if (parseInt(qparam_runNumber)>286591))
+        //  queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -394,9 +403,13 @@ module.exports.query = function (req, res) {
           try {
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-                  var fm_date_val = results[0].fields.fm_date[0];
-                  if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
-                  else lastTimes.push(results[0].fields.fm_date[0]);
+                  //var fm_date_val = results[0].fields.fm_date[0];
+                  //if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
+                  //else lastTimes.push(results[0].fields.fm_date[0]);
+                  /*var fm_date_val = results[0]._source.fm_date;
+                  if (fm_date_val < 2000000000) lastTimes.push(results[0]._source.fm_date*1000);
+                  else*/ lastTimes.push(results[0].sort[0]);
+
 		}
 		took += body.took;
 
@@ -521,7 +534,9 @@ module.exports.query = function (req, res) {
       var results = body.hits.hits; //hits for query
       if (results.length>0){
                 //is unix timestamp
-		lastTimes.push(results[0].fields.date);
+		//lastTimes.push(results[0].fields.date);
+		//lastTimes.push(results[0]._source.date);
+		lastTimes.push(results[0].sort[0]);
       }
       took += body.took;
 	
@@ -740,9 +755,9 @@ module.exports.query = function (req, res) {
     queryJSON3.aggregations.ls.histogram.extended_bounds.min = qparam_from
     queryJSON3.aggregations.ls.histogram.extended_bounds.max = qparam_to;
     queryJSON3.aggregations.ls.histogram.offset = aggOffset; 
-    queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-    queryJSON3.query.filtered.query.range.ls.from = qparam_from;
-    queryJSON3.query.filtered.query.range.ls.to = qparam_to;
+    queryJSON3.query.bool.must[1].parent_id.id = qparam_runNumber;
+    queryJSON3.query.bool.must[0].range.ls.from = qparam_from;
+    queryJSON3.query.bool.must[0].range.ls.to = qparam_to;
     queryJSON3.aggregations.sumbefore.filter.range.ls.to = 0;//not used, taken from previous agg
 
     global.client.search({
@@ -753,8 +768,12 @@ module.exports.query = function (req, res) {
       try {
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
-                var eoltimes = new Date(results[0].fields.fm_date);
-        	lastTimes.push(eoltimes.getTime());
+                //var eoltimes = new Date(results[0].fields.fm_date);
+                //TODO: test sorted time vs timestamp option
+                //var eoltimes = new Date(results[0]._source.fm_date);
+        	//lastTimes.push(eoltimes.getTime());
+                var eoltimes = new Date(results[0].sort[0]);
+        	lastTimes.push(eoltimes);
 	}
 	var buckets = body.aggregations.ls.buckets;
 
@@ -830,9 +849,9 @@ module.exports.query = function (req, res) {
     queryJSON3.aggregations.ls.histogram.offset = 1;
     queryJSON3.aggregations.ls.histogram.extended_bounds.min = 1;
     queryJSON3.aggregations.ls.histogram.extended_bounds.max = nav_to;//qparam_lastLs;
-    queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-    queryJSON3.query.filtered.query.range.ls.from = 1;
-    queryJSON3.query.filtered.query.range.ls.to = nav_to;//qparam_lastLs;
+    queryJSON3.query.bool.must[1].parent_id.id = qparam_runNumber;
+    queryJSON3.query.bool.must[0].range.ls.from = 1;
+    queryJSON3.query.bool.must[0].range.ls.to = nav_to;
     queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
 
     global.client.search({
@@ -843,7 +862,8 @@ module.exports.query = function (req, res) {
       try {
         var results = body.hits.hits; //hits for query
 	if (results.length>0){
-                var eoltimes = new Date(results[0].fields.fm_date);
+                //var eoltimes = new Date(results[0].fields.fm_date);
+                var eoltimes = new Date(results[0]._source.fm_date);
 		lastTimes.push(eoltimes.getTime());
 	}
 	var ret = {

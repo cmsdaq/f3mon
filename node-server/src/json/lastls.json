@@ -2,7 +2,7 @@
   "size": 1,
   "query": {
     "parent_id": {
-      "type": "eols"
+      "type": "eols",
       "id": ""
     }
   },

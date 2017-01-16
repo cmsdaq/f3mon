@@ -1,11 +1,12 @@
 {  "size": 1,
-   "fields": ["fm_date"],
+   "_source": ["fm_date"],
    "sort": {
       "fm_date": "desc"
    },
    "query": {
-      "filtered": {
-         "query": {
+     "bool":{
+       "must": [
+         {
             "range": {
                "ls": {
                   "from": 1,
@@ -13,12 +14,14 @@
                }
             }
          },
-         "filter": {
-                   "prefix": {
-                      "_id": "run290011"
-                  }
+         {
+           "parent_id": {
+             "type":"eols",
+             "id": 290011
+           }
          }
-      }
+       ]
+     }
    },
    "aggs": {
             "events": {

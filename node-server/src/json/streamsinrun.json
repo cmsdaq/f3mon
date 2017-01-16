@@ -2,7 +2,7 @@
   "size": 0,
   "query": {
     "parent_id": {
-      "type":"stream-hist"
+      "type":"stream-hist",
       "id": ""
     }
   },

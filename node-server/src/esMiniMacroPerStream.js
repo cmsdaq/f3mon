@@ -89,11 +89,14 @@ module.exports.query = function (req, res) {
     if (qparam_type==='micromerge') {
       qparam_type='stream-hist';
       queryJSON = _this.queryJSON1;
-      queryJSON.query.bool.must[1].prefix._id = qparam_runNumber;
+      queryJSON.query.bool.must[1] = {"parent_id" : {"type":qparam_type,"id":qparam_runNumber}};
+      //queryJSON.query.bool.must[1] = {"script":{'script':'doc["_u id"].value.startsWith("stream-hist#'+qparam_runNumber+'")'}} //TODO:reindex !
     }
     else {
       queryJSON = _this.queryJSON2;
-      queryJSON.query.bool.must[1].prefix._id = 'run'+qparam_runNumber;
+      queryJSON.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("'+qparam_type+'#run'+qparam_runNumber+'")'}} //TODO:reindex ! minimerge/macromerge
+      //if (parseInt(qparam_runNumber)>286591)
+      //  queryJSON.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
     }
 
     queryJSON.query.bool.must[0].range.ls.from = qparam_from;
@@ -164,9 +167,9 @@ module.exports.query = function (req, res) {
   var q1 = function(){
     streamListArray = qparam_streamList.split(',');
 
-    _this.queryJSON3.query.filtered.filter.prefix._id = 'run'+qparam_runNumber;
-    _this.queryJSON3.query.filtered.query.range.ls.from = qparam_from;
-    _this.queryJSON3.query.filtered.query.range.ls.to = qparam_to;
+    _this.queryJSON3.query.bool.must[1].parent_id.id = qparam_runNumber;
+    _this.queryJSON3.query.bool.must[0].range.ls.from = qparam_from;
+    _this.queryJSON3.query.bool.must[0].range.ls.to = qparam_to;
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',

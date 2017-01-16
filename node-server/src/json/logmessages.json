@@ -4,14 +4,9 @@
       "order": "asc"
     }
   },
-  "fields": [
-    "date",
-    "_source"
-  ],
   "query": {
-    "filtered": {
-      "filter": {
-        "and": [
+    "bool": {
+      "must": [
           {
             "range": {
               "date": {
@@ -27,26 +22,22 @@
               }
             }
           }
-        ]
-      },
-      "query": {
-            "bool": {
-              "should": [
+      ],
+      "should": [
                 {
                   "query_string": {
                     "query": "*"
                   }
                 }
-              ]
-            }
-      }
+      ],
+      "minimum_should_match":1
     }
   },
-   "aggs":{
+  "aggs":{
     "lastTime":{
-        "max":{"field":"date"}
+      "max":{"field":"date"}
     }
-   },
+  },
   "size": 100,
   "from":0
 }

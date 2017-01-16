@@ -1,6 +1,6 @@
 {
    "size": 100,
    "sort":[{
-     "_id":"asc"
+     "instance_name":"asc"
    }]
 }

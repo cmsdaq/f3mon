@@ -4,8 +4,9 @@
       "bool": {
          "must": [
             {
-               "prefix": {
-                  "_id": "run225956"
+               "parent_id": {
+                  "type":"stream_label",
+                  "id": 225956
                }
             }
          ]

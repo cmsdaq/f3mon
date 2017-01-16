@@ -26,6 +26,7 @@ module.exports.query = function (req, res) {
     var q4 = function (){
 
       _this.queryJSON1.query.parent_id.id = qparam_runNumber;
+      //console.log(JSON.stringify(_this.queryJSON1))
 
       global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',
@@ -56,8 +57,9 @@ module.exports.query = function (req, res) {
       var queryJSONs = {
         "size": 1000,
         "query": {
-          "prefix": {
-            "_id": 'run'+qparam_runNumber
+          "parent_id": {
+            "type":"stream_label",
+            "id": qparam_runNumber
           }
         },
         "sort": {"stream": {"order": "asc"}}
@@ -117,11 +119,12 @@ module.exports.query = function (req, res) {
     //start and end time
     var q1 = function (){
 
-      var queryJSON = {"size":1,"sort":{"startTime":"desc"}}
+      var queryJSON = {"size":1,"sort":{"startTime":"desc"},"query":{"bool":{"must":[],"must_not":[]}}}
       if (qparam_runNumber!==null)
-        queryJSON["filter"]={"term":{"_id": qparam_runNumber }}
+        queryJSON.query.bool.must.push({"term":{"_id": qparam_runNumber }})
       if (qparam_activeRuns)
-        queryJSON["query"]= {"constant_score":{"filter":{"missing":{"field":"endTime"}}}};
+        queryJSON.query.bool.must_not.push({"exists":{"field":"endTime"}});
+        //queryJSON.query.bool.must_not.push(er= {"constant_score":{"filter":{"exists":{"field":"endTime"}}}};
 
       global.client.search({
         index: 'runindex_'+qparam_sysName+'_read',

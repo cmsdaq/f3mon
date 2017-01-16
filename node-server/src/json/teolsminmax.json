@@ -1,5 +1,5 @@
 {  "size": 0,
-  "fields": ["fm_date"],
+  "_source": ["fm_date"],
   "query": {
     "bool": {
       "should": [
@@ -16,7 +16,7 @@
       ],
       "must":{
         "parent_id": {
-          "type":"eols"
+          "type":"eols",
           "id":0
         }
       },

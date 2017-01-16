@@ -226,6 +226,7 @@ module.exports.query = function (req, res) {
           //console.log(intval)
           if (intval<1) intval = 1
           _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=Math.round(intval*1000)+'ms'
         }
         else {
           //LS time interval
@@ -235,6 +236,7 @@ module.exports.query = function (req, res) {
           //console.log(intval)
           if (intval<1) intval = 1
           _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=Math.round(intval*1000)+'ms'
         }
         //apply cpu filtering
         if (qparam_cputype==='any') {
@@ -544,6 +546,7 @@ module.exports.queryInput = function (req, res) {
           //console.log(intval)
           if (intval<1) intval = 1
           _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=Math.round(intval*1000)+'ms'
         }
         else {
           //LS time interval
@@ -553,6 +556,7 @@ module.exports.queryInput = function (req, res) {
           //console.log(intval)
           if (intval<1) intval = 1
           _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=intval+'s'
+          _this.queryJSON2.aggs.f.aggs.dt.date_histogram.interval=Math.round(intval*1000)+'ms'
         }
         //apply cpu filtering
         if (qparam_cputype==='any') {
