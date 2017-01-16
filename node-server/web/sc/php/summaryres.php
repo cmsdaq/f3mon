@@ -13,7 +13,7 @@ else if ($bu=="") {echo '["noBU"]';exit(1);}
 else {$added=',{prefix:{"appliance":"'.$bu.'"}}';}
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/boxinfo/_search?size=0';
-$data = '{query:{bool:{must:[{range:{fm_date:{from:"now-60s"}}}'.$added.']}},aggs:{i:{sum:{field:"idles"}},u:{sum:{field:"used"}},"b":{sum:{field:"broken"}},c:{sum:{field:"cloud"}},q:{sum:{field:"quarantined"}},rd:{sum:{field:"usedRamdisk"}},rdt:{sum:{field:"totalRamdisk"}},runs:{terms:{field:"activeRunList",size:0}}},size:0}';
+$data = '{"query":{"bool":{"must":[{"range":{"fm_date":{"from":"now-60s"}}}'.$added.']}},"aggs":{"i":{"sum":{"field":"idles"}},"u":{"sum":{"field":"used"}},"b":{"sum":{"field":"broken"}},"c":{"sum":{"field":"cloud"}},"q":{"sum":{"field":"quarantined"}},"rd":{"sum":{"field":"usedRamdisk"}},"rdt":{"sum":{"field":"totalRamdisk"}},"runs":{"terms":{"field":"activeRunList","size":100}}},"size":0}';
 $crl = curl_init();
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);

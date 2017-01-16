@@ -13,7 +13,7 @@ if ($run==null) $added="";
 else $added='{"term":{"activeRunList":"'.$run.'"}}';
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/boxinfo/_search?size=0';
-$data = '{query:{bool:{must:[{range:{fm_date:{from:"now-20s"}}}'.$added.']}},aggs:{rd:{sum:{field:"usedRamdisk"}},rdt:{sum:{field:"totalRamdisk"}},od:{sum:{field:"usedOutput"}},odt:{sum:{field:"totalOutput"}}},size:0}';
+$data = '{"query":{"bool":{"must":[{"range":{"fm_date":{"from":"now-20s"}}}'.$added.']}},"aggs":{"rd":{"sum":{"field":"usedRamdisk"}},"rdt":{"sum":{"field":"totalRamdisk"}},"od":{"sum":{"field":"usedOutput"}},"odt":{"sum":{"field":"totalOutput"}}},"size":0}';
 $crl = curl_init();
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
