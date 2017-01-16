@@ -36,8 +36,11 @@ module.exports.query = function (req, res) {
           var myAlias = info[0];
           var myIndexType = info[1].split("_")[0];
           if (myAlias.indexOf(myIndexType)!==0) continue;//skip if not starting with runindex
-          //TODO:this should be done by makig aliasList a set (list(set()) python equivalent
-          aliasList.push({"subSystem":mySubsys,"index":myAlias})
+          //this should be done by makig aliasList a set (list(set()) python equivalent
+          var alreadyListed=false;
+          aliasList.forEach(function(item){if (item.subSystem===mySubsys) alreadyListed=true;});
+          if (!alreadyListed)
+            aliasList.push({"subSystem":mySubsys,"index":myAlias})
         }
         aliasList.sort(function(a,b){if (a.subSystem>b.subSystem) return true; else return false;});
         var retObj = {'list':aliasList};
