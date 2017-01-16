@@ -89,8 +89,9 @@ function bootstrap(){
     var run_iteration = function() {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
         var mysetup = $('input[name=setup]:checked', '#setups').val();
-        if (mysetup==="cdaq") mysetup="cdaq*";
-        $.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
+        if (mysetup==="cdaq" && parseInt($('#runno').val())<=286591) mysetup="cdaq2016";//hack - will be replaced by year selector
+        if (mysetup==="minidaq" && parseInt($('#runno').val())<=286591) mysetup="minidaq2016";//hack - will be replaced by year selector
+	$.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
             $('#maxls').val(data.maxls);
@@ -147,6 +148,10 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 	//console.log("doing merger query");
         var mergerlsparams="&minls=&maxls=";
         if (!fullrun) mergerlsparams = '&minls='+minls+'&maxls='+maxls;
+
+        var my_setup = setup;
+        if (my_setup==="cdaq" && parseInt(run)<=286591) my_setup="cdaq2016";//hack - will be replaced by year selector
+
 	$.getJSON("php/mergerplots.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams+intervalStr,function(data){
 		plot(data["serie0"],'#plot0','micromerger time delay',xaxis,yaxis);
 		plot(data["serie1"],'#plot1','minimerger time delay',xaxis,yaxis);

@@ -64,11 +64,11 @@ function bootstrap(){
               console.log('emptyrun!');
               location.hash='';
               var mysetup = $('input[name=setup]:checked', '#setups').val();
-              if (mysetup==="cdaq") mysetup="cdaq*";//pA and pp
+              //if (mysetup==="cdaq") mysetup="cdaq*"; // active run is already cdaq
               $.getJSON("api/runInfo?sysName="+mysetup+"&activeRuns=true",function(adata){
 	        if (adata.runNumber && !isNaN(run = parseInt(adata.runNumber))) {
                   document.title = 'run ' + adata.runNumber;
-                  $.getJSON("api/maxls?runNumber="+adata.runNumber+"&setup="+mysetup,function(bdata) {
+	          $.getJSON("api/maxls?runNumber="+adata.runNumber+"&setup="+mysetup,function(bdata) {
                     doPlots(adata.runNumber,1,bdata.maxls,$('#fullrun').is(':checked'));
                   });
 	          $("#loading_dialog").loading();
@@ -90,7 +90,7 @@ function bootstrap(){
     var run_iteration = function(cb) {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
         var mysetup = $('input[name=setup]:checked', '#setups').val();
-        if (mysetup==="cdaq") mysetup="cdaq*";
+        if (mysetup==="cdaq" && parseInt($('#runno').val())<=286591) mysetup="cdaq2016";//hack - will be replaced by year selector
         $.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
@@ -225,7 +225,10 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
         if (filterstable && minsb>0) sbpart="&minsb="+minsb+"&maxsb="+maxsb;
       }
 
-      var pippo=$.getJSON("php/applianceplots.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart+sbpart+multipart,function(data) {
+      var my_setup = $('input[name=setup]:checked', '#setups').val();
+      if (my_setup==="cdaq" && parseInt(run)<=286591) my_setup="cdaq2016";//hack - will be replaced by year selector
+
+      var pippo=$.getJSON("php/applianceplots.php?run="+run+"&setup="+my_setup+lspart+sbpart+multipart,function(data) {
 
 	    if(data.runinfo.start !=null){
 
@@ -265,7 +268,8 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
                   data["fuetimels"][1].data = datavec;
                   data["fuetimels2"]=[];
                   //for (var j=0;j<data["fuetimelsres"].length;j++) {
-                  if (data.fuetimelsresls) for (var j=0;j<data["fuetimelsresls"].length;j++) {
+                  if (data.fuetimelsresls)
+                  for (var j=0;j<data["fuetimelsresls"].length;j++) {
                     //console.log('x'  + data["fuetimelsresls"][j].name)
 		    datavec = []
                     //origvec = data["fuetimelsres"][j].data;
