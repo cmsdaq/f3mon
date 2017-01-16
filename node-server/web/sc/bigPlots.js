@@ -73,6 +73,7 @@ function bootstrap(){
 
 }
 
+//TODO: open/close index stuff should be removed now that they are in priv area
 function doReopen(run){
     console.log("called doReopen for run "+run+" setup "+$('input[name=setup]:checked', '#setups').val());
     $.ajaxSetup({
