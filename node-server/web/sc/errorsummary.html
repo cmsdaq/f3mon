@@ -1,0 +1,38 @@
+<html>
+<head>
+<link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="css/pure-min.css">
+<link rel="stylesheet" href="css/jquery-ui.css">
+<link rel="stylesheet" href="css/loading_spinner.css">
+
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+
+<script src="js/loading_spinner.js"></script>
+<script src="errorsummary.js"></script>
+</head>
+<body onLoad="bootstrap();">
+      <br>
+      <!--<table id="title" style="margin-left:15px;margin-right:15px;"><tr><td>Number of HLT CMSSW crashes or exits on exception</td></tr></table>-->
+      <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+      <table class="pure-table table-striped" id="runinfo2">
+        <tr style='background-color:grey;color:white'><th colspan="20">Number of HLT CMSSW crashes or exits on exception</th></tr>
+        <tr id="tblhdr"><th id="runlabel">Loading...</th></tr>
+      </table>
+      </div>
+      <br><br>
+      <table id="leg" style="margin-left:15px;margin-right:15px;">
+            <tr><td><b>Useful information:</b></td></tr>
+            <tr><td>* <a href="https://en.wikipedia.org/wiki/Unix_signal">Explanation of Unix signals</a></td><tr>
+            <tr><td>* <a href="https://twiki.cern.ch/twiki/bin/view/CMSPublic/JobExitCodes">Explanation of CMSSW job exit codes</a></td></tr>
+            <tr><td>* code 127 is Unix shell missing command exit code, resulting usually from missing CMSSW installation</td></tr>
+            <tr><td>* code 66 can result from squid/frontier access problem. Last column estimates this type of error.</td></tr>
+            <tr><td>&nbsp;&nbsp; It is however possible that not all such cases are detected and could get assigned to "code 66" column</td></tr>
+            <tr><td>* code 90 results from Python configuration error (sometimes from manual ramdisk cleanup script action)</td></tr>
+            <tr><td>* signals 9 (SIGKILL) is usually sent by manual Filter Farm cleanup procedures or OOM killer</td></tr>
+            <tr><td>* signal 15 (SIGTERM) is usually sent by manual cleanup procedures </td></tr>
+      </table>
+      <br>
+      
+</body>
+</html>

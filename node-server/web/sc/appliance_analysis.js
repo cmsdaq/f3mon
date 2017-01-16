@@ -24,8 +24,8 @@ function bootstrap(){
     var run_iteration = function() {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
         var mysetup = $('input[name=setup]:checked', '#setups').val();
-        if (mysetup==="cdaq") mysetup="cdaq*";//cover multiple 2015 indices (pp and HI)
-        $.getJSON("api/maxls?runNumber="+$('#runno').val()+'&setup='+mysetup,function(data) {
+        if (mysetup==="cdaq" && parseInt($('#runno').val())<=286591) mysetup="cdaq2016";//hack - will be replaced by year selector
+	$.getJSON("api/maxls?runNumber="+$('#runno').val()+'&setup='+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
             $('#maxls').val(data.maxls);
@@ -96,7 +96,11 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
     refseries.splice(0,refseries.length); //delete content of refseries array from previous doPlots
     if (!fullrun) var lspart="&minls="+minls+"&maxls="+maxls;
     else var lspart="&minls=&maxls="; 
-    pippo=$.getJSON("php/appliance_analysis.php?run="+run+"&setup="+$('input[name=setup]:checked', '#setups').val()+lspart,function(data){
+
+    var my_setup = $('input[name=setup]:checked', '#setups').val();
+    if (my_setup==="cdaq" && parseInt(run)<=286591) my_setup="cdaq2016";//hack - will be replaced by year selector
+
+    pippo=$.getJSON("php/appliance_analysis.php?run="+run+"&setup="+my_setup+lspart,function(data){
 
 	    if(data.runinfo.start !=null){
 		$('#runinfo').show();		
