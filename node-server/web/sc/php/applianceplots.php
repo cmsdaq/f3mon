@@ -1,7 +1,7 @@
 <?php 
 $run = $_GET["run"];
 $setup = $_GET["setup"];
-if ($setup=="cdaq") $setup="cdaq*";
+//if ($setup=="cdaq") $setup="cdaq*";
 $minls=null;
 $minls = $_GET["minls"];
 $maxls=null;

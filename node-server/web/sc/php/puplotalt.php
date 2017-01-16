@@ -1,6 +1,6 @@
 <?php 
 $run = $_GET["run"];
-$setup = "cdaq*";
+$setup = $_GET["setup"]";
 header("Content-Type: application/json");
 $response=array();
 date_default_timezone_set("UTC");

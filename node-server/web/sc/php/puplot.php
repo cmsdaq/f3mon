@@ -1,6 +1,6 @@
 <?php 
 $run = $_GET["run"];
-$setup = "cdaq*";
+$setup = $_GET["setup"];
 $minls=null;
 $minls = $_GET["minls"];
 $maxls=null;

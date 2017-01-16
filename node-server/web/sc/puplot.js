@@ -158,7 +158,10 @@ function bootstrap(){
         var checkRun = function(runs) {
           var rn = runs[0];
           runs = runs.splice(1);
-          $.getJSON("api/maxls?runNumber="+rn+"&setup=cdaq*",function(data) {
+          var setup_string = "cdaq";
+          if (rn<=286591) setup_string="cdaq2016";//hack - will be replaced by year selector
+
+          $.getJSON("api/maxls?runNumber="+rn+"&setup="+setup_string,function(data) {
             if (data.maxls!=null)
               newcache[rn] = [true,true,true,1,data.maxls];
             else
@@ -435,7 +438,12 @@ function doPlot(runlist) {
         var phpstr = "php/puplot.php?run=";
       else
         var phpstr = "php/puplotalt.php?run=";
-      $.getJSON(phpstr+run+lspart,function(data){
+
+      var setup_string = "cdaq";
+      if (run<=286591) setup_string="cdaq2016";//hack - will be replaced by year selector
+      var setuppart = "setup="+setup_string;
+
+      $.getJSON(phpstr+run+lspart+setuppart,function(data){
 
             
 

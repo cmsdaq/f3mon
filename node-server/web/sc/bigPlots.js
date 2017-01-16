@@ -45,8 +45,9 @@ function bootstrap(){
     var run_iteration = function() {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
         var mysetup = $('input[name=setup]:checked', '#setups').val();
-        if (mysetup==="cdaq") mysetup="cdaq*";
-        $.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
+        if (mysetup==="cdaq" && parseInt($('#runno').val())<=286591) mysetup="cdaq2016";//hack - will be replaced by year selector
+        if (mysetup==="minidaq" && parseInt($('#runno').val())<=286591) mysetup="minidaq2016";//hack - will be replaced by year selector
+	$.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
             $('#maxls').val(data.maxls);
@@ -72,6 +73,7 @@ function bootstrap(){
 
 }
 
+//TODO: open/close index stuff should be removed now that they are in priv area
 function doReopen(run){
     console.log("called doReopen for run "+run+" setup "+$('input[name=setup]:checked', '#setups').val());
     $.ajaxSetup({
