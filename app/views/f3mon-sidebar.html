@@ -30,7 +30,7 @@
  -->
                                 <tr>
                                     <th scope="row">EndTime: </th>
-                                    <td>{{data.endTime ? 0>=data.activeBUs ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : 'degraded' : (data.runNumber ? 'ongoing' : 'N/A')}}</td>
+                                    <td>{{data.endTime ? (0>=data.activeBUs || data.activeBUs===undefined) ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : 'degraded' : (data.runNumber ? 'ongoing' : 'N/A')}}</td>
                                     <!--<td>{{data.endTime ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : (data.runNumber ? 'ongoing' : 'N/A')}}</td>-->
                                 </tr>
                                 <tr class='bt'>
@@ -152,7 +152,7 @@
                                     <!--<td>{{row.runNumber+"&#149;"}}</td>-->
                                     <td>{{row.runNumber}}</td>
                                     <td>{{row.startTime ? ( row.startTime | amDateFormat:"DD/MM/YY HH:mm") : "N/A"}}</td>
-                                    <td>{{row.endTime ? (0>=row.activeBUs ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "degraded") : "ongoing"}}</td>
+                                    <td>{{row.endTime ? ((0>=row.activeBUs || row.activeBUs===undefined) ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "degraded") : "ongoing"}}</td>
                                     <!--<td>{{row.endTime ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "ongoing"}}</td>-->
                                     <td style='text-align: right'><a ng-click='selectRun(row.runNumber)' role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Display this run."><span class="fa fa-play-circle "></span></a>
                                     </td>
