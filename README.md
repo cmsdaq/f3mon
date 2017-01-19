@@ -12,7 +12,7 @@ This file describes setup and compilation of browser F3mon component. For Node.j
 ```
 yum install npm
 
-npm install grunt-cli
+npm install grunt-cli -g
 
 npm install -g bower
 ```
