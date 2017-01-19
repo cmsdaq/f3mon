@@ -12,7 +12,7 @@ npm install
 ```
 Try applying node-php and node-cache patches:
 ```
-patch -p0 < node-cache.patch
+### patch -p0 < node-cache.patch #fixed in node-cache 4.1.1
 patch -p0 < node-php.patch
 ```
 
