@@ -20,7 +20,7 @@ function get_node_tree(callback,callback2) {
 		else
 		  callback();
 		old_setup=setup;
-	    }).error(function(error) {
+	    }).fail(function(error) {
               var refreshint = parseInt($('input[name=refreshint]:checked').val());
               //var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
               //refreshint*=(1+Math.sqrt(errcount/4)/4);
@@ -136,7 +136,7 @@ function run_data_format(){
 		$('#currentRun').html("NO RUN ONGOING");
 	    }
 
-	}).error(function(error) {
+	}).fail(function(error) {
               var refreshint = parseInt($('input[name=refreshint]:checked').val());
               //var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
               //refreshint*=(1+Math.sqrt(errcount/4)/4);
@@ -638,7 +638,7 @@ function cluster_data_format(callback){
 
             uruns(callback);
         //});
-	}).error(function(error) {
+	}).fail(function(error) {
               var refreshint = parseInt($('input[name=refreshint]:checked').val());
               //var refreshint = parseInt($('input[name=refreshint]:checked', '#updatetime').val());
               //refreshint*=(1+Math.sqrt(errcount/4)/4);

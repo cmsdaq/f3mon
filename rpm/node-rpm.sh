@@ -21,7 +21,7 @@ cd $TOPDIR
 # we are done here, write the specs and make the fu***** rpm
 cat > fff-node-scripts.spec <<EOF
 Name: $PACKAGENAME
-Version: 1.0.3
+Version: 1.0.4
 Release: 0
 Summary: node.js f3mon scripts
 License: gpl
@@ -31,7 +31,7 @@ Source: none
 %define _topdir $TOPDIR
 BuildArch: $BUILD_ARCH
 AutoReqProv: no
-Requires: npm 
+Requires: npm,nodejs,gcc-c++,pam-devel,oracle-instantclient-devel
 
 Provides:/opt/node/
 Provides:/opt/node/prod/
