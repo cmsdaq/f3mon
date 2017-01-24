@@ -34,3 +34,9 @@ patch -p0 < daemonize-gc.patch
 3. After building f3mon, copy "dist" directory to installation area "web/" and rename it to f3mon. If there are changes, you can copy individual files from web/sc.
 ```
 
+#deployment to priv directory:
+```
+1. Follow previous steps for setting up new or existing instance. web directory should be a symlink to web_priv (web directory from git can be safely deleted).
+2. in base (priv) directory, copy or create file pwd_token.json containing {"password":"your random character sequence"} . (it is used to encrypt browser cookie)
+```
+
