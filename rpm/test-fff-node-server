@@ -24,5 +24,5 @@
 ## Short-Description: Start/stop node-service
 #### END INIT INFO
 
-/etc/init.d/fff-node-server $1 test
+source /etc/init.d/fff-node-server $1 test
 
