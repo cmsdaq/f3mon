@@ -97,6 +97,7 @@ module.exports.query = function (req, res) {
         var buckets = body.aggregations.bus.buckets;
         for (var i=0;i<buckets.length;i++) {
           var key = buckets[i].key;
+          if (!retObj["appliance_clusters"].hasOwnProperty(key)) continue;
           var target = retObj["appliance_clusters"][key];
           var fu_count = buckets[i].doc_count;
           var alives = buckets[i].filter_alive;
