@@ -133,16 +133,16 @@ $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/minimerge/_search?siz
 $data='{}';
 $run_nr = int($run);
 if($streamTo){
-  if ($run_nr<=286591)
-    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-  else
+//  if ($run_nr<=286591)
+//    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+//  else
     $data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
   //$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 
 }else{
-  if ($run_nr<=286591)
-    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-  else
+//  if ($run_nr<=286591)
+//    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+//  else
     $data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
   //$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 }
@@ -177,10 +177,10 @@ if($streamTo){
 }
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/macromerge/_search?size=0';
-if ($run_nr<=286591)
-  $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"macromerge#run'.$run.'\")"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-else
-  $data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+//if ($run_nr<=286591)
+//  $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"macromerge#run'.$run.'\")"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+//else
+$data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 //$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);

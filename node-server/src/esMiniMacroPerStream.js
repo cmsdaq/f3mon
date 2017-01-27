@@ -94,9 +94,9 @@ module.exports.query = function (req, res) {
     }
     else {
       queryJSON = _this.queryJSON2;
-      queryJSON.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("'+qparam_type+'#run'+qparam_runNumber+'")'}} //TODO:reindex ! minimerge/macromerge
+      //queryJSON.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("'+qparam_type+'#run'+qparam_runNumber+'")'}}
       //if (parseInt(qparam_runNumber)>286591)
-      //  queryJSON.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
+      queryJSON.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
     }
 
     queryJSON.query.bool.must[0].range.ls.from = qparam_from;

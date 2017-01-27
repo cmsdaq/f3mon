@@ -85,9 +85,9 @@ module.exports.query = function (req, res) {
   //Get minimerge
   var q2 = function(callback){
 
-   _this.queryJSON1.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}} //TODO:reindex !
+   //_this.queryJSON1.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}}
    //if (parseInt(qparam_runNumber)>286591)
-   //  _this.queryJSON1.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
+   _this.queryJSON1.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
    _this.queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
    _this.queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
@@ -157,9 +157,9 @@ module.exports.query = function (req, res) {
   //Get macromerge
   var q2macro = function(total_q1){
 
-    _this.queryJSON2.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}} //TODO:reindex !
-     //if (parseInt(qparam_runNumber)>286591)
-     //  _this.queryJSON2.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
+    //_this.queryJSON2.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}}
+    //if (parseInt(qparam_runNumber)>286591)
+    _this.queryJSON2.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
     _this.queryJSON2.query.bool.must[0].range.ls.from = qparam_from;
     _this.queryJSON2.query.bool.must[0].range.ls.to = qparam_to;

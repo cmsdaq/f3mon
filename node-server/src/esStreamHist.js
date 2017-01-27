@@ -255,9 +255,9 @@ module.exports.query = function (req, res) {
   var q5 = function (_this){
         var queryJSON1 = _this.queryJSON1;
         //queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
-        queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}} //TODO:reindex !
+        //queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}}
         //if (parseInt(qparam_runNumber)>286591))
-        //  queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
+        queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -379,9 +379,9 @@ module.exports.query = function (req, res) {
 
         var queryJSON1 = _this.queryJSON1;
         //queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
-        queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}} //TODO:reindex !
+        //queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}}
         //if (parseInt(qparam_runNumber)>286591))
-        //  queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
+        queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
