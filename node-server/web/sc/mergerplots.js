@@ -88,7 +88,8 @@ function bootstrap(){
     var timeout_rq;
     var run_iteration = function() {
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
-        var mysetup = $('input[name=setup]:checked', '#setups').val();
+        //var mysetup = $('input[name=setup]:checked', '#setup').val();
+        var mysetup = $('#setup option:selected').text();
         if (mysetup==="cdaq" && parseInt($('#runno').val())<=286591) mysetup="cdaq2016";//hack - will be replaced by year selector
         if (mysetup==="minidaq" && parseInt($('#runno').val())<=286591) mysetup="minidaq2016";//hack - will be replaced by year selector
 	$.getJSON("api/maxls?runNumber="+$('#runno').val()+"&setup="+mysetup,function(data) {
@@ -122,11 +123,11 @@ function bootstrap(){
 	    event.preventDefault();
 	    $('#plots').hide();
 	    $('#disable1').hide();
-	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup').val(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup option:selected').text(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $("#loading_dialog").loading();
 	});
     if (autoplot) {
-	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup').val(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
+	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup option:selected').text(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $("#loading_dialog").loading();
     }
 }
@@ -144,15 +145,15 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
     var interval = $('#interval').val();
     var intervalStr = "";
     if (interval>1) intervalStr="&interval="+interval;
+
+    var my_setup = setup;
+    if (my_setup==="cdaq" && parseInt(run)<=286591) my_setup="cdaq2016";//hack - will be replaced by year selector
+
     if($('#process').val()=="merger"){
 	//console.log("doing merger query");
         var mergerlsparams="&minls=&maxls=";
         if (!fullrun) mergerlsparams = '&minls='+minls+'&maxls='+maxls;
-
-        var my_setup = setup;
-        if (my_setup==="cdaq" && parseInt(run)<=286591) my_setup="cdaq2016";//hack - will be replaced by year selector
-
-	$.getJSON("php/mergerplots.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams+intervalStr,function(data){
+	$.getJSON("php/mergerplots.php?setup="+my_setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams+intervalStr,function(data){
 		plot(data["serie0"],'#plot0','micromerger time delay',xaxis,yaxis);
 		plot(data["serie1"],'#plot1','minimerger time delay',xaxis,yaxis);
 		plot(data["serie2"],'#plot2','macromerger time delay',xaxis,yaxis);
@@ -165,7 +166,7 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
     }
     else if($('#process').val()=="BW"){
 	console.log("doing transfer b/w");
-	$.getJSON("php/transfer-test.php?setup="+setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
+	$.getJSON("php/transfer-test.php?setup="+my_setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
 		var points=[];
 		for(var stream in data){
 		    var entries = [];
@@ -182,7 +183,7 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 	    });
     }else{
 	console.log("doing transfer query");
-	query = "php/transfer-test.php?setup="+setup+"&run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
+	query = "php/transfer-test.php?setup="+my_setup+"&run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
 	console.log(query);
 	$.getJSON(query,function(data){
 		console.log(data);

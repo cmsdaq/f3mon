@@ -441,7 +441,7 @@ function doPlot(runlist) {
 
       var setup_string = "cdaq";
       if (run<=286591) setup_string="cdaq2016";//hack - will be replaced by year selector
-      var setuppart = "setup="+setup_string;
+      var setuppart = "&setup="+setup_string;
 
       $.getJSON(phpstr+run+lspart+setuppart,function(data){
 
