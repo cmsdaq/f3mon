@@ -4,6 +4,7 @@ header("Content-Type: application/json");
 $run=0;
 $fill=0;
 $run = $_GET["run"];
+$setup = $_GET["setup"];
 $stream = $_GET["stream"];
 $xaxis = $_GET["xaxis"];
 $formatchart = $_GET["chart"];
@@ -19,7 +20,7 @@ $h2;
 $crl = curl_init();
 $timeout = 5;
 $hostname = php_uname('n');
-$url = 'http://'.$hostname.':9200/runindex_cdaq_read/run/_search?size=1';
+$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/run/_search?size=1';
 $data = '{"sort":{"startTime":"desc"}}';
 
 curl_setopt ($crl, CURLOPT_URL,$url);
