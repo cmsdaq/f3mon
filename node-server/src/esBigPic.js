@@ -42,7 +42,7 @@ module.exports.query = function (req, res) {
           "bus":{
             "terms":{"size":200,"field":"appliance"},
             "aggs" : {
-              "fu_hits":{"top_hits":{"size":30,"sort":[{"_id":{"order":"asc"}}]}},
+              "fu_hits":{"top_hits":{"size":30,"sort":[{"host":{"order":"asc"}}]}},
               "filter_alive": {
                 //"filter":{"range":{"fm_date":{"gte":"now-10s"}}}, //todo: detectedStaleHandle?
                 "filter":{"bool":{"must":[{"range":{"fm_date":{"gte":"now-10s"}}}, {"term":{"detectedStaleHandle":false}}]}},
@@ -148,7 +148,7 @@ module.exports.query = function (req, res) {
             for (var j=0;j<target.fus_nbl.length;j++) {
               var found=false;
               for (var k=0;k<fu_hits.length;k++)
-                if (fu_hits[k]._id===target.fus_nbl[j]) {found=true;break;}
+                if (fu_hits[k]._source.host===target.fus_nbl[j]) {found=true;break;}
               if (!found)
                 target.disc.push(target.fus_nbl[j]);
             }
@@ -182,7 +182,7 @@ module.exports.query = function (req, res) {
                               //"cloud":{"terms":{"field":"cloudState"}},
                               "cloud_filter":{"filter":{"term":{"cloudState":"on"}}}//,
                               //,"fu_hits":{"top_hits":{"size":1}}
-                              ,"fu_hits":{"top_hits":{"size":30,"sort":[{"_id":{"order":"asc"}}]}},
+                              ,"fu_hits":{"top_hits":{"size":30,"sort":[{"host":{"order":"asc"}}]}},
                               //,"aggs":{"nodes":{"terms":{"size":50,"field":"_id"}}}
                               "cpu":{"terms":{"field":"cpu_name","size":1}}
                             }
@@ -219,7 +219,7 @@ module.exports.query = function (req, res) {
           //workarounds until "id" field is added to fu-box-status
           var fu_hits = buagg[i].fu_hits.hits.hits;
           for (var j=0;j<fu_hits.length;j++) {
-            var fu_id = fu_hits[j]._id; 
+            var fu_id = fu_hits[j]._source.host; 
             var fu_src = fu_hits[j]._source; 
             var blacklisted = false;
             for (var k=0;k<target.blacklisted_nodes.length;k++) {
@@ -261,7 +261,7 @@ module.exports.query = function (req, res) {
     var q1=function() {
       //get all BU boxinfo documents
       var queryJSON = {
-                        "sort":{"_id":"asc"},
+                        "sort":{"host":"asc"},
                         "size":200,
                         "query":{
                               "prefix":{"host":buprefix}
@@ -285,7 +285,7 @@ module.exports.query = function (req, res) {
           var total = body.hits.total;
           var bumap = retObj.appliance_clusters;
 	  for (var index = 0 ; index < results.length; index++){
-            var bu = results[index]._id
+            var bu = results[index]._source.host
             var source = results[index]._source
             var age = ((unix_time - new Date(source.fm_date).getTime())/1000.).toFixed(1); //todo:maybe have to add +0000 for GMT)
 

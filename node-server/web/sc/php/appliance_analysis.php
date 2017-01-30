@@ -68,13 +68,13 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 
 if ($minls && $maxls)
-  $data =  '{"size":100000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
+  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
 else {
-  $data =  '{"size":100000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}}]}}}';
+  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}}]}}}';
 }
 
 //echo $url." -d'".$data."'\n";
-$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
+$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m';//&size=5000';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);

@@ -59,12 +59,10 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 //TODO: order by LS and filter based on sharp changes in rate in neighboring points
 
-
 if ($minls && $maxls)
-  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.intval($minls).',"to":'.(intval($maxls)+1).'}}}]}},aggs:{ls:{terms:{size:30000,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.intval($minls).',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"ls":{"terms":{"size":30000,"field":"ls"},"aggs":{"rate":{"sum":{"field":"NEvents"}},"bw":{"sum":{"field":"NBytes"}} }}}}';
 else
-  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}},aggs:{ls:{terms:{size:30000,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
-
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}},"aggs":{"ls":{"terms":{"size":30000,"field":"ls"},"aggs":{"rate":{"sum":{"field":"NEvents"}},"bw":{"sum":{"field":"NBytes"}} }}}}';
 
 //$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';

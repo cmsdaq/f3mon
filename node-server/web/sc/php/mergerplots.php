@@ -103,10 +103,10 @@ foreach ($res["aggregations"]["lss"]["buckets"] as $ls){
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search?size=0';
 if($streamTo){
- $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}},{term:{"stream":"'.$streamTo.'"}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
+ $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.',{"range":{"completion":{"from":0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
 }
 else {
- $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}}'.$lsterm.',{range:{completion:{from:0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
+ $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}}'.$lsterm.',{"range":{"completion":{"from":0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -131,7 +131,7 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/minimerge/_search?size=0';
 $data='{}';
-$run_nr = int($run);
+$run_nr = intval($run);
 if($streamTo){
 //  if ($run_nr<=286591)
 //    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';

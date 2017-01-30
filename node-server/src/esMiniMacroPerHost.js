@@ -249,9 +249,9 @@ module.exports.query = function (req, res) {
 
   var q1macro = function(callback){
 
-    _this.queryJSON4.query.filtered.filter.parent_id.id = qparam_runNumber;
-    _this.queryJSON4.query.filtered.query.range.ls.from = qparam_from;
-    _this.queryJSON4.query.filtered.query.range.ls.to = qparam_to;
+    _this.queryJSON4.query.bool.must[0].range.ls.from = qparam_from;
+    _this.queryJSON4.query.bool.must[0].range.ls.to = qparam_to;
+    _this.queryJSON4.query.bool.must[1].parent_id.id = qparam_runNumber;
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',

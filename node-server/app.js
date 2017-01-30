@@ -108,7 +108,7 @@ if  (priv_access) {
 }
 
 //old web and php
-app.use("/sctest",php.cgi("web/ecd/sctest"));
+app.use("/sctest",php.cgi("web/sctest"));
 app.use("/sc/php",php.cgi("web/sc/php"));
 
 if (priv_access) {

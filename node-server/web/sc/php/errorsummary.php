@@ -6,7 +6,7 @@ else $setup="cdaq";
 header("Content-Type: application/json");
 //date_default_timezone_set("UTC");
 
-$size=0;
+$size=99999;
 
 $crl = curl_init();
 $timeout = 60;
@@ -27,11 +27,11 @@ $script = "code90 = _source.message.find('exit code 90');".
 //$script="return 1";
 
 $data='{"size":0,"query":{"bool":{"must":[{"range":{"run":{"from":100000,"to":1000000000}}},'.
-      '{"script":{"script":{"lang:"groovy","inline":"_source.message.find(\'exited with \')!=null || _source.message.find(\'exit code 90\')!=null"}}}]}},'.
+      '{"script":{"script":{"lang":"groovy","inline":"_source.message.find(\'exited with \')!=null || _source.message.find(\'exit code 90\')!=null"}}}]}},'.
       '"aggs":{'.
-      '"error":{"terms":{"size":1000,"order":{"_term":"asc"},"script":{"lang:"groovy","inline":"'.$script.'"}}}'.
+      '"error":{"terms":{"size":1000,"order":{"_term":"asc"},"script":{"lang":"groovy","inline":"'.$script.'"}}}'.
       ',"run":{"terms":{"field":"run","order":{"_term":"desc"},"size":'.$size.'}'.
-      ',"aggs":{"error":{"terms":{"size":1000,"order":{"_term":"asc"},script:{"lang:"groovy","inline":"'.$script.'"}}}}}}}';
+      ',"aggs":{"error":{"terms":{"size":1000,"order":{"_term":"asc"},"script":{"lang":"groovy","inline":"'.$script.'"}}}}}}}';
 
 
 //echo $data;
