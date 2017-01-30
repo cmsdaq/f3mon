@@ -26,10 +26,12 @@ $script = "code90 = _source.message.find('exit code 90');".
 
 //$script="return 1";
 
-$data="{size:0,query:{bool:{must:[{range:{run:{from:100000,to:1000000000}}},{script:{script:\"_source.message.find('exited with ')!=null || _source.message.find('exit code 90')!=null\"}}]}},aggs:{".
-      "error:{terms:{size:0,order:{_term:\"asc\"},script:\"".$script."\"}}".
-      ",run:{terms:{field:\"run\",order:{_term:\"desc\"},size:".$size."}".
-      ",aggs:{error:{terms:{size:0,order:{_term:\"asc\"},script:\"".$script."\"}}}}}}";
+$data='{"size":0,"query":{"bool":{"must":[{"range":{"run":{"from":100000,"to":1000000000}}},'.
+      '{"script":{"script":{"lang:"groovy","inline":"_source.message.find(\'exited with \')!=null || _source.message.find(\'exit code 90\')!=null"}}}]}},'.
+      '"aggs":{'.
+      '"error":{"terms":{"size":1000,"order":{"_term":"asc"},"script":{"lang:"groovy","inline":"'.$script.'"}}}'.
+      ',"run":{"terms":{"field":"run","order":{"_term":"desc"},"size":'.$size.'}'.
+      ',"aggs":{"error":{"terms":{"size":1000,"order":{"_term":"asc"},script:{"lang:"groovy","inline":"'.$script.'"}}}}}}}';
 
 
 //echo $data;
@@ -74,7 +76,7 @@ $retval["runs"]=$runs;
 
 
 $url = 'http://'.$hostname.':9200/hltdlogs_'.$setup.'_read/cmsswlog/_search';
-$data = '{size:0,query:{bool:{must:[{term:{"message":"frontieraccess"}}]}},aggs:{runs:{terms:{field:"run"}}}}';
+$data = '{"size":0,"query":{"bool":{"must":[{"term":{"message":"frontieraccess"}}]}},"aggs":{"runs":{"terms":{"field":"run"}}}}';
 $crl = curl_init();
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);

@@ -1,5 +1,4 @@
 {  "size": 0,
-   "fields":["fm_date","_source"],
    "sort": {
       "fm_date": "desc"
    },
@@ -16,8 +15,9 @@
               }
            },
            {
-              "term": {
-                 "_parent": "290011"
+              "parent_id": {
+                 "type": "eols",
+                 "id": 290011
               }
            }
          ]

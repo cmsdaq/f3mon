@@ -49,8 +49,8 @@ module.exports.query = function (req, res) {
       //parameterize query
       this.queryJSON1.size = qparam_size;
       this.queryJSON1.from = qparam_from;
-      this.queryJSON1.query.filtered.filter.and[0].range.date.from = qparam_startTime;
-      this.queryJSON1.query.filtered.filter.and[0].range.date.to = qparam_endTime;
+      this.queryJSON1.query.bool.must[0].range.date.from = qparam_startTime;
+      this.queryJSON1.query.bool.must[0].range.date.to = qparam_endTime;
 
       if (qparam_search != ''){
 	var searchText = '';
@@ -59,9 +59,9 @@ module.exports.query = function (req, res) {
 	}else{
 	  searchText = qparam_search;
 	}
-	this.queryJSON1.query.filtered.query.bool.should[0].query_string.query = searchText;
+	this.queryJSON1.query.bool.should[0].query_string.query = searchText;
       }else{
-	this.queryJSON1.query.filtered.query.bool.should[0].query_string.query = '*';
+	this.queryJSON1.query.bool.should[0].query_string.query = '*';
       }
 
       var missing = '_last';

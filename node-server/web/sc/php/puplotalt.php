@@ -37,8 +37,8 @@ date_default_timezone_set("UTC");
 $startTime = strtotime($start)*1000 + round($usec/1000.);
 $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>$span, 'interval'=>$interval, 'ongoing'=>$ongoing);
 
-$data =  '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}}]}},aggs:{ls:{terms:{size:0,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
-//$data =  '{"size":10000,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}}]}}}';
+$data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}},aggs:{ls:{terms:{size:30000,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
+//$data =  '{"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}}';
 
 //$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';
@@ -102,7 +102,7 @@ $data = '{'.
             'ovr2:{'.
               'date_histogram:{field:"fm_date",interval:"'.$interval.'"},'.
               'aggs:{'.
-                'eventTimeUn:{scripted_metric:{init_script:"'.$scriptinit.'",map_script:"'.$scriptevtime.'",reduce_script:"'.$scriptreduce.'"}},'.
+                'eventTimeUn:{scripted_metric:{init_script:{"lang":"groovy","inline":"'.$scriptinit.'"},map_script:{"lang":"groovy","inline":"'.$scriptevtime.'"},reduce_script:{"lang":"groovy","inline":"'.$scriptreduce.'"}}},'.
                 'lsavg:{avg:{field:"activeRunCMSSWMaxLS"}}'.
               '}'.
             '}'.

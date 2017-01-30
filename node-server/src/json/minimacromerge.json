@@ -1,6 +1,6 @@
 {
   "size": 1,
-  "fields": [
+  "_source": [
     "in",
     "out",
     "filesize",

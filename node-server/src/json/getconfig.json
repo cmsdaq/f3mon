@@ -1,7 +1,4 @@
 {
-    "fields": [
-        "_timestamp", "_source"
-    ],
     "query": {
         "term": {
             "_id": {

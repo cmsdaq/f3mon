@@ -1,8 +1,9 @@
 {
   "size": 1,
   "query": {
-    "term": {
-      "_parent": ""
+    "parent_id": {
+      "type": "eols",
+      "id": ""
     }
   },
   "sort": {

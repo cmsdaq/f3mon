@@ -28,10 +28,15 @@ module.exports.query = function (req, res) {
     if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
       //set up and run query
       var queryJSON = {
-        "fields": ["_source","startTime"],
-        "filter": {
-          "missing": {
-            "field": "endTime"
+        //"fields": ["_source","startTime"],
+        "query": {
+          "bool":{
+            "must_not":{
+ 
+              "exists": {
+                "field": "endTime"
+              }
+            }
           }
         },
         "size": qparam_size,
@@ -45,6 +50,7 @@ module.exports.query = function (req, res) {
         queryJSON["query"] = {"range":{"startTime":{"from":qparam_from,"to":qparam_to}}}
 
       var _this = this;
+      //console.log(JSON.stringify(queryJSON))
 
       //search ES
       global.client.search({
@@ -66,7 +72,8 @@ module.exports.query = function (req, res) {
 	    arr[index] = results[index]._source;
 	  }
 	  retObj = {
-	    "lasttime" : results[0].fields.startTime,
+	    //"lasttime" : results[0].fields.startTime,
+	    "lasttime" : results[0].sort[0], //take from sort? (es5)
 	    "runlist" : arr
 	  };
         }

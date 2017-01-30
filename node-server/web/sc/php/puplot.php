@@ -35,7 +35,7 @@ $mints=0;
 $maxts=0;
 if ($minls && $maxls) {
   $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';//&size=5000';
-  $data =  '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -61,9 +61,9 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 
 if ($minls && $maxls)
-  $data =  '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}},{"range":{"ls":{"from":'.intval($minls).',"to":'.(intval($maxls)+1).'}}}]}},aggs:{ls:{terms:{size:0,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.intval($minls).',"to":'.(intval($maxls)+1).'}}}]}},aggs:{ls:{terms:{size:30000,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
 else
-  $data =  '{"size":0,"query":{"bool":{"must":[{"term":{"_parent":"'.$run.'"}}]}},aggs:{ls:{terms:{size:0,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}},aggs:{ls:{terms:{size:30000,field:"ls"},aggs:{rate:{sum:{field:"NEvents"}},bw:{sum:{field:"NBytes"}} }}}}';
 
 
 //$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
@@ -168,7 +168,7 @@ $termscript = "rack = doc['appliance'].value.substring(3,8);".
 $filter1 = '"query":{"bool":{"must":[{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},{"term":{"activeFURun":'.$run.'}}]}}';
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
-$data = '{"size":0,'.$filter1.',"aggs":{"ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptcorrB02.'","reduce_script":"'.$scriptreduce.'"}},"uncorrSysCPU":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptuncorrB.'","reduce_script":"'.$scriptreduce.'"}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }},"rescat":{"terms":{"script":"'.$termscript.'","size":200,"order" : { "_term":"asc"}},"aggs":{ "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptcorrB02.'","reduce_script":"'.$scriptreduce.'"}},"uncorrSysCPU":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptuncorrB.'","reduce_script":"'.$scriptreduce.'"}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }}  }}    }}';
+$data = '{"size":0,'.$filter1.',"aggs":{"ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }},"rescat":{"terms":{"script":{"lang":"groovy","inline":"'.$termscript.'"},"size":200,"order" : { "_term":"asc"}},"aggs":{ "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }}  }}    }}';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);

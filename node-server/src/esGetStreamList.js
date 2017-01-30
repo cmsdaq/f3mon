@@ -33,7 +33,8 @@ module.exports.query = function (req, res) {
   };
 
   var q = function(){
-    _this.queryJSON1.query.bool.must[0].prefix._id = 'run'+qparam_runNumber;
+    //_this.queryJSON1.query.bool.must[0].prefix._id = 'run'+qparam_runNumber;
+    _this.queryJSON1.query.bool.must[0].parent_id.id = 'run'+qparam_runNumber;
 
     global.client.search({
      index: 'runindex_'+qparam_sysName+'_read',

@@ -23,6 +23,7 @@ module.exports.query = function (req, res) {
     //parameterize query fields 
     this.queryJSON1.size = qparam_size;
 
+    //console.log(JSON.stringify(this.queryJSON1))
     var _this = this;
 
     //search ES - Q2 (get meta)

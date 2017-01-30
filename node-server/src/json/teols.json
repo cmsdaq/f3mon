@@ -1,24 +1,27 @@
 {  "size": 1,
-   "fields":["fm_date"],
+   "_source":["fm_date"],
    "sort": {
       "fm_date": "desc"
    },
    "query": {
-      "filtered": {
-         "query": {
-            "range": {
-               "ls": {
-                  "from": 1,
-                  "to": 5
-               }
-            }
+     "bool": {
+       "must": [
+         {
+           "range": {
+             "ls": {
+               "from": 1,
+               "to": 5
+             }
+           }
          },
-         "filter": {
-                   "prefix": {
-                      "_id": "290011"
-                  }
+         {
+           "parent_id": {
+             "type":"eols",
+             "id": 290011
+           }
          }
-      }
+       ]
+     }
    },
    "aggregations": {
       "ls": {
