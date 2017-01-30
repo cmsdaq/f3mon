@@ -78,7 +78,7 @@ while True:
     delete_count = 0 
     for r in closed_indices[syst]:
       index = 'run'+str(r)+'_'+syst
-      res = requests.post('http://es-cdaq.cms:9200/runindex_'+syst+'*/run/_search','{query:{term:{runNumber:'+str(r)+'}},sort:{endTime:"asc"}}')
+      res = requests.post('http://es-cdaq.cms:9200/runindex_'+syst+'*/run/_search','{"query":{"term":{"runNumber":'+str(r)+'}},"sort":{"endTime":"asc"}}')
       resj = json.loads(res.content)['hits']['hits']
       #print resj
       if not len(resj):
