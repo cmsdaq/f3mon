@@ -52,21 +52,21 @@ module.exports = {
 
     var index_body = {
         settings:{
-            number_of_shards:2,
-            number_of_replicas:1
+            number_of_shards:"2",
+            number_of_replicas:"1",
+            translog : {durability : "async"}
         },
         mappings:{
             query_record:{
                 properties:{
-                    instance:{type:"string",index:"not_analyzed"},
-                    query:{type:"string",index:"not_analyzed"},
+                    instance:{type:"keyword"},
+                    query:{type:"keyword"},
                     ip_addr:{type:"ip"},
                     cached_response:{type:"boolean"},
-                    date:{type:"date","format":"strict_date_optional_time||epoch_millis"},
+                    date:{type:"date"},
                     took:{type:"float"},
-                    useragent:{type:"string",index:"not_analyzed"}
-                },
-            _ttl:{enabled:true,default:"30d"}
+                    useragent:{type:"keyword"}
+                }
             }
         }
     }
