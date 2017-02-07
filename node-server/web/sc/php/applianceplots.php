@@ -94,28 +94,27 @@ $evsize=array();
 $lstimes=array();
 
 $http_status=200;
+$first_scroll=true;
 
 do{
-  //$url = 'http://'.$hostname.':9200/_search/scroll?scroll=1m&scroll_id='.$scroll_id;
-  $url = 'http://'.$hostname.':9200/_search/scroll';
-  $data = '{"scroll":"1m","scroll_id":"'.$scroll_id.'"}';
-  curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
-  curl_setopt ($crl, CURLOPT_URL,$url);
-  curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+  if (!$first_scroll) {
+    $url = 'http://'.$hostname.':9200/_search/scroll';
+    $data = '{"scroll":"1m","scroll_id":"'.$scroll_id.'"}';
+    curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+    curl_setopt ($crl, CURLOPT_URL,$url);
+    curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
 
-  $ret = curl_exec($crl);
-  $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
+    $ret = curl_exec($crl);
+    $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
+  }
   if($http_status==200){
-    $res = json_decode($ret,true);
-    //    $scroll_id=$res["_scroll_id"];
+    if (!$first_scroll)
+      $res = json_decode($ret,true);
     //echo $scroll_id."\n";
-    if (sizeof($res['hits']['hits'])==0) break;
+    //let try again on second scroll
+    if (sizeof($res['hits']['hits'])==0 && !$first_scroll) break;
     foreach($res['hits']['hits'] as $key=>$value){
-      //$thebu = substr($value['_id'],strrpos($value['_id'],'_')+1);
       $thebu = $value['_source']['appliance'];
-      //if(!array_key_exists($thebu,$bwbybu)){
-      //$bwbybu[$thebu]=array();
-      //}
       $ls=$value['_source']['ls'];
       $time=$value['_source']['fm_date'];
       if (!array_key_exists($ls,$lstimes)) {
@@ -130,6 +129,7 @@ do{
     }
   }
   //else echo "ERROR: ".$http_status;
+  $first_scroll=false;
 }while($http_status == 200);
 
 $response['lstimes']=$lstimes;
@@ -268,7 +268,8 @@ $scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in a
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
 
-$termscript = "rack = doc['appliance'].value.substring(3,8);".
+$termscript = "if (doc['appliance'].value.startsWith('dv')) return doc['appliance'].value;".
+              "rack = doc['appliance'].value.substring(3,8);".
               "if (doc['appliance'].value=='bu-c2d46-10-01') return '`16 Action(R730):'+doc['active_resources'].value;".
               "if (rack.startsWith('c2e4')) return '`16 Action:'+doc['active_resources'].value;".
               "else if (rack.startsWith('c2d3') || rack.startsWith('c2d41') || rack.startsWith('c2d42')) return '`15 Megw:'+doc['active_resources'].value;".

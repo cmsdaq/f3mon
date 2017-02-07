@@ -153,7 +153,8 @@ $scriptuncorrB = "mysum = 0d;".
 
 $scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in agg.cpuavg) fsum+=a; if (agg) for (a in agg.cpuweight) fweights+=a;}; if (fweights>0d) {return fsum/fweights;} else {return 0d;}"; 
 
-$termscript = "rack = doc['appliance'].value.substring(3,8);".
+$termscript = "if (doc['appliance'].value.startsWith('dv')) return doc['appliance'].value;".
+              "rack = doc['appliance'].value.substring(3,8);".
               "if (rack.startsWith('c2e4')) return '`16 Action:'+doc['active_resources'].value;".
               "else if (rack.startsWith('c2d3') || rack.startsWith('c2d41') || rack.startsWith('c2d42')) return '`15 Megw:'+doc['active_resources'].value;".
               "else if (rack.startsWith('c2d4')) return '`16 Action:'+doc['active_resources'].value;".

@@ -46,7 +46,7 @@ $mints=0;
 $maxts=0;
 if ($minls && $maxls) {
   $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';//&size=5000';
-  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -68,13 +68,13 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 
 if ($minls && $maxls)
-  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
+  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
 else {
-  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}}]}}}';
+  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}}';
 }
 
-//echo $url." -d'".$data."'\n";
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m';//&size=5000';
+//echo $url." -d'".$data."'\n";
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -89,25 +89,28 @@ $bwbybu=array();
 $ratetotal=array();
 $evsize=array();
 
-
 $http_status=200;
+$http_status=curl_getinfo($crl, CURLINFO_HTTP_CODE);
+$first_scroll=true;
 
 do{
-  //$url = 'http://'.$hostname.':9200/_search/scroll?scroll=1m&scroll_id='.$scroll_id;
-  $url = 'http://'.$hostname.':9200/_search/scroll';
-  $data = '{"scroll":"1m","scroll_id":"'.$scroll_id.'"}';
-  curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
-  curl_setopt ($crl, CURLOPT_URL,$url);
-  curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+  if (!$first_scroll) {
+    //$url = 'http://'.$hostname.':9200/_search/scroll?scroll=1m&scroll_id='.$scroll_id;
+    $url = 'http://'.$hostname.':9200/_search/scroll';
+    $data = '{"scroll":"1m","scroll_id":"'.$scroll_id.'"}';
+    curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+    curl_setopt ($crl, CURLOPT_URL,$url);
+    curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+    $ret = curl_exec($crl);
+    $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
+  }
 
-  $ret = curl_exec($crl);
-  $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
   if($http_status==200){
-    $res = json_decode($ret,true);
-    //    $scroll_id=$res["_scroll_id"];
+    if (!$first_scroll)
+      $res = json_decode($ret,true);
     //echo $scroll_id."\n";
+    if (sizeof($res['hits']['hits'])==0 && !$first_scroll) break;
     foreach($res['hits']['hits'] as $key=>$value){
-      //$thebu = substr($value['_id'],strrpos($value['_id'],'_')+1);
       $thebu = $value['_source']['appliance'];
       if(!array_key_exists($thebu,$ratebybu)){
   	$ratebybu[$thebu]=array();
@@ -123,6 +126,7 @@ do{
     }
   }
   //else echo "ERROR: ".$http_status;
+  $first_scroll=false;
 }while($http_status == 200);
       
 
