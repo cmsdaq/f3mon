@@ -33,15 +33,23 @@
         <!--<br><label for="fillno">Fill </label><input id="fillno" name="fillno">-->
         <br>
         <label for="runno" title="csv list of run numbers">Run Numbers </label><input id="runno" name="runno"></input>
+        <label for="runno">Index </label><select id="index"><option value="current">current</option></select>
         <label for="maxpu" title="optionally set max PU range to be plotted. default 50 or 60 with trend option"> Max PU </label><input id="maxpu" name="maxpu" size="4"></input>
         <label for="maskpu" title="optionally provide PU range to mask, e.g. 10.3-20,35.9-36.1,38.85"> PU Mask </label><input id="maskpu" name="maskpu" size="20"></input>
+
         <br>
-        <label for="fitputime"></label><input type="checkbox" id="fitputime" name="fitputime"></input><label for="fitputime">plot time/PU trend</label>
+	<br>
+        <label for="fitputime"></label><input type="checkbox" id="fitputime" name="fitputime"></input><label for="fitputime">run fit and plot time/PU trend</label>
+	<br>
         <label for="alternative"></label><input type="checkbox" id="alternative" name="alternative"></input>
-        <label for="alternative" title="this method might be more accurate with high and uneven CPU usage across the cluster, but produces more spikes">alternative method</label>
+        <label for="alternative" title="this method might be more accurate with high and uneven CPU usage across the cluster, but produces more spikes">alternative event time method</label>
+	<br>
         <label for="pPb"></label><input type="checkbox" id="pPb" name="pPb"></input>
-        <label for="pPb" title="use lower PU limits">pPb</label>
-        <br><br><input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
+        <label for="pPb" title="use lower PU limits">pPb (lower PU range)</label>
+        <br>
+        <br>
+ 
+        <input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
 
 	<!--<div id="radio1">-->
 	    <input type=radio name=hctheme value=blue id=blue checked=checked onClick="setThemeHash('blue');window.location.reload()"><label for="blue">blue</label>
