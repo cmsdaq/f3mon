@@ -39,5 +39,6 @@ patch -p0 < daemonize-gc.patch
 ```
 1. Follow previous steps for setting up new or existing instance. web directory should be a symlink to web_priv (web directory from git can be safely deleted).
 2. in base (priv) directory, copy or create file pwd_token.json containing {"password":"your random character sequence"} . (it is used to encrypt browser cookie)
+3. Setting up site plugins - in base git site_esplugins, run unpack.sh. This will unpack and setup up HEAD and BigDesk plugins in web_priv/site 
 ```
 
