@@ -162,7 +162,7 @@
 
         $scope.selectRun = function(runNumber) {
             //srchart need to have a container visible to set high and width properly
-            globalService.status.reset();
+            globalService.status.reset(false);
 
             window.setTimeout(
                 function() {

@@ -14,21 +14,24 @@
         var service = {
             status: {
                 currentTab: 0,
-                changeTab: function(num) {
+                changeTab: function(num,reload) {
                     if (this.currentTab===0 && (num===1 || num===2)) {//reset if switching from main view
                       $rootScope.chartInitDone = false;
                     }
                     this.currentTab = num;
-                    broadcast('reload')
+                    if (reload)
+                      broadcast('reload')
+                    else
+                      broadcast('refresh')
                     if (this.currentTab===0) setTimeout(function(){$rootScope.chartInitDone=true;},2);
                 },
                 isTabSelected: function(num) {
                     return this.currentTab == num;
                 },
-                reset: function(){
-                    this.changeTab(0);
+                reset: function(reload){
+                   console.log('globalService.reset')
+                    this.changeTab(0,reload);
                     broadcast('reset');
-
                 }
             },
 
@@ -446,17 +449,25 @@
           setResource(api);
         }
 
-        service.resetParams = function() {
+        service.resetParams = function(all) {
             service.data = {};
-            service.queryParams = {
-              runNumber: false,
-              sysName: false,
-              timeRange: 300,
-              numIntervals: 30,
-              format : "", //nvd3 or other(hc)
-              cputype:"any",
-              hteff: 1
-            };
+            if (all) {
+              service.queryParams = {
+                runNumber: false,
+                sysName: false,
+                timeRange: 300,
+                numIntervals: 30,
+                format : "", //nvd3 or other(hc)
+                cputype:"any",
+                hteff: 1
+              };
+            } else {
+              //do not reset clickable params
+              service.queryParams.runNumber=false;
+              service.queryParams.sysName=false;
+              service.queryParams.timeRange=300;
+              service.queryParams.numIntervals=30;
+            }
             service.queryInfo = {
               timeList:false,
               lastTime: false
@@ -614,7 +625,8 @@
 
         $rootScope.$on('runInfo.selected', function(event) {
             service.stop();
-            service.resetParams();
+            service.resetParams(false);
+            //todo: check if this is ok when three settings are remembered from previous runs
             service.slotsResetCB();
             service.resetHTeffCB();
         });
@@ -632,17 +644,15 @@
                 return;
             }
             service.stop();
-            //remember ustate chart lib choice and cputype selection
-            var fmt  = service.queryParams.format;
-            var cputype  = service.queryParams.cputype;
-            var hteff  = service.queryParams.hteff;
-            service.resetParams();
-            service.queryParams.format = fmt;
-            service.queryParams.cputype = cputype;
-            service.queryParams.hteff = hteff;
+            service.resetParams(false);
         });
 
-        service.resetParams();
+        //already done by controller
+        //$rootScope.$on('global.reload', function(event) {
+        //    service.resetParams(true);
+        //});
+
+        service.resetParams(true);
         return service;
     })
 

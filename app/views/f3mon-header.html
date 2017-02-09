@@ -13,18 +13,18 @@
                 <ul class="nav navbar-nav navbar-left nav-tabs" rol="tablist" ng-controller="tabsCtrl">
 
                     <li id='f3monButton' ng-class="{'active': globalStatus.isTabSelected(0)}" tooltip-placement="bottom" uib-tooltip="Click to reload">
-                        <a href="" ng-click='globalStatus.changeTab(0)'><big><b>F<sup>3</sup>&nbsp;Mon</b></big></a>
+                        <a href="" ng-click='globalStatus.changeTab(0,true)'><big><b>F<sup>3</sup>&nbsp;Mon</b></big></a>
                     </li>
 
                     <li id="logButton" ng-class="{'active': globalStatus.isTabSelected(1)}">
                       <!-- Alert Link HLTd-->
-                      <a href="" ng-click='globalStatus.changeTab(1)'><i class="fa fa-bell"></i> F<sup>3</sup>Alerts
+                      <a href="" ng-click='globalStatus.changeTab(1,true)'><i class="fa fa-bell"></i> F<sup>3</sup>Alerts
                         <span class="label label-success" id="logNum"  ng-class="{'label-danger':logdata.numHLTd > 0}">{{logdata.numHLTd || 0}}</span>
                       </a>
                     </li>
                       <!-- Alert Link HLT-->
                     <li id="logButtonHLT" ng-class="{'active': globalStatus.isTabSelected(2)}">
-                      <a href="" ng-click='globalStatus.changeTab(2)'><i class="fa fa-bell"></i> HLT Alerts
+                      <a href="" ng-click='globalStatus.changeTab(2,true)'><i class="fa fa-bell"></i> HLT Alerts
                         <span class="label label-success" id="logNumHLT"  ng-class="{'label-danger':logdata.numHLT > 0}">{{logdata.numHLT || 0}}</span>  
                       </a>
                     </li>
