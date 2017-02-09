@@ -67,9 +67,6 @@
         
     })
 
-
-
-
     .controller('runRangerCtrl', function($scope, runRangerService) {
         $scope.$on('runRanger.status', function(event) {
             $scope.isActive = runRangerService.isActive;
@@ -96,6 +93,16 @@
 
     })
 
+    .controller('pollerCtrl', function($scope,poller) {
+            $scope.isActive = true;
+            $scope.toggle =  function() {
+              $scope.isActive = !$scope.isActive;
+              if (!$scope.isActive)
+                poller.pauseAll();
+              else
+                poller.resumeAll();
+            }
+    })
 
     .controller('settingsCtrl', function($scope, $cookieStore) {
         //console.log('settingsCtrl')
