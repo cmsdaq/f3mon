@@ -12,14 +12,14 @@ This file describes setup and compilation of browser F3mon component. For Node.j
 ```
 yum install npm
 
-npm install grunt-cli -g
+npm install -g grunt-cli
 
 npm install -g bower
 ```
 
 ##Run unpriviledged in source dir to install dev environment
 ```
-npm install grunt grunt-connect-proxy load-grunt-tasks time-grunt jshint-stylish grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-contrib-concat grunt-contrib-connect grunt-contrib-copy grunt-contrib-cssmin grunt-contrib-htmlmin grunt-contrib-imagemin grunt-contrib-jshint grunt-contrib-uglify grunt-contrib-watch grunt-filerev grunt-google-cdn grunt-karma grunt-newer grunt-ng-annotate grunt-php grunt-svgmin grunt-usemin grunt-wiredep grunt-php
+npm install grunt grunt-connect-proxy load-grunt-tasks time-grunt jshint-stylish grunt-autoprefixer grunt-concurrent grunt-contrib-clean grunt-contrib-concat grunt-contrib-connect grunt-contrib-copy grunt-contrib-cssmin grunt-contrib-htmlmin grunt-contrib-imagemin grunt-contrib-jshint grunt-contrib-uglify grunt-contrib-watch grunt-filerev grunt-google-cdn grunt-karma grunt-newer grunt-ng-annotate grunt-php grunt-svgmin grunt-usemin grunt-wiredep grunt-php karma
 ```
 
 ##Run unpriviledged in source dir to install f3mon dependencies
