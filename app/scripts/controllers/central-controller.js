@@ -116,7 +116,7 @@
             }    
         };
 
-        var initChart = function(){
+        var initChartDD = function(){
             chartConfig = jQuery.extend({}, drillDownChartConfig);
             setEvents();
             chart = new Highcharts.Chart(chartConfig);
@@ -174,7 +174,7 @@
         });
 
         $scope.$on('ddChart.updated', function(event) {
-            if (!chart) initChart();
+            if (!chart) initChartDD();
             chart.xAxis[0].update({labels:{rotation:0}});
             ddserie = chart.series[0];
             ddserie.update({
@@ -183,7 +183,7 @@
         })
 
         $scope.$on('dd2Chart.updated', function(event) {
-            if (!chart) initChart();
+            if (!chart) initChartDD();
             chart.xAxis[0].update({labels:{rotation:-60}});
             //chart.reflow();
             if (!dd2serie) {
@@ -331,7 +331,7 @@
           runInfoService.updateMaskedStreams([]);
           lastStackedState=false;
           initChart(false);
-          console.log('tooltip set: '+ $scope.tooltip);
+          //console.log('tooltip set: '+ $scope.tooltip);
        }
 
         $scope.unitChanged = function() {
@@ -359,7 +359,6 @@
               }
             }
             else {
-              //delete streamRatesChartConfig.plotOptions.column.stacking;
               $scope.stackedDisabled=true;
               if (lastStackedState) {
                 lastStackedState=false;
@@ -368,8 +367,6 @@
                 initChart(false);
               }
             }
-
-            //else delete streamRatesChartConfig.plotOptions.column.stacking;
 
             //check if accum needs to be disabled
             if (axisTitle=="Bytes / Event")
@@ -415,18 +412,14 @@
 
         }
 
-        //reset on switching back from
+        //reset on tab change
         $scope.$on('global.reload', function(event) {
           if ($rootScope.chartInitDone) {
             runInfoService.updateMaskedStreams([]);
-            setTimeout(function() {initChart(true,true)},1);
+            $scope.showInputRate = false;
+            setTimeout(function() {initChart(true)},1);
           }
-          //else $rootScope.chartInitDone=true;
         });
-
-        //$scope.selectorModeChanged = function() {
-        //    currentRangeMode=$scope.selectorMode;
-        //}
 
         $scope.selectorModeSet = function(newmode) {
             currentRangeMode=newmode;
@@ -734,7 +727,7 @@
 
         $scope.$on('runInfo.selected', function(event) {            
             if (isDirty) {
-                initChart(true);
+                initChart(false);
             };
         })
 
@@ -879,7 +872,6 @@
         setPadding();
         $rootScope.resizeList.push(setPadding);
         var initial=false;
-
 
         $scope.toggleLegend=function() {
           $scope.showLegend=!$scope.showLegend;
@@ -1060,7 +1052,7 @@
         });
 
         //on log tab switch back or clicking on f3mon title
-        $scope.$on('global.reload', function(event) {
+        var onReload = function(event) {
           if ($rootScope.chartInitDone) {
             if (chart || !cleared) setTimeout(function(){ 
               if (chart || !cleared) { 
@@ -1071,7 +1063,17 @@
               }
             },1);
           }
+        };
+
+        //on tab change
+        $scope.$on('global.reload', function (event) {
+          resetCorr20();
+          service.resetParams(true);
+          onReload();
         });
+
+        //on run view change
+        $scope.$on('global.refresh', onReload);
 
         $scope.$on('runInfo.selected', function(event) {
             microStatesService.stop();
@@ -1129,7 +1131,7 @@
         $scope.showHLT=false;
 
         //on log tab switch back or clicking on f3mon title
-        $scope.$on('global.reload', function(event) {
+        var onReload = function(event) {
           var tabnum = globalService.status.currentTab;
           if (tabnum===0) {
             $scope.showHLTd=false;
@@ -1155,7 +1157,11 @@
             service.data.itemsPerPage=20;
             $scope.setType('cmsswlog')
           }
-        });
+        }
+
+        $scope.$on('global.reload', onReload);
+        $scope.$on('global.refresh', onReload);
+
         $scope.toggleHLT =function () {
           $scope.detectType();
         }
