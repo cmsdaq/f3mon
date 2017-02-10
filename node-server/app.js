@@ -9,7 +9,6 @@ var http = require('http');
 var elasticsearch = require('elasticsearch');
 
 var heapdump = require('heapdump');
-//var memwatch = require('memwatch');
 
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
