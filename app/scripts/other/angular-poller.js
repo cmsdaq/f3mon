@@ -109,11 +109,13 @@
             '$interval',
             '$q',
             '$http',
+            '$httpParamSerializer',
             'pollerConfig',
             function(
                 $interval,
                 $q,
                 $http,
+                $httpParamSerializer,
                 pollerConfig
             ) {
                 // Poller registry
@@ -210,7 +212,6 @@
                 Poller.prototype.start = function() {
                     var target = this.target;
                     var action = this.action;
-                    var argumentsArray;
                     var delay = this.delay;
                     var smart = this.smart;
                     var catchError = this.catchError;
@@ -224,6 +225,8 @@
 
                     this.deferred = this.deferred || $q.defer();
 
+                    self.argParsed = $httpParamSerializer(self.argumentsArray[0]);
+
                     function tick() {
                         //keep ticking but not polling when paused
                         if (self.paused || self.pausedGlobal) return;
@@ -233,40 +236,12 @@
                             angular.isUndefined(current) ||
                             current.$resolved) {
 
-                            if (angular.isFunction(self.argumentsArray)) {
-                                argumentsArray = self.argumentsArray();
-                            } else {
-                                argumentsArray = self.argumentsArray.slice(0);
-                            }
-
-                            /**
-                             * $resource: typeof target === 'function'
-                             * Restangular: typeof target === 'object'
-                             * $http: typeof target === 'string'
-                             */
-                            if (angular.isString(self.target)) {
-
-                                /**
-                                 * Update argumentsArray and target for $http
-                                 *
-                                 * @example
-                                 * $http.get(url, [config])
-                                 * $http.post(url, data, [config])
-                                 */
-                                argumentsArray.unshift(self.target);
-                                target = $http;
-                            }
-
                             timestamp = new Date();
+                            var fullUrl = self.argParsed.length ? self.target + '?' + self.argParsed : self.target
                             current =
-                                target[action].apply(target, argumentsArray);
+                                $http[action].apply(target, [fullUrl]);
                             current.$resolved = false;
 
-                            /**
-                             * $resource: current.$promise.then
-                             * Restangular: current.then
-                             * $http: current.then
-                             */
                             (current.$promise || current).then(
                                 function(result) {
                                     // Ignore success response if request is
@@ -275,7 +250,7 @@
                                     if (self.paused || self.pausedGlobal) return;
                                     if (angular.isUndefined(self.stopTimestamp) ||
                                         timestamp >= self.stopTimestamp) {
-                                        self.deferred.notify(result);
+                                        self.deferred.notify(result.data);
                                     }
                                 },
                                 function(error) {
@@ -377,6 +352,17 @@
                             poller.restart();
                         }
 
+                        return poller;
+                    },
+
+                    /**
+                     * Return a singleton instance of a poller.
+                     *
+                     * @param target
+                     * @returns {object}
+                     */ 
+                    getRef: function(target) {
+                        var poller = findPoller(target);
                         return poller;
                     },
 

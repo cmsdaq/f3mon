@@ -2,16 +2,16 @@
   "name": "f3mon",
   "version": "0.0.0",
   "dependencies": {
-    "angular": "~1.5",
+    "angular": "~1.6",
     "json3": "~3.3",
     "bootstrap": "~3.3",
-    "angular-animate": "~1.5",
-    "angular-cookies": "~1.5",
-    "angular-messages": "~1.5",
-    "angular-resource": "~1.5",
-    "angular-route": "~1.5",
-    "angular-sanitize": "~1.5",
-    "angular-touch": "~1.5",
+    "angular-animate": "~1.6",
+    "angular-cookies": "~1.6",
+    "angular-messages": "~1.6",
+    "angular-resource": "~1.6",
+    "angular-route": "~1.6",
+    "angular-sanitize": "~1.6",
+    "angular-touch": "~1.6",
     "fontawesome": "~4",
     "angular-percentage-filter": "~1.0.2",
     "angular-bootstrap": "~1",
@@ -33,8 +33,8 @@
     "angular-disable-all": "~0.0.2"
   },
   "devDependencies": {
-    "angular-mocks": "~1.5",
-    "angular-scenario": "~1.5"
+    "angular-mocks": "~1.6",
+    "angular-scenario": "~1.6"
   },
   "appPath": "app",
   "overrides": {
