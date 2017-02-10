@@ -20,7 +20,9 @@ function parseHash(key) {
 function bootstrap(){
 
 	$.ajaxSetup({
-		async: true
+                headers : {   
+                  'f3mon-compression' : 'true'
+                }
 	});
 
 	var autoplot=false;

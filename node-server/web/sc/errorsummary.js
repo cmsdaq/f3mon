@@ -6,6 +6,13 @@ var runlsinfo = {};
 
 
 function bootstrap(){
+
+  $.ajaxSetup({
+                headers : {   
+                  'f3mon-compression' : 'true'
+                }
+  });
+
   $("#leg").hide();
   $("#title").hide();
   $.getJSON("php/errorsummary.php",function(data) {

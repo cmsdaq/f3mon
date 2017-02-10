@@ -22,6 +22,13 @@ var timeoutVar = null;
 var requesting = false;
 
 var bootstrap_all = function() {
+
+    $.ajaxSetup({
+                headers : {   
+                  'f3mon-compression' : 'true'
+                }
+    });
+
     $('#setups').buttonset();
     $('#variables').buttonset();
 

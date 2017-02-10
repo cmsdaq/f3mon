@@ -1,4 +1,12 @@
 function bootstrap(){
+
+    //enable compression (custom header)
+    $.ajaxSetup({
+      headers : {   
+          'f3mon-compression' : 'true'
+      }
+    });
+
     Highcharts.setOptions(Highcharts.theme_du);
 
     var autoplot=false;
