@@ -17,7 +17,7 @@
 
     .config(function($provide, paginationTemplateProvider) {
         //Template required by the dirpagination plugin
-        paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
+        paginationTemplateProvider.setPath('views/modals/dirPagination.tpl.html');
 
 
 //        $provide.constant('config', {

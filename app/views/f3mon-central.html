@@ -2,76 +2,35 @@
     <div class="panel-group full-height" ng-show='globalStatus.isTabSelected(0)'>
         <!-- Stream rates chart panel -->
         <div id='srPanel' class='panel'>
+            <!-- Main stream rate and completion panel -->
             <div class="panel panel-primary" ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
-                <!-- Default panel contents -->
+                <!-- panel header contents (other directives included) -->
                 <div class="panel-heading" style="overflow:visible">
-                    <span ng-show="displayAux" ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <div><span ng-show="displayAux" ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+		    </div>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
                     </div>
                     <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px;margin-right:6px' ng-show="displayAux"><span class="badge" style='width:120px'>query: {{queryInfo.took}} ms</span>
                     </div>
-                    <div class="pull-right" style="width:30px;margin-right:210px" id='sr-divisor'>
-                        <div class="input-group input-group-xs ">
-                            <span class="input-group-addon primary"> <input ng-change='toggleAxis()' ng-disabled='isStacked && !stackedDisabled' ng-model="logAxis" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Logarithmic Y-axis"> log </span>
-                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='stackedDisabled' ng-model="isStacked" type="checkbox" aria-label="..." style='vertical-align: middle'> stacked </span>
-                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-disabled='accumDisabled' ng-model="isAccum" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Cumulative rate or bandwidth in [1,LS]"> accum </span>
-                            <span class="input-group-addon primary"> <input ng-change='toggleInputRate()' ng-model="showInputRate" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Show input rate,bandwidth or event size read by HLT processes"> input </span>
-                        </div>
-                    </div>
-
-                    <div style="margin-left:10px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'>
-                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Events'" ng-change='unitChanged()' tooltip-placement="bottom" uib-tooltip="Event rate">Events</label>
-                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes'" ng-change='unitChanged()' tooltip-placement="bottom" uib-tooltip="Byte rate">Bytes</label>
-                        <label class="btn btn-primary" ng-model="unit" uib-btn-radio="'Bytes / Event'" ng-change='unitChanged()' tooltip-placement="bottom" uib-tooltip="Event size (bytes/event)">B/E</label>
-                    </div>
-
-                    <div class="pull-right" style="width:120px;margin-right:3px" id='sr-divisor' ng-show="displayAux">
-                        <div class="input-group input-group-xs ">
-                            <span class="input-group-addon primary"> <input ng-change='tooltipToggle()' ng-model="tooltip" type="checkbox" aria-label="..." style='vertical-align: middle'> tooltip </span>
-                            <span class="input-group-addon primary"> <input ng-change='unitChanged()' ng-model="useDivisor" ng-disabled='divisorDisabled' type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Show rates/bandwidth normalized to a second or LS (23.31s) interval"> sec/LS </span>
-                        </div>
-                    </div>
-
-                    <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'>
-
-                        <button type="button" class="btn btn-primary" disabled ng-show="displayAux">
-                          Range Mode:
-                        </button>
-
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-show="displayAux" tooltip-placement="bottom" uib-tooltip="Drilldown level to display using mouse drag selection in the graph">
-                          <span id="abcde">{{selectorMode}}</span>
-                          <span class="caret"></span>
-                        </button>
-                        <ul class="dropdown-menu" role="menu" id="selector-mode-list">
-                          <li ng-repeat="item in selectorModes" class="list-group-item" ng-click="selectorModeSet(item)"><a href="">{{item}}</a>
-                          </li>
-                        </ul>
-                    </div>
-
+                    <f3mon-central-sr-options-right class="pull-right" style="width:30px;margin-right:300px" id='sr-divisor-right'/>
+                    <f3mon-central-sr-buttons-units style="margin-left:10px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'/>
+                    <f3mon-central-sr-options-left class="pull-right" style="width:120px;margin-right:3px" id='sr-divisor-left' ng-show="displayAux"/>
+                    <f3mon-central-sr-rangeselect style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'/>
                     <h3 class="panel-title">
                     <i class="fa fa-bar-chart-o"></i>
-                    
-                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                    </div>
-
+		    <f3mon-collapse-control/>
                     Stream Rates
                     </h3>
-
                 </div>
+		<!--collapse wrapper -->
                 <div class="nav-collapse" uib-collapse="isCollapsed">
-                  <div class="panel-body" style='height:{{hpx}}px;'>
-                 <div id="srchart" style='height:95%;width:99%' ></div>
-
-<!--                     <div id="inrchart" style='height:25%;width:95%;margin-left:8px'></div>
-                     <div id="srchart"  style='height:55%;width:99%'></div> -->
-
-       <!--           </div> -->
-
-                  <!--<div class="panel-body" style='height:{{400}}px;'>-->
-                  </div>
- 
+		    <!-- panel body -->
+                    <div class="panel-body" style='height:{{hpx}}px;'>
+		        <!-- highcharts element -->
+                        <div id="srchart" style='height:95%;width:99%' >
+	                </div>
+                    </div>
                 </div>
             </div>
             <!-- Drill down table panel -->
@@ -84,7 +43,9 @@
                     </div>
 
                     <h3 class="panel-title">
-                    <i class="fa fa-bar-chart-o"></i> {{queryParams.type }} LS range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}  </h3>
+                      <i class="fa fa-bar-chart-o"></i>
+		      {{queryParams.type }} LS range: {{queryParams.from}} - {{queryParams.to}} {{queryParams.stream? " | Stream: "+queryParams.stream : ""}}
+		    </h3>
                 </div>
                 <div class="nav-collapse" uib-collapse="isCollapsed">
                 <div class="panel-body" style='height:{{hpxdd}}px'>
@@ -94,14 +55,12 @@
             </div>
         </div>
 
-
-
         <div id='msPanel' class='panel' style='height:auto'>
             <!-- Microstate chart panel -->
             <div class="panel panel-primary" ng-controller='microStatesCtrl' style='height:100%' id='msPanel'>
                 <!-- Default panel contents -->
                 <div class="panel-heading" style="overflow:visible">
-                    <span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <div><span ng-click='selectTour("msPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span></div>
 
                     <div style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-microchartselectswitch'>
 
@@ -151,10 +110,7 @@
 
                     <h3 class="panel-title">
 
-                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#micro-panel-body-collapse-1,#micro-panel-body-collapse-2"><i class="fa fa-power-off"></i></button>
-                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                    </div>
+                    <f3mon-collapse-control/>
  
                     <i class="fa fa-area-chart"></i> Microstates Time chart</h3>
                 </div>
@@ -174,8 +130,6 @@
 
         </div>
 
-
-
         <div id='ssPanel' class='panel' style='height:auto'>
             <!-- Microstate chart panel -->
             <div class="panel panel-primary" ng-controller='streamSummaryCtrl' style='height:100%'>
@@ -183,10 +137,7 @@
                 <div class="panel-heading">
  
                     <h3 class="panel-title">
-                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#micro-panel-body-collapse-1,#micro-panel-body-collapse-2"><i class="fa fa-power-off"></i></button>
-                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                    </div>
+		    <f3mon-collapse-control/>
  
                     <i class="fa fa-table"></i> Stream Completeness</h3>
                 </div>
@@ -320,12 +271,8 @@
                 </div>
             </div>
         </div>
-
-
     </div>
-
-
-
+    </div>
 
     <div class="panel-group full-height" ng-show='globalStatus.isTabSelected(1) || globalStatus.isTabSelected(2)'>
         <div class="panel panel-primary" style='height:100%' ng-controller="logsCtrl" id='logPanel'>

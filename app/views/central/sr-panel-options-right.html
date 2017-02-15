@@ -1,0 +1,12 @@
+  <div class="input-group input-group-xs ">
+  <span class="input-group-addon primary">
+    <input ng-change='toggleAxis()' ng-disabled='isStacked && !stackedDisabled' ng-model="logAxis" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Logarithmic Y-axis"> log </span>
+  <span class="input-group-addon primary">
+    <input ng-change='unitChanged()' ng-disabled='stackedDisabled' ng-model="isStacked" type="checkbox" aria-label="..." style='vertical-align: middle'> stacked </span>
+  <span class="input-group-addon primary">
+    <input ng-change='unitChanged()' ng-disabled='accumDisabled' ng-model="isAccum" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Cumulative rate or bandwidth in [1,LS]"> accum </span>
+  <span class="input-group-addon primary">
+    <input ng-change='toggleInputRate()' ng-model="showInputRate" type="checkbox" aria-label="..." style='vertical-align: middle' tooltip-placement="bottom" uib-tooltip="Show input rate,bandwidth or event size read by HLT processes"> input </span>
+  <span class="input-group-addon primary">
+    <input ng-change='unitChanged()' ng-model="showTrans" type="checkbox" aria-label="..." style='vertical-align: middle'> transfers </span>
+  </div>
