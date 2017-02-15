@@ -66,7 +66,7 @@ module.exports = {
                     date:{type:"date"},
                     took:{type:"float"},
                     useragent:{type:"keyword"}
-                }
+                },
             }
         }
     }

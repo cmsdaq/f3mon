@@ -67,7 +67,7 @@ module.exports.query = function (req, res) {
   if (qparam_streamList == null){qparam_streamList = 'A';}
 
   var stream_id;
-  if (qparam_type==='macromerge')
+  if (qparam_type==='macromerge' || qparam_type=='transfer')
     stream_id = qparam_streamList
   else
     stream_id = qparam_stream
@@ -83,20 +83,22 @@ module.exports.query = function (req, res) {
   var totals = {}; //obj to hold per bu event counters
 
   //Get minimerge
-  var q2 = function(callback){
+  var q2 = function(){
 
-   //_this.queryJSON1.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}}
-   //if (parseInt(qparam_runNumber)>286591)
    _this.queryJSON1.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
    _this.queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
    _this.queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
-   _this.queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
-   _this.queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
+   if (qparam_type=='transfer') {
+    _this.queryJSON1.query.bool.must = [ _this.queryJSON1.query.bool.must[0],_this.queryJSON1.query.bool.must[1],{"term":{"status":2}} ]
+   } else {
+   _this.queryJSON1.query.bool.must = [ _this.queryJSON1.query.bool.must[0],_this.queryJSON1.query.bool.must[1], {"term":{"stream":{"value":qparam_stream}}} ]
+   }
+   //_this.queryJSON1.query.bool.must.push({"term":{"status":2}})
 
    global.client.search({
     index: 'runindex_'+qparam_sysName+'_read',
-    type: 'minimerge',
+    type: qparam_type,
     body : JSON.stringify(_this.queryJSON1)
     }).then (function(body){
       try {
@@ -157,8 +159,6 @@ module.exports.query = function (req, res) {
   //Get macromerge
   var q2macro = function(total_q1){
 
-    //_this.queryJSON2.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}}
-    //if (parseInt(qparam_runNumber)>286591)
     _this.queryJSON2.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
     _this.queryJSON2.query.bool.must[0].range.ls.from = qparam_from;
@@ -275,7 +275,7 @@ module.exports.query = function (req, res) {
   if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
     if (qparam_type == 'minimerge')
       q1(); //call q1 with q2 as its callback
-    else if (qparam_type == 'macromerge')
+    else if (qparam_type == 'macromerge' || qparam_type=='transfer')
       q1macro();
   }
 }

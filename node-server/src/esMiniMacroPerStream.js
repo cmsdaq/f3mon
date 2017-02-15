@@ -67,6 +67,15 @@ module.exports.query = function (req, res) {
   if (qparam_streamList == null){qparam_streamList = 'A,B,DQM,DQMHistograms,HLTRates,L1Rates';} //review default initialization
   if (qparam_type == null){qparam_type = 'minimerge';}
 
+  if (qparam_type=='transfer') {
+    var new_list = [];
+    qparam_streamList.split(',').forEach(function(item) {
+      if (item=="Error") return;
+      new_list.push(item)
+    });
+    qparam_streamList = new_list.join(',')
+  }
+
   var requestKey = 'minimacroperstream?='+qparam_runNumber+'&='+qparam_from+'&='+qparam_to+'&='+qparam_sysName+'&='+qparam_streamList+'&='+qparam_type;
   var ttl = global.ttls.minimacroperstream; //cached ES response ttl (in seconds)
 

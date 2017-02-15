@@ -3,6 +3,9 @@
 var Common = require('./esCommon')
 module.exports = new Common()
 
+var streamIncompleteCol = "purple";
+var streamIncompleteCol = "pink";
+
 //percColor function
 var percColor = function (percent){
 		//console.log('called percColor with arg='+percent);
@@ -99,6 +102,7 @@ module.exports.query = function (req, res) {
   if (qparam_lastLs<21){qparam_lastLs = 21;}
   if (!qparam_useDivisor){qparam_timePerLs = 1;}
 
+  var new_color_coding = true;
 
   var allDQM=true;
   streamListArray.forEach(function(s) {
@@ -126,6 +130,7 @@ module.exports.query = function (req, res) {
   var streamBeforeTotal_b = 0;
   var took = 0;
   var streamNum;
+  var streamNumWithDQM;
   var postOffSt;
   var maxls = 0;
 
@@ -136,128 +141,18 @@ module.exports.query = function (req, res) {
         "micromerge" : "",
         "minimerge" : "",
 	"macromerge" : "",
-	"nransfer" : "",
+	"transfer" : "",//
 	"navbar" : "",
 	"interval" : "",
 	"lastTime" : ""
   };
   retObj.interval = interval;
 
-  //Get transfer (from cache only)
-  var q6 = function (callback) {
-
-    var lsList = streamTotals.lsList;
-    if( lsList.length==0) {callback();return;}
-
-    var trReqObj = {"run": qparam_runNumber, "binary":true , "aggregate":true}
-    var transferInfo = global.smdb.runTransferQuery(trReqObj,'internal-f3mon',null,false,null);
-    if (transferInfo===null) {
-      callback();
-      return;
-    }
-    //for (var i=0;i<transferInfo.length;i++) {console.log(transferInfo[i]);}
-    var transferInfoLen = transferInfo.length;
-
-    var lsIndex = 0;
-    var currentLs = lsList[lsIndex] - postOffSt;
-    var nextLs=null;
-    if( lsList.length>1)
-      var nextLs = lsList[lsIndex+1] - postOffSt;
-    if (currentLs<=0) {
-      callback(); // sendResult
-      return;
-    }
-    var beginIndex = currentLs-1;
-    var step = 1;
-    //search for beginning of the interval
-    while (beginIndex < transferInfoLen && transferInfo[beginIndex].ls > currentLs) {
-      beginIndex-=step;
-      step*=2;
-      if (beginIndex<=0) {beginIndex=0;break;}
-    }
-
-    transStatus = {"percents":[]};
-  
-    //lsobj = {"ls":tls,"cop":(copied!==null), "s":1, "c":0}
-    var tsObj = undefined;
-    var nC = undefined;
-    var nS = undefined;
-
-    for (var i=beginIndex;i<transferInfoLen;i++)
-    {
-      if (transferInfo[i].ls < currentLs) continue;
-      tInfo = transferInfo[i];
-      if (tInfo.ls == currentLs) {
-        //new bin
-        tsObj = {"x":currentLs,"y":0}
-        nC = tInfo.copy;
-        nS = tInfo.s;
-        //console.log( nC +' '+nS)
-      }
-      else if (lsIndex+1>=lsList.length) { //exceeded eols LS count
-        if (tsObj!==undefined) {
-          tsObj.y = nC / nS;
-          //console.log('pushingA '+tsObj.x +' ' + tsObj.y);
-          transStatus.percents.push(tsObj);
-          tsObj = undefined;
-        }
-        break;
-      }
-      //accumulate
-      else if (tInfo.ls<nextLs) {
-        if (tsObj===undefined) {
-          tsObj = {"x":currentLs,"y":0}
-          nC = tInfo.copy;
-          nS = tInfo.s;
-          //console.log('tsObj '+ tsObj.x);
-        } else {
-          nC += tINfo.copy;
-          nS += tINfo.s;
-        }
-      }
-      else { //exceeded of skipped over nextLs
-        if (tsObj!==undefined) {
-          tsObj.y = nC / nS;
-          //console.log('pushingB '+tsObj.x +' ' + tsObj.y);
-          transStatus.percents.push(tsObj);
-          tsObj = undefined;
-        }
-        while (nextLs && tInfo.ls>=nextLs) {
-          currentLs=nextLs;
-          lsIndex+=1;
-          if (lsIndex<lsList.length)
-            nextLs=lsList[lsIndex]-postOffSt;
-          else nextLs=null;
-        }
-        if (tInfo.ls==currentLs || (nextLs && tInfo.ls<nextLs)) {
-          tsObj = {"x":currentLs,"y":0}
-          nC = tInfo.copy;
-          nS = tInfo.s;
-        }
-      }
-      //exceeded either length
-      if (i === transferInfoLen-1 && tsObj!==undefined) {
-        tsObj.y = nC / nS;
-        //console.log('pushingC '+tsObj.x +' ' + tsObj.y);
-        transStatus.percents.push(tsObj);
-        tsObj = undefined;
-        break;
-      }
-    }
-    transStatus.took=0;
-
-    retObj.transfer=transStatus;
-    callback();//sendResult(...)
-
-  }
-
-  //Get macromerge
-  var q5 = function (_this){
+  //Get transfer
+  var q6 = function (_this){
         var queryJSON1 = _this.queryJSON1;
-        //queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
-        //queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}}
-        //if (parseInt(qparam_runNumber)>286591))
-        queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
+        queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}},{"term":{"status":2}}]; //status 1: begin transfer, status 2: done transfer
+	//TODO: use colors
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -265,12 +160,137 @@ module.exports.query = function (req, res) {
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
 	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON1.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
+	queryJSON1.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
 
-        queryJSON1.query.bool.should = []; //[{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
-        streamListArray.forEach(function(s) {
-          if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
-            queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
-        });
+	global.client.search({
+	 index: 'runindex_'+qparam_sysName+'_read',
+         type: 'transfer',
+         body : JSON.stringify(queryJSON1)
+    	}).then (function(body){
+          try {
+        	var results = body.hits.hits; //hits for query
+		if (results.length>0){
+                  lastTimes.push(results[0].sort[0]);
+		}
+		took += body.took;
+
+		var transfer = {
+			"percents" : [],
+			"took" : body.took
+		};
+		
+		var lsList = body.aggregations.inrange.ls.buckets;
+		
+		var beforeLs = body.aggregations.sumbefore;
+
+                var procNoDQMAccum = beforeLs.procNoDQM.processed.value
+                var processedAccum = allDQM ? beforeLs.procAll.value : beforeLs.procNoDQM.processed.value
+                //var processedAccumWithDQM_count = beforeLs.doc_count
+
+                var totAcc = 0;
+
+		for (var i=0;i<lsList.length;i++){
+			var ls = lsList[i].key+postOffSt;
+                        if (qparam_accum && ls>maxls) continue;
+
+
+                        var procNoDQM;
+                        var processed;
+                        var processedWithDQM_count;
+                        if (qparam_accum) {
+                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
+                          processedAccum = processed = (allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value) + processedAccum;
+                          //processedAccumWithDQM_count = processedWithDQM_count = lsList[i].doc_count + processedAccumWithDQM_count;
+                        } else {
+                          procNoDQM = lsList[i].procNoDQM.processed.value;
+                          processed = allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value
+                          processedWithDQM_count = lsList[i].doc_count
+                        }
+			var streamNum_noError = streamNum - streamErrorFound 
+
+                        var total;
+                        if (qparam_accum)
+                          total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*(streamNum_noError);
+                        else 
+                          total = streamTotals.events[ls]*(streamNum_noError);
+                        totAcc += streamTotals.events[ls];
+
+			var doc_count = streamTotals.doc_counts[ls];
+			var mdoc_count = lsList[i].doc_count;
+                        var processedSel;
+                        var processedSel;
+                        if (allDQM) processedSel = processed;
+                        else processedSel = procNoDQM;
+
+			//calc transfer percents
+ 			var percent;
+                        if (total == 0){
+                                if (doc_count == 0 || mdoc_count == 0){
+                                        percent = 0;
+                                }else{
+                                        percent = 100;
+                                }
+                        }else{
+                                var p = 100*processedSel/total;
+                                if (p>=99.995 && p<100)
+                                  percent = Math.round(p*1000)/1000;
+                                else
+                                  percent = Math.round(p*100)/100;
+                        }
+                        var color = percColor(percent);
+                        if (allDQM && percent<100. && percent>50.) color = "olivedrab";
+
+			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM) {
+			  //bucket doc_count for stream with max documents
+			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
+			  if (maxBuckets.length) {
+			    var stream_max_docs = maxBuckets[0].doc_count;
+			    //assumes streamError doc is not written. In case of the opposite, - streamErrorFound part should be removed
+			    if (streamNumWithDQM < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNum_noError))
+			      color=streamIncompleteCol;
+			  }
+			}
+
+                        var eolts = undefined;
+                        if (tsList.hasOwnProperty(ls)) eolts=tsList[ls];
+
+                        var entry = {
+                        "x" : ls,
+                        "y" : percent,
+                        "eolts" : eolts,
+                        "color" : color
+                        };
+                        transfer.percents.push(entry);
+		}
+		retObj.transfer = transfer;
+		retObj.took = took;
+	        var maxLastTime = Math.max.apply(Math, lastTimes);
+	        retObj.lastTime = maxLastTime;
+                //reply
+                _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+          } catch (e) {_this.exCb(res,e,requestKey)}
+	}, function (error){
+		_this.excpEscES(res,error,requestKey);
+        	console.trace(error.message);
+  	 });
+
+  }//end q6
+
+
+  //Get macromerge
+  var q5 = function (_this){
+        var queryJSON1 = _this.queryJSON1;
+        queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}];
+	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON1.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
+	queryJSON1.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
 
 	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
@@ -280,12 +300,7 @@ module.exports.query = function (req, res) {
           try {
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-                  //var fm_date_val = results[0].fields.fm_date[0];
-                  //if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
-                  //else lastTimes.push(results[0].fields.fm_date[0]);
-                  /*var fm_date_val = results[0]._source.fm_date;//compatibility with old indices
-                  if (fm_date_val < 2000000000) lastTimes.push(results[0]._source.fm_date*1000);
-                  else*/ lastTimes.push(results[0].sort[0]);
+                  lastTimes.push(results[0].sort[0]);
 		}
 		took += body.took;
 
@@ -298,8 +313,9 @@ module.exports.query = function (req, res) {
 		
 		var beforeLs = body.aggregations.sumbefore;
 
-                var procNoDQMAccum = beforeLs.procNoDQM.processed.value + beforeLs.procDQMHisto.processed.value;
-                var processedAccum = beforeLs.procAll.value
+                var procNoDQMAccum = beforeLs.procNoDQM.processed.value
+                var processedAccum = allDQM ? beforeLs.procAll.value : beforeLs.procNoDQM.processed.value
+                //var processedAccumWithDQM_count = beforeLs.doc_count
 
                 var totAcc = 0;
 
@@ -309,12 +325,15 @@ module.exports.query = function (req, res) {
 
                         var procNoDQM;
                         var processed;
+                        var processedWithDQM_count;
                         if (qparam_accum) {
-                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value + procNoDQMAccum;
-                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
+                          processedAccum = processed = (allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value) + processedAccum;
+                          //processedAccumWithDQM_count = processedWithDQM_count = lsList[i].doc_count + processedAccumWithDQM_count;
                         } else {
-                          procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
-                          processed = lsList[i].procAll.value;
+                          procNoDQM = lsList[i].procNoDQM.processed.value;
+                          processed = allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value
+                          processedWithDQM_count = lsList[i].doc_count
                         }
 
                         var total;
@@ -326,6 +345,7 @@ module.exports.query = function (req, res) {
 
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
+                        var processedSel;
                         var processedSel;
                         if (allDQM) processedSel = processed;
                         else processedSel = procNoDQM;
@@ -348,6 +368,15 @@ module.exports.query = function (req, res) {
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
+			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM) {
+			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
+			  if (maxBuckets.length) {
+			    var stream_max_docs = maxBuckets[0].doc_count;
+			    if (streamNumWithDQM < stream_max_docs*Math.max(stream_labels.length,streamNum))
+			      color=streamIncompleteCol;
+			  }
+			}
+
                         var eolts = undefined;
                         if (tsList.hasOwnProperty(ls)) eolts=tsList[ls];
 
@@ -364,7 +393,8 @@ module.exports.query = function (req, res) {
 	        var maxLastTime = Math.max.apply(Math, lastTimes);
 	        retObj.lastTime = maxLastTime;
                 //reply
-                _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+                //_this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+		q6(_this);
           } catch (e) {_this.exCb(res,e,requestKey)}
 	}, function (error){
 		_this.excpEscES(res,error,requestKey);
@@ -378,10 +408,7 @@ module.exports.query = function (req, res) {
   var q4 = function (_this){
 
         var queryJSON1 = _this.queryJSON1;
-        //queryJSON1.query.bool.must.prefix._id = 'run'+qparam_runNumber;
-        //queryJSON1.query.bool.must = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}}
-        //if (parseInt(qparam_runNumber)>286591))
-        queryJSON1.query.bool.must = {"term":{'runNumber':qparam_runNumber}};
+        queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}];
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -389,12 +416,10 @@ module.exports.query = function (req, res) {
 	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
 	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
 	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON1.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
+	queryJSON1.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
 
-        queryJSON1.query.bool.should = []; //= [{"bool":{"must_not":{"prefix":{"value":"DQM"}}}}];
-        streamListArray.forEach(function(s) {
-          if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
-            queryJSON1.query.bool.should.push({"term":{"stream":{"value":s}}});
-        });
+	//console.log(JSON.stringify(queryJSON1,null,2))
 	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'minimerge',
@@ -403,13 +428,7 @@ module.exports.query = function (req, res) {
           try {
         	var results = body.hits.hits; //hits for query
 		if (results.length>0){
-                  //var fm_date_val = results[0].fields.fm_date[0];
-                  //if (fm_date_val < 2000000000) lastTimes.push(results[0].fields.fm_date[0]*1000);
-                  //else lastTimes.push(results[0].fields.fm_date[0]);
-                  /*var fm_date_val = results[0]._source.fm_date;
-                  if (fm_date_val < 2000000000) lastTimes.push(results[0]._source.fm_date*1000);
-                  else*/ lastTimes.push(results[0].sort[0]);
-
+		  lastTimes.push(results[0].sort[0]);
 		}
 		took += body.took;
 
@@ -421,10 +440,14 @@ module.exports.query = function (req, res) {
 		var lsList = body.aggregations.inrange.ls.buckets;
 		var beforeLs = body.aggregations.sumbefore;
 
-                var procNoDQMAccum = beforeLs.procNoDQM.processed.value + beforeLs.procDQMHisto.processed.value;
-                var processedAccum = beforeLs.procAll.value
+                var procNoDQMAccum = beforeLs.procNoDQM.processed.value
+                var processedAccum = allDQM ? beforeLs.procAll.value:beforeLs.procNoDQM.processed.value
 
                 var totAcc = 0;
+
+                var lsBUCount = {}
+
+		//show fake 100% micro value if mini is already 100%
                 var fakeMicro = false
                 if (retObj.micromerge.percents.length==lsList.length) fakeMicro=true;
                 //else console.log(fakeMicro)
@@ -436,12 +459,13 @@ module.exports.query = function (req, res) {
                         var procNoDQM;
                         var processed;
                         if (qparam_accum) {
-                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value + procNoDQMAccum;
-                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
+                          processedAccum = processed = (allDQM ? lsList[i].procAll.value:lsList[i].procNoDQM.processed.value) + processedAccum;
                         } else {
-                          procNoDQM = lsList[i].procNoDQM.processed.value + lsList[i].procDQMHisto.processed.value;
-                          processed = lsList[i].procAll.value;
+                          procNoDQM = lsList[i].procNoDQM.processed.value;
+                          processed = allDQM ? lsList[i].procAll.value:lsList[i].procNoDQM.processed.value;
                         }
+			//console.log('ls ' + JSON.stringify(lsList[i]))
 
                         var total;
                         if (qparam_accum)
@@ -451,10 +475,24 @@ module.exports.query = function (req, res) {
                         totAcc += streamTotals.events[ls];
 
 			var doc_count = streamTotals.doc_counts[ls];
+			//console.log(doc_count)
 			var mdoc_count = lsList[i].doc_count;
                         var processedSel;
                         if (allDQM) processedSel = processed;
                         else processedSel = procNoDQM;
+
+                        var streams_only_partial = false;
+			//if (ls==150) console.log(JSON.stringify(lsList[i],null,2));
+			//if (ls==150) console.log('mdoc:'+doc_count + ' labels:' + stream_labels.length + ' streamNum:' + streamNumWithDQM)
+			if (!qparam_accum) {//accum supported at this time
+			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
+			  //only test this if some stream is completely written by all BUs
+			  if (maxBuckets.length && maxBuckets[0].doc_count==doc_count) {
+			    var max_docs = doc_count*Math.max(streamNumWithDQM,stream_labels.length);
+			    if (max_docs>lsList[i].doc_count)
+			      streams_only_partial = true;
+			  }
+			}
 
 			//calc minimerge percents
  			var percent;
@@ -473,6 +511,8 @@ module.exports.query = function (req, res) {
                         }
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
+			//partial stream doc count with all BUs reporting
+			if (new_color_coding && total>0 && percent>0. && streams_only_partial) color=streamIncompleteCol;
 
                         var entry = {
                         "x" : ls,
@@ -480,11 +520,13 @@ module.exports.query = function (req, res) {
                         "color" : color
                         };
                         minimerge.percents.push(entry);
+                        //if (fakeMicro && false /* HACK */) {
                         if (fakeMicro) {
                           var tobj = retObj.micromerge.percents[i];
                           if (tobj.y<percent) {
                             tobj.y=percent;
-                            tobj.color=percColor2(percent,tobj.err);
+			    if (tobj.color==streamIncompleteCol && color==streamIncompleteCol) {}//avoid recalc for this color code
+                            else tobj.color=percColor2(percent,tobj.err);
                           }
                         }
 		}
@@ -508,6 +550,14 @@ module.exports.query = function (req, res) {
 	//queryJSON2.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
 	//queryJSON2.query.prefix._id = qparam_runNumber;
 	queryJSON2.query.parent_id.id = parseInt(qparam_runNumber);
+
+	queryJSON2.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON2.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON2.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON2.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON2.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON2.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+
 	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.to = qparam_to;
 	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
@@ -548,7 +598,9 @@ module.exports.query = function (req, res) {
       };
 
       var totSumIn={};
+      //var totDocCountIn={};
       var totSumError={};
+      //todo: query stream_label to know exact number of streams (not only found in this LS range)
       var nStreamsMicro=0;
 
       for (var i=0;i<streams.length;i++){
@@ -590,6 +642,7 @@ module.exports.query = function (req, res) {
 
                         if (totSumIn[ls]==null) {
                           totSumIn[ls]=0;
+                          //totDocCountIn[ls]=0;
                           totSumError[ls] = 0;
                         }
 		
@@ -597,12 +650,14 @@ module.exports.query = function (req, res) {
 
                           //for total %
                           totSumIn[ls] += lsList[j].in.value + totStreamIn;
+                          //totDocCountIn[ls] += lsList[j].doc_count + totStreamDocCountIn;
                           if (lsList[j].error!=undefined)
                             totSumError[ls] += lsList[j].error.value + totStreamErr;
                           //else
                           //  totSumError[ls] += totStreamErr;
 
 			  totStreamIn = totStreamIn + lsList[j].in.value; 
+			  //totStreamDocCountIn = totStreamDocCoountIn + lsList[j].doc_count;
 			  totStreamOut = totStreamOut + lsList[j].out.value; 
 			  totStreamfsOut = totStreamfsOut + lsList[j].filesize.value;
                         }
@@ -614,6 +669,7 @@ module.exports.query = function (req, res) {
                             totSumError[ls] += lsList[j].error.value;
 
 			  totStreamIn = lsList[j].in.value; 
+			  //totStreamDocCountIn = lsList[j].doc_count;
 			  totStreamOut = lsList[j].out.value; 
 			  totStreamfsOut = lsList[j].filesize.value;
                         }
@@ -683,6 +739,7 @@ module.exports.query = function (req, res) {
 	for (var i=0;i<lsList.length;i++){
 		var ls = lsList[i];
 		var processed = totSumIn[ls];
+		//var processed_docs = totDocCountIn[ls];
                 if (processed == undefined) processed=0;
 		var err = totSumError[ls];
                 if (err == undefined) err=0;
@@ -695,6 +752,18 @@ module.exports.query = function (req, res) {
 		var doc_count = streamTotals.doc_counts[ls];
 		//var mdoc_count = lsList[i].doc_count;
 
+                var streams_only_partial = false;
+		if (!qparam_accum) {//accum supported at this time
+                    var lsList_all = body.aggregations.inrange.ls.buckets;
+		    var maxBuckets = lsList_all[i].streamMaxDocCount.buckets;
+                    //only test this if some stream is completely written by all BUs
+		    if (maxBuckets.length) {
+		      var max_docs=maxBuckets[0].doc_count*Math.max(streams.length,stream_labels.length);
+		      if (max_docs>lsList_all[i].doc_count)
+		        streams_only_partial = true;
+		    }
+		}
+	
 		//calc minimerge percents
 		var percent;
 		if (total == 0){
@@ -712,6 +781,8 @@ module.exports.query = function (req, res) {
 		}
 		var color = percColor2(percent,err>0);
                 if (total==0) color = "palegreen";
+		//console.log('ls:'+ls+' ' +streamTotals.doc_counts[ls] + ' ' + lsDocCount[ls] + ' ' +Math.max(stream_labels.length,nStreamsMicro))
+		if (new_color_coding && total>0 && percent>0. && streams_only_partial) color=streamIncompleteCol;
 
 		var entry = {
 			"x" : ls,
@@ -731,11 +802,12 @@ module.exports.query = function (req, res) {
 	var mmStreamList = [];
 	for (var k=0;k<streamListArray.length;k++){
 		var s = streamListArray[k];
-		if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM){
+		if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM) {
 			mmStreamList.push(streamListArray[k]);
 		}
 	}
-	streamNum = mmStreamList.length;
+	streamNum = mmStreamList.length; // TODO: use Math.max( stream_label.length,mmStreamList.length)
+	streamNumWithDQM = streamListArray.length;
 	
 	q4(_this); //q4(q5)
       } catch (e) {_this.exCb(res,e,requestKey)}
@@ -745,6 +817,36 @@ module.exports.query = function (req, res) {
     });
 
   }//end q3
+
+  //get stream_label list
+  var stream_labels = [];
+  var streamErrorFound = false;
+
+  var qstreams = function (_this){
+    var queryJSON = {
+      "size":1,
+      "query":{"parent_id":{"id":qparam_runNumber,"type":"stream_label"}},"aggs":{"streams":{"terms":{"field":"stream","size":200,"min_doc_count":1}}}
+    }
+
+    global.client.search({
+      index: 'runindex_'+qparam_sysName+'_read',
+      type: 'stream_label',
+      body : JSON.stringify(queryJSON)
+    }).then (function(body){
+      try {
+        var results = body.aggregations.streams.buckets; //hits for query
+	for (var i=0;i<results.length;i++) {
+	  stream_labels.push(results[i].key);
+	  if (results[i].key=="Error") streamErrorFound=true;
+	}
+        q3(_this);
+      } catch (e) {_this.exCb(res,e,requestKey)}
+    }, function (error){
+	_this.excpEscES(res,error,requestKey);
+        console.trace(error.message);
+    });
+
+  }//end qstreams
 
   //Get totals
   var q2 = function (_this){
@@ -827,7 +929,7 @@ module.exports.query = function (req, res) {
 	streamTotals = ret;
         retObj["input"]=retInput;
 
-        q3(_this);
+        qstreams(_this);
       } catch (e) {_this.exCb(res,e,requestKey)}
     }, function (error){
 	_this.excpEscES(res,error,requestKey);

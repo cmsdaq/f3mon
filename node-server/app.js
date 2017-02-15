@@ -9,6 +9,8 @@ var http = require('http');
 var elasticsearch = require('elasticsearch');
 
 var heapdump = require('heapdump');
+//compression
+var compression=require('compression');
 
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
@@ -27,8 +29,37 @@ global.bulk_buffer = []
 //unlimited number of simultaneous connections (default:5)
 http.globalAgent.maxSockets=Infinity;
 
+
+var priv_access=false;
+var override_secure=false;
+//based on instance port
+if  (serverPort==8080 || serverPort==8040 || override_secure) priv_access=true;
+
 //3.init web content plugin
 var app = express();
+
+var compress_all=true;
+if (!priv_access) {
+  if (compress_all) app.use(compression());
+  else {
+    app.use(compression({filter: shouldCompress}))
+    function shouldCompress (req, res) {
+      if (compress_all) return true;
+      //if (serverPort==4000) return true;
+      if (req.headers['f3mon-no-compression']) {
+        return false;
+      }
+      //custom: compression required
+      if (req.headers['f3mon-compression']) {
+        return true;
+      }
+      //separate static from dynamic URLs
+      if (req.url.startsWith('/f3mon/api') || req.url.startsWith('/sc/php') || req.url.startsWith('/sctest')) return false;
+        return true;
+      return true;
+    }
+  }
+}
 
 //access logging (debug feature)
 var path = require('path')
@@ -49,12 +80,6 @@ if (access_logging) {
 //post text decoding (for login screen)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-
-var priv_access=false;
-var override_secure=false;
-//based on instance port
-if  (serverPort==8080 || serverPort==8040 || override_secure) priv_access=true;
 
 if  (priv_access) {
   var secure_accesslog_FS = fs.openSync('./secure_access.log', 'a+');
@@ -363,7 +388,6 @@ app.get('/heap', function (req, res) {
 
 //can be toggled on the fly
 global.useCaches = true;
-
 
 app.get('/togglecaching', function (req, res) {
   res.send("call on caching flag: "+global.useCaches + " ; new setting:"+!global.useCaches);
