@@ -502,10 +502,10 @@
         var defaultStreamOptions = function(optId) {
           var streamOptions = [
                 { "id": "stacked", "name": "stacked", "enabled":false, "onclick": $scope.unitChanged  },
-                { "id": "accum"  , "name": "accum",   "enabled":true,  "onclick": $scope.unitChanged  },
-                { "id": "logAxis", "name": "log",     "enabled":true,  "onclick": $scope.toggleAxis   },
+                { "id": "accum"  , "name": "accumulated",   "enabled":true,  "onclick": $scope.unitChanged  },
+                { "id": "logAxis", "name": "logarithmic axis",     "enabled":true,  "onclick": $scope.toggleAxis   },
                 { "id": "tooltip", "name": "tooltip", "enabled":true,  "onclick": $scope.tooltipToggle},
-                { "id": "secLS"  , "name": "sec/LS",  "enabled":true,  "onclick": $scope.unitChanged  }
+                { "id": "secLS"  , "name": "per sec/per LS",  "enabled":true,  "onclick": $scope.unitChanged  }
             ];
 	  if (!optId) {
 	    $scope.streamOptions = streamOptions;
