@@ -193,7 +193,7 @@
                 })
 
                 var totalsRate = $.grep(items,function(item,index){
-                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge','transfer','transfer','input']) <0;
+                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge','transfer','input']) <0;
                 })
 
                 var sumRate = 0;
@@ -429,6 +429,7 @@
         }, {
             title: {
                 text: 'Micro %',
+                margin: 20
             },
             showLastLabel: true,
             max: 100,
@@ -443,7 +444,7 @@
             title: {
                 text: 'Mini %',
                 align: 'middle',
-                margin: 10,
+                margin: 10
             },
             showLastLabel: true,
             max: 100,

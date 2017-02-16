@@ -146,6 +146,7 @@
                         service.data.micromerge = data.micromerge;
                         service.data.minimerge = data.minimerge;
                         service.data.macromerge = data.macromerge;
+                        service.data.transfer = data.transfer;
                         service.data.navbar = data.navbar;
                         service.data.input = data.input;
                         broadcast('updated');
