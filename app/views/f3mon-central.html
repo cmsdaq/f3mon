@@ -13,10 +13,10 @@
                     </div>
                     <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px;margin-right:6px' ng-show="displayAux"><span class="badge" style='width:120px'>query: {{queryInfo.took}} ms</span>
                     </div>
-                    <f3mon-central-sr-options-right class="pull-right" style="width:30px;margin-right:300px" id='sr-divisor-right'/>
-                    <f3mon-central-sr-buttons-units style="margin-left:10px;margin-right:3px" class="btn-group btn-group-xs pull-right" id='sr-unitswitch'/>
-                    <f3mon-central-sr-options-left class="pull-right" style="width:120px;margin-right:3px" id='sr-divisor-left' ng-show="displayAux"/>
-                    <f3mon-central-sr-rangeselect style="margin-left:3px;margin-right:10px" class="btn-group btn-group-xs pull-right" id='sr-rangeselectswitch'/>
+                    <options-dropdown-multichoice   class="pull-right" style="margin-right:30px" model="selectedStreamOptions" options="streamOptions" id='sr-optionmenu'/>
+                    <f3mon-central-sr-options-right class="pull-right" style="width:30px;margin-right:110px" id='sr-divisor-right'/>
+                    <f3mon-central-sr-buttons-units class="btn-group btn-group-xs pull-right" style="margin-left:10px;margin-right:3px" id='sr-unitswitch'/>
+		    <f3mon-central-sr-rangeselect   class="btn-group btn-group-xs pull-right" style="margin-left:3px;margin-right:10px" id='sr-rangeselectswitch'/>
                     <h3 class="panel-title">
                     <i class="fa fa-bar-chart-o"></i>
 		    <f3mon-collapse-control/>

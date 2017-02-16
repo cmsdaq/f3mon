@@ -1,10 +1,11 @@
 <button type="button" class="btn btn-primary" disabled ng-show="displayAux">Range Mode:</button>
-<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-show="displayAux" tooltip-placement="bottom" uib-tooltip="Drilldown level to display using mouse drag selection in the graph">
+<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-show="displayAux"
+tooltip-placement="bottom" uib-tooltip="Drilldown level to display using mouse drag selection in the graph">
   <span id="abcde">{{selectorMode}}</span>
   <span class="caret"></span>
 </button>
 <ul class="dropdown-menu" role="menu" id="selector-mode-list">
-  <li ng-repeat="item in selectorModes" class="list-group-item" ng-click="selectorModeSet(item)"><a href="">{{item}}</a>
+  <li ng-repeat="item in selectorModes" ng-click="selectorModeSet(item)"><a href="">{{item}}</a>
   </li>
 </ul>
 
