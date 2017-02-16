@@ -12,6 +12,34 @@
 (function() {
     angular.module('f3monApp')
 
+    .directive('f3monCentralSrOptionsRight',function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'views/central/sr-panel-options-right.html'
+        }
+     })
+
+    .directive('f3monCentralSrButtonsUnits',function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'views/central/sr-panel-buttons-units.html'
+        }
+     })
+
+    .directive('f3monCentralSrOptionsLeft',function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'views/central/sr-panel-options-left.html'
+        }
+     })
+
+    .directive('f3monCentralSrRangeselect',function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'views/central/sr-panel-rangeselect.html'
+        }
+    })
+
     .directive('f3monCentral', function() {
         return {
             restrict: 'E',
@@ -132,7 +160,7 @@
 
         var secondDrillDown = function(event) {
             dd2Event = event;
-            if ($scope.queryParams.type === 'macromerge')
+            if (['macromerge','transfer'].indexOf($scope.queryParams.type) > -1)
               $scope.queryParams.stream = false;
             else
               $scope.queryParams.stream = event.point.name;
@@ -175,7 +203,7 @@
 
         $scope.$on('ddChart.updated', function(event) {
             if (!chart) initChartDD();
-            chart.xAxis[0].update({labels:{rotation:0}});
+            //chart.xAxis[0].update({labels:{rotation:0}});
             ddserie = chart.series[0];
             ddserie.update({
                 data: drillDownService.data
@@ -184,7 +212,7 @@
 
         $scope.$on('dd2Chart.updated', function(event) {
             if (!chart) initChartDD();
-            chart.xAxis[0].update({labels:{rotation:-60}});
+            //chart.xAxis[0].update({labels:{rotation:-60}});
             //chart.reflow();
             if (!dd2serie) {
                 var newSerie = {
@@ -223,6 +251,7 @@
 
         $scope.$on('config.set', function(event) {
             config = configService.config;
+            //first init (only set up variables)
             initChart(true);
         });
 
@@ -278,7 +307,8 @@
             //$scope.showInputRate = !$scope.showInputRate;
             if (inputSerie) {
               inputSerie.setVisible($scope.showInputRate, false)
-              chart.yAxis[4].update({
+              var ymax = transSerie === undefined ? 4 : 5;
+              chart.yAxis[ymax].update({
                 title: {
                   text: $scope.showInputRate ? lastRateText : ""
                 }
@@ -295,7 +325,7 @@
         var data = streamRatesService.data;
         var runInfoData = runInfoService.data;
         var chart = false;
-        var microSerie, miniSerie, macroSerie, streams, chartConfig;
+        var microSerie, miniSerie, macroSerie, transSerie, streams, chartConfig;
         var customLoading = false;
         var isDirty = true;
         var axisSet = false;
@@ -303,11 +333,14 @@
         var currentRangeMode = "stream";
 
         $scope.selectorMode = currentRangeMode;
-        $scope.selectorModes = ["stream","micro","mini","macro"]
+        $scope.selectorModes = ["stream","micro","mini","macro","transfer"]
 
         $scope.stackedDisabled = true;
         var lastStackedState = false;
         $scope.isStacked=false;
+
+        var lastTransState = false;
+        $scope.showTrans=false;
 
         $scope.divisorDisabled = false;
         $scope.useDivisor = true;
@@ -330,6 +363,7 @@
         $scope.tooltipToggle = function() {
           runInfoService.updateMaskedStreams([]);
           lastStackedState=false;
+          //lastTransState=false;//?
           initChart(false);
           //console.log('tooltip set: '+ $scope.tooltip);
        }
@@ -338,6 +372,8 @@
             var axisTitle = $scope.unit;
             axisType = $scope.logAxis===true ? "logarithmic":"linear";
 
+            var pending_init_chart = false;
+
             if ($scope.unit=='Bytes') {
               $scope.stackedDisabled=false;
               if (!lastStackedState && $scope.isStacked) {
@@ -345,27 +381,35 @@
                 //deactivate log axis
                 $scope.logAxis = false;
                 axisType= "linear";
-
-                streamRatesChartConfig.plotOptions.column.stacking = 'normal';
                 lastStackedState=true;
-                runInfoService.updateMaskedStreams([]);
-                initChart(false);
-                delete streamRatesChartConfig.plotOptions.column.stacking;
+                pending_init_chart=true;
               }
-              else if (lastStackedState && $scope.isStacked==false) {
+              else if (lastStackedState && !$scope.isStacked) {
                 lastStackedState=false;
-                runInfoService.updateMaskedStreams([]);
-                initChart(false);
+                pending_init_chart=true;
               }
             }
             else {
               $scope.stackedDisabled=true;
               if (lastStackedState) {
                 lastStackedState=false;
-                //console.log('reset!b...')
-                runInfoService.updateMaskedStreams([]);
-                initChart(false);
+                pending_init_chart=true;
               }
+            }
+
+            if (!lastTransState && $scope.showTrans) {
+              lastTransState=true;
+              pending_init_chart=true;
+            }
+            else if (lastTransState && !$scope.showTrans) {
+              lastTransState=false;
+              pending_init_chart=true;
+            }
+
+            //if needed for display changes
+            if (pending_init_chart) {
+              runInfoService.updateMaskedStreams([]);
+              initChart(false,false);
             }
 
             //check if accum needs to be disabled
@@ -404,7 +448,8 @@
             }, false);
 
             lastRateText = 'Built '+ axisTitle;
-            chart.yAxis[4].update({
+            var ymax = transSerie === undefined ? 4 : 5
+            chart.yAxis[ymax].update({
                 title: {
                     text: $scope.showInputRate ? lastRateText : ""
                 }
@@ -414,9 +459,9 @@
 
         //reset on tab change
         $scope.$on('global.reload', function(event) {
-          if ($rootScope.chartInitDone) {
+          if (!$rootScope.chartInitDone) {
             runInfoService.updateMaskedStreams([]);
-            $scope.showInputRate = false;
+            //reset parameters
             setTimeout(function() {initChart(true)},1);
           }
         });
@@ -468,6 +513,9 @@
                 else if (currentRangeMode==="macro") {
                    $scope.$parent.enableDrillDown('macromerge', min, range);
                 }
+                else if (currentRangeMode==="transfer") {
+                   $scope.$parent.enableDrillDown('transfer', min, range);
+                }
             }
 
             //minimacro background clicks
@@ -479,8 +527,11 @@
                 var y1RawValue = Math.ceil(event.yAxis[1].value);
                 var y2RawValue = Math.ceil(event.yAxis[2].value);
                 var y3RawValue = Math.ceil(event.yAxis[3].value);
+                var y4RawValue = transferSerie===undefined? 9999 : Math.ceil(event.yAxis[4].value);
 
-                if (y3RawValue < 100) {
+                if (y4RawValue < 100) {
+                    $scope.$parent.enableDrillDown('transfer', xRealValue, data.interval)
+                else if (y3RawValue < 100) {
                     $scope.$parent.enableDrillDown('macromerge', xRealValue, data.interval)
                 } else if (y2RawValue < 100) {
                     $scope.$parent.enableDrillDown('minimerge', xRealValue, data.interval)
@@ -531,13 +582,17 @@
 
 
 
-        var initChart = function(changeUnit) {
-            if (changeUnit) {
+        var initChart = function(resetConfig) {
+            if (resetConfig) {
               $scope.unit = config.streamRatesUnit;
               $scope.selectorMode = "stream"; //todo:use config param
+              $scope.showInputRate = false;
               $scope.isStacked=false;
+              $scope.showTrans=false;
               $scope.stackedDisabled = true;
               lastStackedState = false; 
+              lastTransState = false;
+              axisSet=false;
             }
             colors.reset();
             if (chart) {
@@ -553,51 +608,63 @@
             microSerie = false;
             miniSerie = false;
             macroSerie = false;
+            transSerie = false;
 
-            streamRatesChartConfig.yAxis[0].type = axisType;
-            streamRatesChartConfig.yAxis[4].type = axisType;//todo: move this axis to be index 1
+
+            chartConfig = jQuery.extend(true,{}, streamRatesChartConfig); //deep copy
+
+            if ($scope.isStacked)
+              chartConfig.plotOptions.column.stacking = 'normal';
+
+            chartConfig.xAxis[0].minRange = configService.nbins;
+            chartConfig.tooltip.enabled = $scope.tooltip;
+	    var heights,tops,ymax;
+	    if ($scope.showTrans) {
+	      ymax=5
+              if ($scope.simplifiedView) {
+	        heights = ["37%","14%","14%","14%","14%","37%"]
+		tops = ["0%","40%","55%","70%","85%","0%"]
+              } else {
+	        heights = ["68%","6.5%","6.5%","6.5%","6.5%","68%"]
+		tops = ["0%","72%","79%","86%","93%","0%"]
+              }
+	    }
+	    else {
+	      //axis is smaller 
+	      ymax=4
+              transSerie = undefined;
+	      chartConfig.yAxis = [chartConfig.yAxis[0], chartConfig.yAxis[1],chartConfig.yAxis[2],chartConfig.yAxis[3],chartConfig.yAxis[5]];
+              if ($scope.simplifiedView) {
+	        heights = ["37%","18%","18%","18%","37%"]
+		tops = ["0%","40%","60%","80%","0%"]
+              } else {
+	        heights = ["70%","8%","8%","8%","70%"]
+		tops = ["0%","74%","83%","92%","0%"]
+              }
+	    }
+	    for (var i=0;i<=ymax;i++) {
+	      chartConfig.yAxis[i].height=heights[i];
+	      chartConfig.yAxis[i].top=tops[i];
+	    }
+
+            chartConfig.yAxis[0].type = axisType;
+            chartConfig.yAxis[ymax].type = axisType;//todo: move this axis to be index 1
             if (axisType==='logarithmic') {
-              streamRatesChartConfig.yAxis[0].min = 0.01;
-              streamRatesChartConfig.yAxis[4].min = 0.01;
+              chartConfig.yAxis[0].min = 0.01;
+              chartConfig.yAxis[ymax].min = 0.01;
             } else {
-              delete streamRatesChartConfig.yAxis[0].min;
-              streamRatesChartConfig.yAxis[4].min=0;
+              delete chartConfig.yAxis[0].min;
+              chartConfig.yAxis[ymax].min=0;
             }
 
-            streamRatesChartConfig.xAxis[0].minRange = configService.nbins;
-            streamRatesChartConfig.tooltip.enabled = $scope.tooltip;
-            if ($scope.simplifiedView) {
-              streamRatesChartConfig.yAxis[0].height="37%";
-              streamRatesChartConfig.yAxis[0].top="0%";
-              streamRatesChartConfig.yAxis[1].height="18%";
-              streamRatesChartConfig.yAxis[1].top="40%";
-              streamRatesChartConfig.yAxis[2].height="18%";
-              streamRatesChartConfig.yAxis[2].top="60%";
-              streamRatesChartConfig.yAxis[3].height="18%";
-              streamRatesChartConfig.yAxis[3].top="80%";
-              streamRatesChartConfig.yAxis[4].height="37%";
-              streamRatesChartConfig.yAxis[4].top="0%";
-
-            }
-            else {
-              streamRatesChartConfig.yAxis[0].height="70%";
-              streamRatesChartConfig.yAxis[0].top="0%";
-              streamRatesChartConfig.yAxis[1].height="8%";
-              streamRatesChartConfig.yAxis[1].top="74%";
-              streamRatesChartConfig.yAxis[2].height="8%";
-              streamRatesChartConfig.yAxis[2].top="83%";
-              streamRatesChartConfig.yAxis[3].height="8%";
-              streamRatesChartConfig.yAxis[3].top="92%";
-              streamRatesChartConfig.yAxis[4].height="70%";
-              streamRatesChartConfig.yAxis[4].top="0%";
-            }
-            chartConfig = jQuery.extend({}, streamRatesChartConfig);
+	    //console.log(JSON.stringify(chartConfig))
             setEvents();
             chart = new Highcharts.StockChart(chartConfig);
             chart.showLoading(config.chartWaitingMsg);
 
-            if (changeUnit)
-              axisSet=false;
+            //done before:
+            //if (resetConfig)
+            //  axisSet=false;
             //var nav = chart.get('navigator');
 
             //set masked stream callback
@@ -613,10 +680,16 @@
               data.macromerge.percents.forEach(function(s){
                 s.color="darkgreen"
               })
+              if (data.transfer)
+                data.transfer.percents.forEach(function(s){
+                  s.color="darkgreen"
+                })
               inputSerie.setData(data.input, false, false);
               microSerie.setData(data.micromerge.percents, false, false);
               miniSerie.setData(data.minimerge.percents, false, false);
               macroSerie.setData(data.macromerge.percents, false, false);
+              if (data.transfer && transSerie)
+                transSerie.setData(data.transfer.percents, false, false);
               chart.redraw();
             }
 
@@ -704,16 +777,39 @@
                 point: {
                     events: {
                         click: function() {
-                            $scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
+                            //$scope.$parent.enableDrillDown(this.series.name, this.x, data.interval) //which version?
+                            $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
                         }
                     }
                 }
             })
 
+            //add series only if transSerie value is false
+            if (transSerie!==undefined) chart.addSeries({
+                borderWidth: 0.5,
+                type: 'column',
+                id: "transfer",
+                name: "transfer",
+                yAxis: "transferpercent",
+                showInLegend: false,
+                cursor: "pointer",
+                //minPointLength: 5,
+                point: {
+                    events: {
+                        click: function() {
+                            //$scope.$parent.enableDrillDown(this.series.name, this.x, data.interval)
+                            $scope.$parent.enableDrillDown(event.currentTarget.series.name, event.currentTarget.category, data.interval)
+                        }
+                    }
+                }
+            })
+
+
             inputSerie = chart.get('input');
             microSerie = chart.get('micromerge');
             miniSerie = chart.get('minimerge');
             macroSerie = chart.get('macromerge');
+            if (transSerie!==undefined) transSerie = chart.get('transfer');
                         
             //if no streams yet, loading will be changed later when stream list appears
             if (runInfoService.data.streamListINI.length || runInfoService.data.streams.length) {
@@ -812,6 +908,8 @@
             microSerie.setData(data.micromerge.percents, false, false);
             miniSerie.setData(data.minimerge.percents, false, false);
             macroSerie.setData(data.macromerge.percents, false, false);
+            if (data.transfer && transSerie)
+              transSerie.setData(data.transfer.percents, false, false);
 
             chart.redraw();
 
@@ -1053,7 +1151,7 @@
 
         //on log tab switch back or clicking on f3mon title
         var onReload = function(event) {
-          if ($rootScope.chartInitDone) {
+          if (!$rootScope.chartInitDone) {
             if (chart || !cleared) setTimeout(function(){ 
               if (chart || !cleared) { 
                 var isDirty_ = isDirty;
@@ -1068,7 +1166,7 @@
         //on tab change
         $scope.$on('global.reload', function (event) {
           resetCorr20();
-          service.resetParams(true);
+          microStatesService.resetParams(true);
           onReload();
         });
 

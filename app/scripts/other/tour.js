@@ -268,7 +268,7 @@
           content: "It is possible to switch the unit of the y-axis from number of events to bytes. ",
         }, 
         {
-          element: "#sr-divisor",
+          element: "#sr-divisor-left",
           placement: "bottom",
           title: "Stream Ouput Divisor",
           content: "It is possible to divide the stream output by a number. This can be useful to compute the streams rates.",

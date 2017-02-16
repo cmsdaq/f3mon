@@ -200,6 +200,8 @@
         var runRanger = {};
         runRanger.isActive = true;
 
+        runRanger.preloadRun = false;
+
         runRanger.start = function() {
             if (!this.isActive) {
                 return
@@ -244,7 +246,8 @@
         };
 
         runRanger.shutdown = function() {
-            mypoller.stop();
+            if (!angular.isUndefined(mypoller))
+              mypoller.stop();
             this.isActive = false;
             runRanger.flipAction()
             this.broadcast('status');
@@ -256,7 +259,17 @@
 
         $rootScope.$on('indices.selected', function(event) {
             runInfoService.reset();
-            runRanger.start();
+            //redirect to run loaded by URL
+            if (runRanger.preloadRun) {
+              console.log('preloading run ' + runRanger.preloadRun)
+              runInfoService.select(runRanger.preloadRun);
+              runRanger.preloadRun = false;
+              //set button inactive
+              runRanger.isActive = false;
+              runRanger.broadcast('status');
+            }
+            else
+              runRanger.start();
         });
 
         return runRanger;

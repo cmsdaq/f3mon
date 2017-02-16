@@ -15,15 +15,16 @@
             status: {
                 currentTab: 0,
                 changeTab: function(num,reload) {
-                    if (this.currentTab===0 && (num===1 || num===2)) {//reset if switching from main view
-                      $rootScope.chartInitDone = false;
+                    if (!reload || num!=0 || this.currentTab==0) {//reset if switching from main view or clicking on F3mon icon
+                      $rootScope.chartInitDone = true;
                     }
+                    else $rootScope.chartInitDone = false;
                     this.currentTab = num;
                     if (reload)
                       broadcast('reload')
                     else
                       broadcast('refresh')
-                    if (this.currentTab===0) setTimeout(function(){$rootScope.chartInitDone=true;},2);
+                    if (reload && !$rootScope.chartInitDone) setTimeout(function(){$rootScope.chartInitDone=true;},2);//ensure it's set after init
                 },
                 isTabSelected: function(num) {
                     return this.currentTab == num;
@@ -75,13 +76,14 @@
                 micromerge: {},
                 minimerge: {},
                 macromerge: {},
+                transfer: {},
                 streams: {},
                 navbar: {},
                 lastTime: false,
                 lsList: false,
                 interval: false,
                 noData: function() {
-                    return _.isEmpty(this.streams) && _.isEmpty(this.micromerge) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge)
+                    return _.isEmpty(this.streams) && _.isEmpty(this.micromerge) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge) && _.isEmpty(this.transfer)
                 },
             },
             queryParams: {
@@ -372,8 +374,6 @@
         var mypoller,config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
 
         var resourceType = 'nstates-summary';
 
