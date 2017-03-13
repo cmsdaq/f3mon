@@ -3,6 +3,7 @@
 var oracledb = require('oracledb'); //module that enables db access
 oracledb.outFormat = oracledb.OBJECT //returns query result-set row as a JS object (equiv. to OCI_ASSOC param in php oci_fetch_array call)
 oracledb.maxRows = 50000; //approx 2000 lumis x 25 streams
+oracledb.poolTimeout = 3600;
 
 var Common = require('./esCommon');
 module.exports = new Common()
@@ -27,9 +28,27 @@ var excpEscOracle = function (res, error){
 }
 
 var dbInfo;
+var dbPools = {};
 
 module.exports.setupDB = function(dbinfo) {
   dbInfo = dbinfo
+}
+
+
+module.exports.makePool = function(setup) {
+  oracledb.createPool(
+    {
+      user          : dbInfo[setup][0],//"CMS_DAQ2_HW_CONF_R",
+      password      : dbInfo[setup][1],//"mickey2mouse",	//change this before any git push!
+      connectString : dbInfo[setup][2]//"cmsonr1-v.cms:10121/cms_rcms.cern.ch"
+    }, function(err, pool) {
+      //asynchronous: will finish after server intiailization is done
+      if (err) console.log("error creating pool " + setup + ":" + err);
+      else {
+        dbPools[setup]=pool;
+      }
+    }
+  );
 }
 
 module.exports.runTransferQuery = function (reqQuery, remoteAddr, res, reply) {
@@ -368,15 +387,8 @@ module.exports.runPPquery = function (req, res) {
 
   if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
 
-    //connection and query to Oracle DB
-    oracledb.getConnection(
-    {
-       user          : dbInfo[setup][0],//"CMS_DAQ2_HW_CONF_R",
-       password      : dbInfo[setup][1],//"mickey2mouse",	//change this before any git push!
-       connectString : dbInfo[setup][2]//"cmsonr1-v.cms:10121/cms_rcms.cern.ch"
-    },
-    function(err, connection)
-    {
+    //getConnection callback
+    var conn_cb = function(err, connection) {
       if (err) {
         	console.error(err.message);
 		//equiv to (if (!$conn), err at oci_connect)
@@ -472,14 +484,27 @@ module.exports.runPPquery = function (req, res) {
                 //retObjSer = JSON.stringify(retObj);
 
                 _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,ttl,took);
+		connection.close(); // release connection (for pool if used)
             });
           }
           q2();
 
         }); //oracle query callback
-
-      });//connection
+      }
+      if (dbPools.hasOwnProperty(setup)) {
+        //pool connection and query to Oracle DB
+	dbPools[setup].getConnection(conn_cb);
+      }
+      else {
+        //connection and query to Oracle DB
+        oracledb.getConnection(
+        {
+          user          : dbInfo[setup][0],
+          password      : dbInfo[setup][1],
+          connectString : dbInfo[setup][2]
+        },conn_cb);
+     }
     }//cache check
   }//query function
 
-
+//end

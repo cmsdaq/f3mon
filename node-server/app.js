@@ -362,6 +362,9 @@ var dbinfo = require('./dbinfo')
 global.smdb = require('./src/smdb')
 global.smdb.setupDB(dbinfo)
 global.smdb.setup()
+global.smdb.makePool("cdaq");
+global.smdb.makePool("dv");
+//global.smdb.makePool("tcds"); //when ratemeter_exp is migrated from PHP
 
 //callback test 1
 app.get('/', function (req, res) {
