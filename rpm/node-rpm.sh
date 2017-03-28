@@ -71,26 +71,34 @@ cp $BASEDIR/node-daemon.js %{buildroot}/opt/node/node-daemon.js
 %files
 %defattr(-, root, root, -)
 #/opt/fff
-#%attr( 755 ,root, root) /etc/
-#%attr( 755 ,root, root) /opt/
-#%attr( 755 ,root, root) /opt/node/
+%attr( 755 ,root, root) /opt/node/
 %attr( 755 ,root, root) /var/log/node
+%attr( 755 ,root, root) /var/log/node/prod
+%attr( 755 ,root, root) /var/log/node/priv
+%attr( 755 ,root, root) /var/log/node/test
 %attr( 755 ,root, root) /opt/node/prod
 %attr( 755 ,root, root) /opt/node/priv
 %attr( 755 ,root, root) /opt/node/test
-%attr( 755 ,root, root) /etc/init.d/fff-node-server
-%attr( 755 ,root, root) /etc/init.d/priv-fff-node-server
-%attr( 755 ,root, root) /etc/init.d/test-fff-node-server
-%attr( 755 ,root, root) /opt/node/node-daemon.js
+%attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server.service
+%attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server-priv.service
+%attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server-test.service
 #%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
 
 %post
 #echo "post install trigger"
 
-/etc/init.d/fff-node-server stop || true
-/etc/init.d/priv-fff-node-server stop >& /dev/null || true
-/etc/init.d/test-fff-node-server stop >& /dev/null || true
+/sbin/service fff-node-server stop || true
+/sbin/service fff-node-server-priv stop || true
+/sbin/service fff-node-server-test stop || true
 
+#old names:
+/sbin/service test-fff-node-server-priv || true
+/sbin/service test-fff-node-server-test || true
+
+#get rid of pid files
+rm -rf /var/run/*fff-node-server.pid
+
+#set symlinks to NFS
 unlink /opt/node/prod/app.js >& /dev/null || true
 unlink /opt/node/prod/node_modules >& /dev/null || true
 unlink /opt/node/prod/web >& /dev/null || true
@@ -99,8 +107,6 @@ ln -s /cmsnfses-web/es-web/prod/app.js /opt/node/prod/app.js
 ln -s /cmsnfses-web/es-web/prod/node_modules /opt/node/prod/node_modules
 ln -s /cmsnfses-web/es-web/prod/web /opt/node/prod/web
 ln -s /cmsnfses-web/es-web/prod/src /opt/node/prod/src
-unlink /opt/node/node_modules >& /dev/null || true
-ln -s /opt/node/prod/node_modules /opt/node/node_modules
 
 unlink /opt/node/priv/app.js >& /dev/null || true
 unlink /opt/node/priv/node_modules >& /dev/null || true
@@ -123,26 +129,33 @@ ln -s /cmsnfses-web/es-web/test/src /opt/node/test/src
 #set user ownership
 /usr/sbin/useradd es-cdaq-runtime -g es-cdaq -s /sbin/nologin || true
 /usr/sbin/useradd es-cdaq-priv -g es-cdaq -s /sbin/nologin || true
-#chown es-cdaq-runtime:es-cdaq -R /opt/node/*.log || true
-#chown es-cdaq-runtime:es-cdaq -R /var/log/node/*.log || true
- 
-/etc/init.d/fff-node-server start
-/etc/init.d/priv-fff-node-server start
-/etc/init.d/test-fff-node-server start || true
 
-chkconfig --add fff-node-server
-chkconfig --add priv-fff-node-server
-chkconfig --add test-fff-node-server
+chown es-cdaq-runtime:es-cdaq -R /var/log/node/prod/*.log || true
+chown es-cdaq-priv:es-cdaq -R /var/log/node/priv/*.log || true
+chown es-cdaq-runtime:es-cdaq -R /var/log/node/test/*.log || true
+
+systemctl daemon-reload
+
+systemctl enable fff-node-server
+systemctl enable fff-node-server-priv
+systemctl enable fff-node-server-test
+
+systemctl restart fff-node-server
+systemctl restart fff-node-server-priv
+systemctl restart fff-node-server-test
 
 %preun
 #echo "pre uninstall trigger"
 if [ \$1 == 0 ]; then 
-  /etc/init.d/fff-node-server stop || true
-  /etc/init.d/priv-fff-node-server stop >& /dev/null || true
-  /etc/init.d/test-fff-node-server stop >& /dev/null || true
-  chkconfig --del fff-node-server || true
-  rm -rf /var/run/*fff-node-server.pid
-  #rm -rf /var/lock/subsys/fff-node-server
+
+  systemctl stop fff-node-server
+  systemctl stop fff-node-server-priv
+  systemctl stop fff-node-server-test
+
+  systemctl disable fff-node-server
+  systemctl disable fff-node-server-priv
+  systemctl disable fff-node-server-test
+
   /usr/sbin/userdel es-cdaq-runtime || true
   /usr/sbin/userdel es-cdaq-priv || true
 
@@ -157,12 +170,6 @@ if [ \$1 == 0 ]; then
   unlink /opt/node/test/app.js >& /dev/null || true
   unlink /opt/node/test/node_modules >& /dev/null || true
   unlink /opt/node/test/web >& /dev/null || true
-
-  unlink /opt/node/node_modules >& /dev/null || true
-
-  rm -rf /opt/node/prod/*.log
-  rm -rf /opt/node/priv/*.log
-  rm -rf /opt/node/test/*.log
 
 fi
 
