@@ -37,14 +37,13 @@ Provides:/opt/node/
 Provides:/opt/node/prod/
 Provides:/opt/node/priv/
 Provides:/opt/node/test/
-Provides:/etc/init.d/fff-node-server
-Provides:/etc/init.d/priv-fff-node-server
-Provides:/etc/init.d/test-fff-node-server
-Provides:/opt/node/node-daemon.js
-#Provides:/etc/logrotate.d/fff-node-server
+Provides:/usr/lib/systemd/system/fff-node-server.service
+Provides:/usr/lib/systemd/system/fff-node-server-priv.service
+Provides:/usr/lib/systemd/system/fff-node-server-test.service
+Provides:/etc/logrotate.d/fff-node-server
 
 %description
-init scripts for Node.js FFF monitor package
+init scripts for F3Mon Node.js server
 
 %prep
 %build
@@ -54,35 +53,38 @@ rm -rf \$RPM_BUILD_ROOT
 mkdir -p \$RPM_BUILD_ROOT
 %__install -d "%{buildroot}/opt/node"
 %__install -d "%{buildroot}/opt/node/prod"
+%__install -d "%{buildroot}/opt/node/priv"
 %__install -d "%{buildroot}/opt/node/test"
 %__install -d "%{buildroot}/var/log/node"
-
+%__install -d "%{buildroot}/var/log/node/prod"
+%__install -d "%{buildroot}/var/log/node/priv"
+%__install -d "%{buildroot}/var/log/node/test"
+%__install -d "%{buildroot}/usr/lib/systemd/system"
 mkdir -p %{buildroot}/opt/node/prod
 mkdir -p %{buildroot}/opt/node/priv
 mkdir -p %{buildroot}/opt/node/test
-mkdir -p %{buildroot}/etc/init.d
-#mkdir -p %{buildroot}/etc/logrotate.d
-cp $BASEDIR/fff-node-server %{buildroot}/etc/init.d/fff-node-server
-cp $BASEDIR/priv-fff-node-server %{buildroot}/etc/init.d/priv-fff-node-server
-cp $BASEDIR/test-fff-node-server %{buildroot}/etc/init.d/test-fff-node-server
-cp $BASEDIR/node-daemon.js %{buildroot}/opt/node/node-daemon.js
-#cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
+mkdir -p %{buildroot}/etc/logrotate.d
+mkdir -p %{buildroot}/usr/lib/systemd/system
+cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server.service
+cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server-priv.service
+cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server-test.service
+cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 
 %files
 %defattr(-, root, root, -)
 #/opt/fff
-%attr( 755 ,root, root) /opt/node/
 %attr( 755 ,root, root) /var/log/node
 %attr( 755 ,root, root) /var/log/node/prod
 %attr( 755 ,root, root) /var/log/node/priv
 %attr( 755 ,root, root) /var/log/node/test
+%attr( 755 ,root, root) /opt/node/
 %attr( 755 ,root, root) /opt/node/prod
 %attr( 755 ,root, root) /opt/node/priv
 %attr( 755 ,root, root) /opt/node/test
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server.service
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server-priv.service
 %attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server-test.service
-#%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
+%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
 
 %post
 #echo "post install trigger"
