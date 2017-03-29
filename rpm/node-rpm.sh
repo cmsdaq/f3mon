@@ -37,10 +37,10 @@ Provides:/opt/node/
 Provides:/opt/node/prod/
 Provides:/opt/node/priv/
 Provides:/opt/node/test/
-Provides:/usr/lib/systemd/system/fff-node-server.service
-Provides:/usr/lib/systemd/system/fff-node-server-priv.service
-Provides:/usr/lib/systemd/system/fff-node-server-test.service
-Provides:/etc/logrotate.d/fff-node-server
+Provides:/usr/lib/systemd/system/f3mon.service
+Provides:/usr/lib/systemd/system/f3mon.priv.service
+Provides:/usr/lib/systemd/system/f3mon.test.service
+Provides:/etc/logrotate.d/f3mon
 
 %description
 init scripts for F3Mon Node.js server
@@ -65,10 +65,10 @@ mkdir -p %{buildroot}/opt/node/priv
 mkdir -p %{buildroot}/opt/node/test
 mkdir -p %{buildroot}/etc/logrotate.d
 mkdir -p %{buildroot}/usr/lib/systemd/system
-cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server.service
-cp $BASEDIR/fff-node-server-priv.service %{buildroot}/usr/lib/systemd/system/fff-node-server-priv.service
-cp $BASEDIR/fff-node-server-test.service %{buildroot}/usr/lib/systemd/system/fff-node-server-test.service
-cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
+cp $BASEDIR/f3mon.service %{buildroot}/usr/lib/systemd/system/
+cp $BASEDIR/f3mon.priv.service %{buildroot}/usr/lib/systemd/system/
+cp $BASEDIR/f3mon.test.service %{buildroot}/usr/lib/systemd/system/
+cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/f3mon
 
 %files
 %defattr(-, root, root, -)
@@ -81,23 +81,21 @@ cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 %attr( 755 ,root, root) /opt/node/prod
 %attr( 755 ,root, root) /opt/node/priv
 %attr( 755 ,root, root) /opt/node/test
-%attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server.service
-%attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server-priv.service
-%attr( 755 ,root, root) /usr/lib/systemd/system/fff-node-server-test.service
-%attr( 755 ,root, root) /etc/logrotate.d/fff-node-server
+%attr( 755 ,root, root) /usr/lib/systemd/system/f3mon.service
+%attr( 755 ,root, root) /usr/lib/systemd/system/f3mon.priv.service
+%attr( 755 ,root, root) /usr/lib/systemd/system/f3mon.test.service
+%attr( 755 ,root, root) /etc/logrotate.d/f3mon
 
 %post
 #echo "post install trigger"
 
-#main service:
+#stop sysV services:
 /sbin/service fff-node-server stop || true
-
-#new names:
-/sbin/service fff-node-server-priv stop || true
-/sbin/service fff-node-server-test stop || true
-#old names:
 /sbin/service priv-fff-node-server stop || true
 /sbin/service test-fff-node-server stop || true
+
+#main service stop:
+systemctl stop f3mon f3mon.priv f3mon.test || true
 
 #get rid of pid files
 rm -rf /var/run/*fff-node-server.pid
@@ -139,26 +137,15 @@ chown es-cdaq-priv:es-cdaq -R /var/log/node/priv/*.log || true
 chown es-cdaq-runtime:es-cdaq -R /var/log/node/test/*.log || true
 
 systemctl daemon-reload
-
-systemctl enable fff-node-server
-systemctl enable fff-node-server-priv
-systemctl enable fff-node-server-test
-
-systemctl restart fff-node-server
-systemctl restart fff-node-server-priv
-systemctl restart fff-node-server-test
+systemctl enable f3mon f3mon.priv f3mon.test
+systemctl restart f3mon f3mon.priv f3mon.test
 
 %preun
 #echo "pre uninstall trigger"
 if [ \$1 == 0 ]; then 
 
-  systemctl stop fff-node-server
-  systemctl stop fff-node-server-priv
-  systemctl stop fff-node-server-test
-
-  systemctl disable fff-node-server
-  systemctl disable fff-node-server-priv
-  systemctl disable fff-node-server-test
+  systemctl stop f3mon f3mon.priv f3mon.test
+  systemctl disable f3mon f3mon.priv f3mon.test
 
   /usr/sbin/userdel es-cdaq-runtime || true
   /usr/sbin/userdel es-cdaq-priv || true
