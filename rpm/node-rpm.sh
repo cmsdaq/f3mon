@@ -66,8 +66,8 @@ mkdir -p %{buildroot}/opt/node/test
 mkdir -p %{buildroot}/etc/logrotate.d
 mkdir -p %{buildroot}/usr/lib/systemd/system
 cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server.service
-cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server-priv.service
-cp $BASEDIR/fff-node-server.service %{buildroot}/usr/lib/systemd/system/fff-node-server-test.service
+cp $BASEDIR/fff-node-server-priv.service %{buildroot}/usr/lib/systemd/system/fff-node-server-priv.service
+cp $BASEDIR/fff-node-server-test.service %{buildroot}/usr/lib/systemd/system/fff-node-server-test.service
 cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 
 %files
@@ -89,13 +89,15 @@ cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/fff-node-server
 %post
 #echo "post install trigger"
 
+#main service:
 /sbin/service fff-node-server stop || true
+
+#new names:
 /sbin/service fff-node-server-priv stop || true
 /sbin/service fff-node-server-test stop || true
-
 #old names:
-/sbin/service test-fff-node-server-priv || true
-/sbin/service test-fff-node-server-test || true
+/sbin/service priv-fff-node-server stop || true
+/sbin/service test-fff-node-server stop || true
 
 #get rid of pid files
 rm -rf /var/run/*fff-node-server.pid

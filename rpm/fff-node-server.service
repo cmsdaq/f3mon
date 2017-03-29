@@ -6,7 +6,7 @@ After=fff.service network.service nfs.service rsyslog.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/node/prod
-ExecStart=/usr/bin/node --expose-gc /opt/node/prod/app.js 80 /var/log/node/prod 0
+ExecStart=/usr/bin/node --expose-gc /opt/node/prod/app.js 80 es-cdaq-runtime /var/log/node/prod 0
 Restart=on-failure
 RestartSec=10
 #RemainAfterExit=no

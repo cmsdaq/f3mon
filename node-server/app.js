@@ -12,6 +12,26 @@ var heapdump = require('heapdump');
 //compression
 var compression=require('compression');
 
+
+//1.a check if running on es-local.cms where it should be disabled
+var dns = require('dns')
+var os = require('os')
+
+dns.resolve('es-local.cms',function(err, addresses) {
+  if (err) console.log(err);
+  else {
+    //console.log(addresses);
+    dns.lookup(os.hostname(),function (err, add, fam) {
+      addresses.forEach(function(item) {
+        if (item == add) {
+          console.log('service is disabled on es-local.cms')
+          process.exit(0)
+        }
+      });
+    });
+  }
+});
+
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
 var serverPort = 3002;
@@ -25,7 +45,7 @@ process.title = 'app.js.'+serverPort;
 
 var owner=process.argv[3];
 
-global.log_dir = process.argv[4]|".";
+global.log_dir = process.argv[4]||".";
 
 global.verbose = process.argv[5]|0;
 
@@ -216,7 +236,7 @@ global.client = new elasticsearch.Client({
   log : [{
 	type : 'file', //outputs ES logging to a file in the app's directory
 	//levels : ['debug'] //can put more logging levels here
-	levels : ['info'] //can put more logging levels here
+	levels : ['info'], //can put more logging levels here
         path : global.log_dir+'/elasticsearch.log' 
 	}]
 });
