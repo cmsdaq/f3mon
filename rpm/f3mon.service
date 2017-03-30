@@ -1,7 +1,7 @@
 [Unit]
 Description=F3Mon server prod
 Wants=network-online.target
-After=fff.service network.service nfs.service rsyslog.service
+After=network.service elasticsearch.service
 
 [Service]
 Type=simple
