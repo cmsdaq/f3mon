@@ -81,9 +81,9 @@ cp $BASEDIR/logrotate-node %{buildroot}/etc/logrotate.d/f3mon
 %attr( 755 ,root, root) /opt/f3mon/prod
 %attr( 755 ,root, root) /opt/f3mon/priv
 %attr( 755 ,root, root) /opt/f3mon/test
-%attr( 755 ,root, root) /usr/lib/systemd/system/f3mon.service
-%attr( 755 ,root, root) /usr/lib/systemd/system/f3mon.priv.service
-%attr( 755 ,root, root) /usr/lib/systemd/system/f3mon.test.service
+%attr( 644 ,root, root) /usr/lib/systemd/system/f3mon.service
+%attr( 644 ,root, root) /usr/lib/systemd/system/f3mon.priv.service
+%attr( 644 ,root, root) /usr/lib/systemd/system/f3mon.test.service
 %attr( 644 ,root, root) /etc/logrotate.d/f3mon
 
 %post
