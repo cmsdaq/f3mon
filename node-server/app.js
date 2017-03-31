@@ -9,7 +9,26 @@ var http = require('http');
 var elasticsearch = require('elasticsearch');
 
 var heapdump = require('heapdump');
-//var memwatch = require('memwatch');
+
+
+//1.a check if running on es-local.cms where it should be disabled
+var dns = require('dns')
+var os = require('os')
+
+dns.resolve('es-local.cms',function(err, addresses) {
+  if (err) console.log(err);
+  else {
+    //console.log(addresses);
+    dns.lookup(os.hostname(),function (err, add, fam) {
+      addresses.forEach(function(item) {
+        if (item == add) {
+          console.log('service is disabled on es-local.cms')
+          process.exit(0)
+        }
+      });
+    });
+  }
+});
 
 //2.command line parsing
 //server listening port passes as an argument, otherwise it is by default 3000
@@ -19,14 +38,25 @@ if (process.argv[2]!=null){
 }
 global.serverPort = serverPort;
 
+//should be the name in in 'ps'
+process.title = 'app.js.'+serverPort;
+
 var owner=process.argv[3];
 
-global.verbose = process.argv[4]|0;
+global.log_dir = process.argv[4]||".";
+
+global.verbose = process.argv[5]|0;
 
 global.bulk_buffer = []
 
 //unlimited number of simultaneous connections (default:5)
 http.globalAgent.maxSockets=Infinity;
+
+
+var priv_access=false;
+var override_secure=false;
+//based on instance port
+if  (serverPort==8080 || serverPort==8040 || override_secure) priv_access=true;
 
 //3.init web content plugin
 var app = express();
@@ -43,7 +73,7 @@ if (access_logging) {
     return new Date().toISOString()
   })
   //var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access_'+serverPort+'.log'), {flags: 'a'})
-  var accessLogStream = fs.createWriteStream('/tmp/access_'+serverPort+'.log', {flags: 'a'})
+  var accessLogStream = fs.createWriteStream(global.log_dir+'/access_'+serverPort+'.log', {flags: 'a'})
   app.use(morgan(('short :date[iso]', {stream: accessLogStream})))
 }
 
@@ -51,14 +81,8 @@ if (access_logging) {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-var priv_access=false;
-var override_secure=false;
-//based on instance port
-if  (serverPort==8080 || serverPort==8040 || override_secure) priv_access=true;
-
 if  (priv_access) {
-  var secure_accesslog_FS = fs.openSync('./secure_access.log', 'a+');
+  var secure_accesslog_FS = fs.openSync(global.log_dir+'/secure_access.log', 'a+');
   var access_pwd_token = require('./pwd_token')
   //session setup
   //var session = session({secret: 'higgs boson CMS 2012',resave:true,saveUninitialized:false});
@@ -187,7 +211,8 @@ global.client = new elasticsearch.Client({
   log : [{
 	type : 'file', //outputs ES logging to a file in the app's directory
 	//levels : ['debug'] //can put more logging levels here
-	levels : ['info'] //can put more logging levels here
+	levels : ['info'], //can put more logging levels here
+        path : global.log_dir+'/elasticsearch.log' 
 	}]
 });
 
@@ -208,7 +233,7 @@ global.clientESlocal = new elasticsearch.Client({
 //5.redirecting console log to a file
 //var fs = require('fs');
 var util = require('util');
-var log_file = fs.createWriteStream('./console.log', {flags : 'a'});
+var log_file = fs.createWriteStream(global.log_dir+'/console.log', {flags : 'a'});
 var log_stdout = process.stdout;
 
 var initLogFile = function(){
@@ -223,7 +248,7 @@ console.log = function (msg){
 };
 
 //6.hook stderr and print unhandled (main loop) exceptions into a file
-var stderrFS = fs.openSync('./stderr.log', 'a+');
+var stderrFS = fs.openSync(global.log_dir+'/stderr.log', 'a+');
 var unhook_err = hook_writestream(process.stderr, function(string, encoding, fd) {
 		//fs.writeSync(stderrFS,string, encoding);
 		fs.writeSync(stderrFS,string);

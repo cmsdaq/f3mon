@@ -45,8 +45,8 @@ module.exports = {
     bulk_buffer = global.bulk_buffer
     //cumulative time of requests serving in milliseconds
     //dev helper for cache statistics
-    stats_file = fs.createWriteStream('./cache_statistics.txt', {flags : 'a'});
-    times_file = fs.createWriteStream('./service_times.txt', {flags : 'a'});
+    stats_file = fs.createWriteStream(global.log_dir+'/cache_statistics.log', {flags : 'a'});
+    times_file = fs.createWriteStream(global.log_dir+'/service_times.log', {flags : 'a'});
     cachestatslogger()
     setInterval(cachestatslogger, 30000);
 
@@ -66,7 +66,7 @@ module.exports = {
                     date:{type:"date"},
                     took:{type:"float"},
                     useragent:{type:"keyword"}
-                }
+                },
             }
         }
     }
