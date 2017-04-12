@@ -3,7 +3,7 @@
 var Common = require('./esCommon')
 module.exports = new Common()
 
-var streamIncompleteCol = "purple";
+//var streamIncompleteCol = "purple";
 var streamIncompleteCol = "pink";
 
 //percColor function
@@ -247,7 +247,7 @@ module.exports.query = function (req, res) {
 			  if (maxBuckets.length) {
 			    var stream_max_docs = maxBuckets[0].doc_count;
 			    //assumes streamError doc is not written. In case of the opposite, - streamErrorFound part should be removed
-			    if (streamNumWithDQM < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNum_noError))
+			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNum_noError))
 			      color=streamIncompleteCol;
 			  }
 			}
@@ -372,7 +372,7 @@ module.exports.query = function (req, res) {
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
 			  if (maxBuckets.length) {
 			    var stream_max_docs = maxBuckets[0].doc_count;
-			    if (streamNumWithDQM < stream_max_docs*Math.max(stream_labels.length,streamNum))
+			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length,streamNum))
 			      color=streamIncompleteCol;
 			  }
 			}
@@ -477,6 +477,7 @@ module.exports.query = function (req, res) {
 			var doc_count = streamTotals.doc_counts[ls];
 			//console.log(doc_count)
 			var mdoc_count = lsList[i].doc_count;
+			var dqmonly_count = lsList[i].procOnlyDQM.doc_count;
                         var processedSel;
                         if (allDQM) processedSel = processed;
                         else processedSel = procNoDQM;
@@ -484,13 +485,17 @@ module.exports.query = function (req, res) {
                         var streams_only_partial = false;
 			//if (ls==150) console.log(JSON.stringify(lsList[i],null,2));
 			//if (ls==150) console.log('mdoc:'+doc_count + ' labels:' + stream_labels.length + ' streamNum:' + streamNumWithDQM)
+
 			if (!qparam_accum) {//accum supported at this time
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
-			  //only test this if some stream is completely written by all BUs
+			  //only test this if some stream is completely written by all BUs and some other is not
 			  if (maxBuckets.length && maxBuckets[0].doc_count==doc_count) {
-			    var max_docs = doc_count*Math.max(streamNumWithDQM,stream_labels.length);
-			    if (max_docs>lsList[i].doc_count)
+			    var max_docs = (Math.max(streamNumWithDQM,stream_labels.length)-streamNum)*maxBuckets[0].doc_count;
+			    if (max_docs>dqmonly_count)
 			      streams_only_partial = true;
+			    //var max_docs = doc_count*Math.max(streamNumWithDQM,stream_labels.length);
+			    //if (max_docs>lsList[i].doc_count)
+			    //  streams_only_partial = true;
 			  }
 			}
 

@@ -79,6 +79,34 @@
 		}
 	      }
 	    },
+
+	    "procOnlyDQM": {
+	      "filter" : {
+		"bool":{
+		  "must":[
+		    { 
+		      "prefix": {
+			"stream":"DQM"
+		      }
+		    }
+		  ],
+		  "must_not":[
+		    {
+		      "term":{
+			"stream":"DQMHistograms"
+		      }
+		    }
+		  ]
+		}
+	      },
+	      "aggs":{
+		"processed":{ 
+		  "sum": {
+		    "field": "processed"
+		  }
+		}
+	      }
+	    },
 	    "procAll": {
 	      "sum": {
 		"field": "processed"
