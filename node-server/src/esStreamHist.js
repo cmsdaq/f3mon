@@ -5,6 +5,7 @@ module.exports = new Common()
 
 //var streamIncompleteCol = "purple";
 var streamIncompleteCol = "pink";
+var streamIncompleteColMicro = "yellow";
 
 //percColor function
 var percColor = function (percent){
@@ -129,7 +130,7 @@ module.exports.query = function (req, res) {
   var streamBeforeTotal = 0;
   var streamBeforeTotal_b = 0;
   var took = 0;
-  var streamNum;
+  var streamNum; //without DQM
   var streamNumWithDQM;
   var postOffSt;
   var maxls = 0;
@@ -208,6 +209,7 @@ module.exports.query = function (req, res) {
                           processedWithDQM_count = lsList[i].doc_count
                         }
 			var streamNum_noError = streamNum - streamErrorFound 
+			var streamNumDQM_noError = streamNumWithDQM - streamErrorFound 
 
                         var total;
                         if (qparam_accum)
@@ -241,13 +243,13 @@ module.exports.query = function (req, res) {
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
-			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM) {
+			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM && percent>=100) {
 			  //bucket doc_count for stream with max documents
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
 			  if (maxBuckets.length) {
 			    var stream_max_docs = maxBuckets[0].doc_count;
 			    //assumes streamError doc is not written. In case of the opposite, - streamErrorFound part should be removed
-			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNum_noError))
+			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNumDQM_noError))
 			      color=streamIncompleteCol;
 			  }
 			}
@@ -368,11 +370,11 @@ module.exports.query = function (req, res) {
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
-			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM) {
+			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM && percent>=100) {
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
 			  if (maxBuckets.length) {
 			    var stream_max_docs = maxBuckets[0].doc_count;
-			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length,streamNum))
+			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length,streamNumWithDQM))
 			      color=streamIncompleteCol;
 			  }
 			}
@@ -787,7 +789,7 @@ module.exports.query = function (req, res) {
 		var color = percColor2(percent,err>0);
                 if (total==0) color = "palegreen";
 		//console.log('ls:'+ls+' ' +streamTotals.doc_counts[ls] + ' ' + lsDocCount[ls] + ' ' +Math.max(stream_labels.length,nStreamsMicro))
-		if (new_color_coding && total>0 && percent>0. && streams_only_partial) color=streamIncompleteCol;
+		if (new_color_coding && total>0 && percent>0. && streams_only_partial) color=streamIncompleteColMicro;
 
 		var entry = {
 			"x" : ls,
@@ -825,6 +827,7 @@ module.exports.query = function (req, res) {
 
   //get stream_label list
   var stream_labels = [];
+  var stream_labels_DQMonly=[];
   var streamErrorFound = false;
 
   var qstreams = function (_this){
@@ -843,6 +846,8 @@ module.exports.query = function (req, res) {
 	for (var i=0;i<results.length;i++) {
 	  stream_labels.push(results[i].key);
 	  if (results[i].key=="Error") streamErrorFound=true;
+          if (results[i].key.startsWith("DQM") && !results[i].key.startsWith("DQMHistograms"))
+            stream_labels_DQMonly.push(results[i].key);
 	}
         q3(_this);
       } catch (e) {_this.exCb(res,e,requestKey)}
