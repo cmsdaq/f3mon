@@ -153,6 +153,7 @@ module.exports.query = function (req, res) {
   var q6 = function (_this){
         var queryJSON1 = _this.queryJSON1;
         queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}},{"term":{"status":2}}]; //status 1: begin transfer, status 2: done transfer
+        queryJSON1.query.bool.must_not=[{"term":{"type":"EventDisplay"}}]; //stream not handled in HLT
 	//TODO: use colors
 	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
 	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
@@ -226,7 +227,7 @@ module.exports.query = function (req, res) {
                         else processedSel = procNoDQM;
 
 			//calc transfer percents
- 			var percent;
+ 			var percent,p;
                         if (total == 0){
                                 if (doc_count == 0 || mdoc_count == 0){
                                         percent = 0;
@@ -234,7 +235,7 @@ module.exports.query = function (req, res) {
                                         percent = 100;
                                 }
                         }else{
-                                var p = 100*processedSel/total;
+                                p = 100*processedSel/total;
                                 if (p>=99.995 && p<100)
                                   percent = Math.round(p*1000)/1000;
                                 else
@@ -353,7 +354,7 @@ module.exports.query = function (req, res) {
                         else processedSel = procNoDQM;
 
 			//calc macromerge percents
- 			var percent;
+ 			var percent,p;
                         if (total == 0){
                                 if (doc_count == 0 || mdoc_count == 0){
                                         percent = 0;
@@ -361,7 +362,7 @@ module.exports.query = function (req, res) {
                                         percent = 100;
                                 }
                         }else{
-                                var p = 100*processedSel/total;
+                                p = 100*processedSel/total;
                                 if (p>=99.995 && p<100)
                                   percent = Math.round(p*1000)/1000;
                                 else
@@ -789,7 +790,7 @@ module.exports.query = function (req, res) {
 		var color = percColor2(percent,err>0);
                 if (total==0) color = "palegreen";
 		//console.log('ls:'+ls+' ' +streamTotals.doc_counts[ls] + ' ' + lsDocCount[ls] + ' ' +Math.max(stream_labels.length,nStreamsMicro))
-		if (new_color_coding && total>0 && percent>0. && streams_only_partial) color=streamIncompleteColMicro;
+		if (new_color_coding && total>0 && percent>50. && streams_only_partial) color=streamIncompleteColMicro;
 
 		var entry = {
 			"x" : ls,
@@ -827,7 +828,7 @@ module.exports.query = function (req, res) {
 
   //get stream_label list
   var stream_labels = [];
-  var stream_labels_DQMonly=[];
+  //var stream_labels_DQMonly=[];
   var streamErrorFound = false;
 
   var qstreams = function (_this){
@@ -846,8 +847,8 @@ module.exports.query = function (req, res) {
 	for (var i=0;i<results.length;i++) {
 	  stream_labels.push(results[i].key);
 	  if (results[i].key=="Error") streamErrorFound=true;
-          if (results[i].key.startsWith("DQM") && !results[i].key.startsWith("DQMHistograms"))
-            stream_labels_DQMonly.push(results[i].key);
+          //if (results[i].key.startsWith("DQM") && !results[i].key.startsWith("DQMHistograms"))
+          //  stream_labels_DQMonly.push(results[i].key);
 	}
         q3(_this);
       } catch (e) {_this.exCb(res,e,requestKey)}
