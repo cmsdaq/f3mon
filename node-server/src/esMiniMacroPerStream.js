@@ -98,18 +98,17 @@ module.exports.query = function (req, res) {
     if (qparam_type==='micromerge') {
       qparam_type='stream-hist';
       queryJSON = _this.queryJSON1;
-      queryJSON.query.bool.must[1] = {"parent_id" : {"type":qparam_type,"id":qparam_runNumber}};
-      //queryJSON.query.bool.must[1] = {"script":{'script':'doc["_u id"].value.startsWith("stream-hist#'+qparam_runNumber+'")'}} //TODO:reindex !
+      queryJSON.query.bool.must = [{"parent_id" : {"type":qparam_type,"id":qparam_runNumber}}];
     }
     else {
       queryJSON = _this.queryJSON2;
-      //queryJSON.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("'+qparam_type+'#run'+qparam_runNumber+'")'}}
-      //if (parseInt(qparam_runNumber)>286591)
-      queryJSON.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
+      queryJSON.query.bool.must = [{"term":{"runNumber":qparam_runNumber}}];
+    }
+    queryJSON.query.bool.must.push({"range":{"ls":{"from" : qparam_from,"to":qparam_to}}})
+    if (qparam_type==='transfer') {
+       queryJSON.query.bool.must.push({"term" : {"status":2}});
     }
 
-    queryJSON.query.bool.must[0].range.ls.from = qparam_from;
-    queryJSON.query.bool.must[0].range.ls.to = qparam_to;
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
@@ -169,6 +168,7 @@ module.exports.query = function (req, res) {
       }, function (error){
         _this.excpEscES(res,error,requestKey);
         console.trace(error.message);
+	console.log(JSON.stringify(queryJSON));
     });
   };//end q2
 

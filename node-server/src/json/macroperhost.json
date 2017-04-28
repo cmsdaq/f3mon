@@ -3,19 +3,6 @@
    "query": {
       "bool": {
          "must": [
-            {
-               "range": {
-                  "ls": {
-                     "from": 1642,
-                     "to": 1642
-                  }
-               }
-            },
-            {
-               "prefix": {
-                  "_id":"run225956"
-               }
-            }
          ],
          "should" : [
          ],
@@ -36,9 +23,14 @@
              },
              "errorEvents":{
                  "sum":{
-                     "field":"processed"
+                     "field":"errorEvents"
                  }
-             }
+             },
+	     "status2":{
+	         "filter":{
+		     "term":{"status":2}
+		 }
+	     }
          }
       }
    }

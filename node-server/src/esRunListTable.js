@@ -64,11 +64,11 @@ module.exports.query = function (req, res) {
           var filterQ = searchText.replace(/\*/g,"");
 
 	  if (searchText[0]=='*' && searchText[searchText.length-1]==='*')
-	    qsubmitted["filter"] = {"script":{"script":"doc[\"runNumber\"].value.toString().contains(\""+filterQ+"\")"}}
+	    qsubmitted["query"] = {"script":{"script":{"inline":"doc[\"runNumber\"].value.toString().contains(\""+filterQ+"\")"}}}
           else if (searchText[searchText.length-1]==='*')
-	    qsubmitted["filter"] = {"script":{"script":"doc[\"runNumber\"].value.toString().startsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}
+	    qsubmitted["query"] = {"script":{"script":{"inline":"doc[\"runNumber\"].value.toString().startsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}}
           else if (searchText[0]==='*')
-	    qsubmitted["filter"] = {"script":{"script":"doc[\"runNumber\"].value.toString().endsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}
+	    qsubmitted["query"] = {"script":{"script":{"inline":"doc[\"runNumber\"].value.toString().endsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}}
         }
         else {
 	  delete qsubmitted["filter"];
