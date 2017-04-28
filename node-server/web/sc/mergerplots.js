@@ -1,4 +1,12 @@
 function bootstrap(){
+
+    //enable compression (custom header)
+    $.ajaxSetup({
+      headers : {   
+          'f3mon-compression' : 'true'
+      }
+    });
+
     Highcharts.setOptions(Highcharts.theme_du);
 
     var autoplot=false;
@@ -62,6 +70,17 @@ function bootstrap(){
           $('#yaxis').val(hashstring);
       }
       else $('#yaxis').val("diff")
+
+
+      var hashpos = location.hash.indexOf('setup=')
+      if (hashpos!=-1) {
+        var hashstring=location.hash.substr(hashpos+6)
+        if (hashstring.indexOf('&')!=-1)
+          hashstring = hashstring.substr(0,hashstring.indexOf('&'))
+        if (hashstring.length)
+          $('#setup').val(hashstring);
+      }
+      else $('#setup').val("cdaq")
 
 
       var hashpos = location.hash.indexOf('fullrun')
@@ -134,6 +153,7 @@ function bootstrap(){
 function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
     //console.log(minls+' '+maxls+' '+fullrun);
     location.hash='run='+run
+    location.hash+='&setup='+setup
     if (stream.length) location.hash+='&stream='+stream
     if (minls.length) location.hash+='&minls='+minls
     if (maxls.length) location.hash+='&maxls='+maxls
@@ -157,7 +177,9 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 		plot(data["serie0"],'#plot0','micromerger time delay',xaxis,yaxis);
 		plot(data["serie1"],'#plot1','minimerger time delay',xaxis,yaxis);
 		plot(data["serie2"],'#plot2','macromerger time delay',xaxis,yaxis);
-		plot(data["allsizes"],'#plot3','HLT output bw',xaxis,"MB/s");
+		plot(data["serie3"],'#plot3','transfer start time delay',xaxis,yaxis);
+		plot(data["serie4"],'#plot4','transfer end time delay',xaxis,yaxis);
+		plot(data["allsizes"],'#plot5','HLT output bw',xaxis,"MB/s");
                 document.title = "mergerplots run "+data["run"];
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();
@@ -189,8 +211,8 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 		console.log(data);
 		plot(data["serie1"],'#plot1','copy time delay',xaxis,'seconds');
 		plot(data["serie2"],'#plot2','copy bw',xaxis,'MB/s');
-		plot(data["0"]["copytime"],'#plot3','transfer time','seconds','files');
-		plot(data["1"]["bw"],'#plot4','bandwidth freq','MB','files');
+		plot(data["0"]["copytime"],'#plot5','transfer time','seconds','files');
+		plot(data["1"]["bw"],'#plot6','bandwidth freq','MB','files');
 
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();

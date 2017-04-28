@@ -67,10 +67,16 @@
         
     })
 
-    .controller('runRangerCtrl', function($scope, runRangerService) {
+    .controller('runRangerCtrl', function($scope, $location, runRangerService) {
+
+        $scope.$on('config.set', function(event) {
+            checkUrl();
+        });
+
         $scope.$on('runRanger.status', function(event) {
             $scope.isActive = runRangerService.isActive;
         });
+
         var lastScheduled = null;
         $scope.isActive = runRangerService.isActive;
         $scope.showTooltip = false;
@@ -91,6 +97,26 @@
         //run this after 60 seconds, every 30 seconds
         lastScheduled = setTimeout(runRangerCheck,10000);
 
+        var checkUrl = function() {
+          var loc = $location.path().split('/');
+          //console.log('pathvec ' + location)
+          var run = undefined;
+          loc.forEach(function(item) {
+            var pitem = item.split('=');
+            //console.log('pitem:'+ pitem)
+            if (pitem.length==2 && pitem[0]=='run')
+              run=pitem[1];
+          });
+          if (!angular.isUndefined(run)) {
+            var loc_new = [];
+            //clear run from path location
+            loc.forEach(function(item) {
+              if (!item.startsWith("run=")) loc_new.push(item);
+            });
+            $location.path(loc_new.join('/'));
+              runRangerService.preloadRun=run;
+          }
+        }
     })
 
     .controller('pollerCtrl', function($scope,poller) {
@@ -129,12 +155,35 @@
 
         $scope.change = function(subSystem) {
             indexListService.select(subSystem);
-            $location.path('/' + subSystem);
+            var loc = $location.path().split('/');
+            //console.log('pathvec ' + location)
+            var locparams = {}
+            loc.forEach(function(item) {
+              var pitem = item.split('=');
+              if (pitem.length==2)
+                locparams[pitem[0]]=pitem[1];
+            });
+            locparams["setup"]=subSystem;
+            var lockeys = Object.keys(locparams).sort();
+            var new_path = "";
+            for (var i=lockeys.length-1;i>=0;i--)
+              new_path+="/"+lockeys[i]+'='+locparams[lockeys[i]]
+            console.log('pre ' + $location.path())
+            $location.path(new_path);
+            //$location.path('/setup=' + subSystem);
+            console.log('post ' + $location.path())
         };
 
         var checkUrl = function() {
-            var path = $location.path().split('/');
-            var subSystem = path[1];
+            var loc = $location.path().split('/');
+            //console.log('pathvec ' + location)
+            var subSystem = undefined;
+            loc.forEach(function(item) {
+              var pitem = item.split('=');
+              //console.log('pitem:'+ pitem)
+              if (pitem.length==2 && pitem[0]=='setup')
+                subSystem=pitem[1];
+            });
             if (!angular.isUndefined(subSystem)) {
                 config.defaultSubSystem = subSystem;
             }

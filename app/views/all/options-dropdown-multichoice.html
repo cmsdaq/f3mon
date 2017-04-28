@@ -1,0 +1,15 @@
+<div class='btn-group btn-group-xs' data-ng-class='{open: open}'>
+<button class='btn btn-primary dropdown-toggle' data-ng-click='openDropdown()'>
+  options
+  <span class='caret'></span>
+</button>
+
+<ul class='dropdown-menu' aria-labelledby='dropdownMenu'>
+    <li data-ng-repeat='option in options'>
+      <a data-ng-click='toggleSelectItem(option)'>
+        <span data-ng-class='getClassName(option)' aria-hidden='true'></span>
+	{{option.name}}
+      </a>
+    </li>
+</ul>
+</div>

@@ -1,4 +1,4 @@
-/var/log/node/*log {
+/var/log/f3mon/prod/*log {
         copytruncate
         dateext
         missingok
@@ -7,7 +7,7 @@
         maxage 7
         compress
 }
-/var/log/node/*err {
+/var/log/f3mon/priv/*log {
         copytruncate
         dateext
         missingok
@@ -16,7 +16,7 @@
         maxage 7
         compress
 }
-/opt/node/prod/*log {
+/var/log/f3mon/test/*log {
         copytruncate
         dateext
         missingok
@@ -25,21 +25,4 @@
         maxage 7
         compress
 }
-/opt/node/priv/*log {
-        copytruncate
-        dateext
-        missingok
-        size 100M
-        rotate 10
-        maxage 7
-        compress
-}
-/opt/node/test/*log {
-        copytruncate
-        dateext
-        missingok
-        size 100M
-        rotate 10
-        maxage 7
-        compress
-}
+

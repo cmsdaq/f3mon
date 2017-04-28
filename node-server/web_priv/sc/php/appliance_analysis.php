@@ -46,7 +46,7 @@ $mints=0;
 $maxts=0;
 if ($minls && $maxls) {
   $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search';//&size=5000';
-  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"minfmdate":{"min":{"field":"fm_date"}},"maxfmdate":{"max":{"field":"fm_date"}}  }}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -68,13 +68,13 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 
 if ($minls && $maxls)
-  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
+  $data =  '{"size":100000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
 else {
-  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols,"id":"'.$run.'"}}]}}}';
+  $data =  '{"size":100000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}}';
 }
 
 //echo $url." -d'".$data."'\n";
-$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m';//&size=5000';
+$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m&search_type=scan';//&size=5000';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -222,7 +222,7 @@ $scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in a
 
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
-$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}, "avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}}}}}, "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }} }}';
+$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}, "avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}}}}}, "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptcorrB02.'","reduce_script":"'.$scriptreduce.'"}},"uncorrSysCPU":{"scripted_metric":{"init_script":"'.$scriptinit.'","map_script":"'.$scriptuncorrB.'","reduce_script":"'.$scriptreduce.'"}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }} }}';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -347,9 +347,9 @@ $index=0;
 
   $url = 'http://'.$hostname.':9200/run'.$run.'*/prc-in/_search';
   if ($minls && $maxls)
-    $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":30000,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
+    $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":0,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
   else
-    $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":30000,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
+    $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":0,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -409,9 +409,9 @@ $response["series4"]=array();
 
   $url = 'http://'.$hostname.':9200/run'.$run.'*/prc-in/_search';
   if ($minls && $maxls)
-    $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
+    $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
   else
-    $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
+    $data='{"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":0,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
   curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);

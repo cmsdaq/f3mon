@@ -51,12 +51,19 @@
 
     })
 
-    .controller('runInfoCtrl', function($rootScope, $scope, $modal, runInfoService, disksInfoService) {
+    .controller('runInfoCtrl', function($rootScope, $scope, $modal, $location, runInfoService, disksInfoService) {
         $scope.isCollapsed = false;
 
         var modal = $modal({
             scope: $scope,
-            templateUrl: 'views/restartModal.tpl.html',
+            templateUrl: 'views/modals/restartModal.tpl.html',
+            placement: 'center',
+            show: false,
+            backdrop: true
+        });
+        var modal_runlink = $modal({
+            scope: $scope,
+            templateUrl: 'views/modals/runLinkModal.tpl.html',
             placement: 'center',
             show: false,
             backdrop: true
@@ -65,6 +72,7 @@
         $scope.dataDisks = disksInfoService.data;
         $scope.selected = false;
         $scope.restartCollector = runInfoService.restartCollector;
+        $scope.run_link_modal = "";
 
         $scope.restartCollectorDialog = function(runNumber) {
             console.log(runNumber)
@@ -101,6 +109,30 @@
           if (resfrac<0.95) return "khaki";
           return ""
         }
+
+        //handle button to set new run 
+        $scope.setLocationRun = function(run) {
+            if (isNaN(run) || !run) return;
+            var loc = $location.path().split('/');
+            //console.log('pathvec ' + location)
+            var locparams = {}
+            loc.forEach(function(item) {
+              var pitem = item.split('=');
+              if (pitem.length==2)
+                locparams[pitem[0]]=pitem[1];
+            });
+            locparams["run"]=run;
+            var lockeys = Object.keys(locparams).sort();
+            var new_path = "";
+            for (var i=lockeys.length-1;i>=0;i--)
+              new_path+="/"+lockeys[i]+'='+locparams[lockeys[i]]
+            $scope.run_link_modal = $location.absUrl().split('#')[0]+ "#!" + new_path;
+             modal_runlink.$promise.then(modal_runlink.show);
+            //console.log('pre ' + $location.path())
+            //$location.path(new_path);
+            //console.log('post ' + $location.path())
+        };
+
     })
 
     .controller('disksInfoCtrl', function($scope, disksInfoService) {
@@ -205,7 +237,7 @@
 
         var modal = $modal({
             scope: $scope,
-            templateUrl: 'views/closeModal.tpl.html',
+            templateUrl: 'views/modals/closeModal.tpl.html',
             show: false
         });
         var service = riverListService;

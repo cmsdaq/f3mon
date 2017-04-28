@@ -6,138 +6,171 @@
     "filesize",
     "fm_date"
   ],
-   "sort": {
-      "fm_date": "desc"
-   },
+  "sort": {
+    "fm_date": "desc"
+  },
   "query": {
-      "bool":{
-        "must":{
-          "prefix":{"_id":"run225956"}
-        },
-        "should":[],
-        "minimum_should_match" : 1
-      }
+    "bool":{
+      "must":[
+	{
+	  "term":{
+	    "runNumber":""
+	  }
+	}
+      ]
+    }
   },
   "aggs": {
-	  "inrange": {
-		  "filter": {
-			  "range": {
-				  "ls": {
-					  "from": "1900",
-					  "to": "1920"
-				  }
-			  }
-		  },
-		  "aggs": {
-			  "ls": {
-				  "histogram": {
-					  "field": "ls",
-					  "interval": 1,
-					  "min_doc_count": 0,
-					  "extended_bounds": {
-						  "min": "1900",
-						  "max": "1920"
-					  }
-				  },
-				  "aggs": {
-					  "procNoDQM": {
-                                                  "filter" : {
-                                                         "bool":{
-                                                                 "must_not":{ 
-                                                                          "prefix": {
-                                                                                  "stream":"DQM"
-                                                                                  } 
-                                                                            }
-                                                                }
-                                                         },
-                                                  "aggs":{
-                                                          "processed":{ 
-						                 "sum": {
-							                "field": "processed"
-						                 }
-                                                         }
-                                                  }
-					  },
-                                          "procDQMHisto":{
-                                            "filter" : {
-                                                    "term":{"stream":"DQMHistograms"}
-                                            },
-                                            "aggs":{
-                                                    "processed":{
-                                                           "sum": {"field": "processed"}
-                                                           }
-                                                   }
-                                          },
-				          "procAll": {
-						  "sum": {
-							  "field": "processed"
-						  }
-					  }
-
-				  }
-			  }
-		  }
+    "inrange": {
+      "filter": {
+	"range": {
+	  "ls": {
+	    "from": "",
+	    "to": ""
+	  }
+	}
+      },
+      "aggs": {
+	"ls": {
+	  "histogram": {
+	    "field": "ls",
+	    "interval": 1,
+	    "min_doc_count": 0,
+	    "extended_bounds": {
+	      "min": "",
+	      "max": ""
+	    }
 	  },
-
-
-	  "sumbefore": {
-		  "filter": {
-			  "range": {
-				  "ls": {
-					  "from": "0",
-					  "to": "1"
-				  }
+	  "aggs": {
+	    "streamMaxDocCount": {
+	      "terms":{
+	        "field":"stream",
+	        "size":1,
+		"order": {"_count" : "desc"}
+	      }
+	    },
+	    "procNoDQM": {
+	      "filter" : {
+		"bool":{
+		  "should":[
+		    {
+		      "bool":{
+			"must_not":{ 
+			  "prefix": {
+			    "stream":"DQM"
 			  }
-		  },
-		  "aggs": {
+			}
+		      }
+		    },
+		    {
+		      "term":{
+			"stream":"DQMHistograms"
+		      }
+		    }
+		  ],
+		  "minimum_should_match" : 1
+		}
+	      },
+	      "aggs":{
+		"processed":{ 
+		  "sum": {
+		    "field": "processed"
+		  }
+		}
+	      }
+	    },
 
+	    "procOnlyDQM": {
+	      "filter" : {
+		"bool":{
+		  "must":[
+		    { 
+		      "prefix": {
+			"stream":"DQM"
+		      }
+		    }
+		  ],
+		  "must_not":[
+		    {
+		      "term":{
+			"stream":"DQMHistograms"
+		      }
+		    }
+		  ]
+		}
+	      },
+	      "aggs":{
+		"processed":{ 
+		  "sum": {
+		    "field": "processed"
+		  }
+		}
+	      }
+	    },
+	    "procAll": {
+	      "sum": {
+		"field": "processed"
+	      }
+	    }
 
-					  "procNoDQM": {
-                                                  "filter" : {
-                                                         "bool":{
-                                                                 "must_not":{ 
-                                                                          "prefix": {
-                                                                                  "stream":"DQM"
-                                                                                  } 
-                                                                            }
-                                                                }
-                                                         },
-                                                  "aggs":{
-                                                          "processed":{ 
-						                 "sum": {
-							                "field": "processed"
-						                 }
-                                                         }
-                                                  }
-					  },
-                                          "procDQMHisto":{
-                                            "filter" : {
-                                                    "term":{"stream":"DQMHistograms"}
-                                            },
-                                            "aggs":{
-                                                    "processed":{
-                                                           "sum": {"field": "processed"}
-                                                           }
-                                                   }
-                                          },
-				          "procAll": {
-						  "sum": {
-							  "field": "processed"
-						  }
-					  }
+	  }
+	}
+      }
+    },
 
-
-
-                  }
-
-
-
-              }
-
-
-
-
-
-
+    "sumbefore": {
+      "filter": {
+	"range": {
+	  "ls": {
+	    "from": "0",
+	    "to": "1"
+	  }
+	}
+      },
+      "aggs": {
+	"streamMaxDocCount": {
+	  "terms":{
+	    "field":"stream",
+	    "size":1,
+	    "order": { "_count" : "desc"}
+	  }
+	},
+	"procNoDQM": {
+	  "filter" : {
+	    "bool":{
+	      "should":[
+		{
+		  "bool":{
+		    "must_not":{ 
+		      "prefix": {
+			"stream":"DQM"
+		      }
+		    }
+		  }
+		},
+		{
+		  "term":{
+		    "stream":"DQMHistograms"
+		  }
+		}
+	      ],
+	      "minimum_should_match" : 1
+	    }
+	  },
+	  "aggs":{
+	    "processed":{ 
+	      "sum": {
+		"field": "processed"
+	      }
+	    }
+	  }
+	},
+	"procAll": {
+	  "sum": {
+	    "field": "processed"
+	  }
+	}
+      }
+    }
   }
 }

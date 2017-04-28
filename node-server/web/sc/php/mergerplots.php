@@ -70,7 +70,6 @@ $minmaxavg = "max";
 if ($interval>1) $minmaxavg="avg";
 
 if($streamTo){
-  //$data = '{"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}, ,"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}}}}  }}';
   $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":'.$run.'}}'.$lsterm.']}},"aggs":{"bu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}},"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"NEvents"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}';
 
 }else{
@@ -124,7 +123,7 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
   $sizes[$stream["key"]]=array();
   foreach ($stream["lss"]["buckets"] as $ls){
     if (!$ls["doc_count"]) continue;
-    $microtimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
+    $microtimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
     $sizes[$stream["key"]][$ls["key"]]=$ls["sizes"]["value"];
   }
 }
@@ -133,18 +132,10 @@ $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/minimerge/_search?siz
 $data='{}';
 $run_nr = intval($run);
 if($streamTo){
-//  if ($run_nr<=286591)
-//    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-//  else
     $data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":200,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-  //$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.'] }},"aggs":{"bu":{"terms":{"field":"host","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 
 }else{
-//  if ($run_nr<=286591)
-//    $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"minimerge#run'.$run.'\")"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-//  else
     $data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-  //$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"events":{"sum":{"field":"processed"}},"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 }
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
@@ -159,7 +150,7 @@ if($streamTo){
     $minitimes[$bu["key"]]=array();
     foreach ($bu["lss"]["buckets"] as $ls){
       if (!$ls["doc_count"]) continue;
-      $minitimes[$bu["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
+      $minitimes[$bu["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
     }
   }
 }else{
@@ -171,17 +162,13 @@ if($streamTo){
       //thresholds: assuming 0.8 and 0.5
       else if (substr($stream["key"],0,3)=="DQMEventDisplay" && $ls["events"]["value"]<0.5*$eolNEvents[$ls["key"]]) continue;
       else if ($ls["events"]["value"]<0.8*$eolNEvents[$ls["key"]]) continue;
-      $minitimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
+      $minitimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
     }
   }
 }
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/macromerge/_search?size=0';
-//if ($run_nr<=286591)
-//  $data = '{"query":{"bool":{"must":[{"script":{"script":"doc[\"_uid\"].value.startsWith(\"macromerge#run'.$run.'\")"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-//else
 $data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
-//$data = '{"query":{"bool":{"must":[{"prefix":{"_id":"run'.$run.'"}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 $ret = curl_exec($crl);
@@ -193,7 +180,42 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
   $macrotimes[$stream["key"]]=array();
   foreach ($stream["lss"]["buckets"] as $ls){
     if (!$ls["doc_count"]) continue;
-    $macrotimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000;
+    $macrotimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
+  }
+}
+
+//transfers status 2
+$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/transfer/_search?size=0';
+$statusReq=1;
+$data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"startTime"}}}}}}}}';
+curl_setopt ($crl, CURLOPT_URL,$url);
+curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+$ret = curl_exec($crl);
+//echo $ret;
+$res=json_decode($ret,true);
+$transfertimes1=array();
+foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
+  $transfertimes1[$stream["key"]]=array();
+  foreach ($stream["lss"]["buckets"] as $ls){
+    if (!$ls["doc_count"]) continue;
+    $transfertimes1[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
+  }
+}
+
+
+$statusReq=2;
+$data = '{"query":{"bool":{"must":[{"term":{"runNumber":'.$run_nr.'}},{"term":{"status":'.$statusReq.'}}'.$lsterm.']}},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"fm_date"}}}}}}}}';
+curl_setopt ($crl, CURLOPT_URL,$url);
+curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+$ret = curl_exec($crl);
+//echo $ret;
+$res=json_decode($ret,true);
+$transfertimes2=array();
+foreach ($res["aggregations"]["streams"]["buckets"] as $stream){  
+  $transfertimes2[$stream["key"]]=array();
+  foreach ($stream["lss"]["buckets"] as $ls){
+    if (!$ls["doc_count"]) continue;
+    $transfertimes2[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
   }
 }
 
@@ -201,8 +223,9 @@ $retval = array();
 $microeol = array();
 $minimicro = array();
 $macromini = array();
+$trans1macro = array();
+$trans2trans1 = array();
 
-//echo "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
 //echo json_encode($minitimes);
 if($xaxis=='size'){
 
@@ -222,11 +245,11 @@ if($xaxis=='size'){
 	}else{
 	  $microeol[count($microeol)-1]["data"][]=array($sizes[$key][$ls],(round($time)-intval($etime)));
 	}
-	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";
       }
     }
   }
 
+  //TODO: collect DQM sizes for mini, macro (cutoffs)
   foreach($minitimes as $stream=>$histo){
     if($stream!='Error'){
       $minimicro[]=array("name"=>$stream,"data"=>array());  
@@ -246,16 +269,13 @@ if($xaxis=='size'){
 	  $previoustime=$time;
 	}else{
 	  if($streamTo){
-            //if (!array_key_exists($ls,$sizes[$streamTo])) continue;
             if (!array_key_exists($ls,$microtimes[$streamTo])) continue;
 	    $minimicro[count($minimicro)-1]["data"][]=array($sizes[$streamTo][$ls],round($time)-intval($microtimes[$streamTo][$ls]));
 	  }else{
-            //if (!array_key_exists($ls,$sizes[$stream])) continue;
             if (!array_key_exists($ls,$microtimes[$stream])) continue;
 	    $minimicro[count($minimicro)-1]["data"][]=array($sizes[$stream][$ls],round($time)-intval($microtimes[$stream][$ls]));
 	  }
 	}
-	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";
       }
     }
   }
@@ -272,12 +292,53 @@ if($xaxis=='size'){
 	  }
 	  $previoustime=$time;
 	}else{
-	  $macromini[count($macromini)-1]["data"][]=array($sizes[$stream][$ls],round($time)-intval($minitimes[$stream][$ls]));
+          $minitime = intval($minitimes[$stream][$ls]);
+          if ($minitime)
+	    $macromini[count($macromini)-1]["data"][]=array($sizes[$stream][$ls],round($time)-$minitime);
 	}
-	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";                                      
       }
     }
   }
+
+  foreach($transfertimes1 as $stream=>$histo){
+    if ($streamTo && $streamTo!=$stream) continue;
+    if($stream=='Error') continue;
+    $transfer1macro[]=array("name"=>$stream,"data"=>array());  
+    $previoustime = 0;
+    foreach($histo as $ls=>$time){
+      if($yaxis=='lap'){
+        if($previoustime!=0){
+          $transfer1macro[count($transfer1macro)-1]["data"][]=array($sizes[$stream][$ls],(round($time)-$previoustime)/($interval*1.0));
+        }
+        $previoustime=$time;
+      }else{
+        $macrotime = intval($macrotimes[$stream][$ls]);
+        if ($macrotime)
+          $transfer1macro[count($transfer1macro)-1]["data"][]=array($sizes[$stream][$ls],round($time)-$macrotime);
+      }
+    }
+  }
+
+  foreach($transfertimes2 as $stream=>$histo){
+    if ($streamTo && $streamTo!=$stream) continue;
+    if($stream=='Error') continue;
+    $transfer2transfer1[]=array("name"=>$stream,"data"=>array());
+    $previoustime = 0;
+    foreach($histo as $ls=>$time){
+      if($yaxis=='lap'){
+        if($previoustime!=0){
+          $transfer2transfer1[count($transfer2transfer1)-1]["data"][]=array($sizes[$stream][$ls],(round($time)-$previoustime)/($interval*1.0));
+        }
+        $previoustime=$time;
+      }else{
+        $transfertime = intval($transfertimes1[$stream][$ls]);
+        if ($transfertime)
+          $transfer2transfer1[count($transfer2transfer1)-1]["data"][]=array($sizes[$stream][$ls],round($time)-$transfertime);
+      }
+    }
+  }
+
+
 }else{
 
   foreach($microtimes as $key=>$dummy){
@@ -295,9 +356,8 @@ if($xaxis=='size'){
 	  }
 	  $previoustime=$time;
 	}else{
-	  $microeol[count($microeol)-1]["data"][]=array(intval($ls),(round($time)-intval($etime)));
+	  $microeol[count($microeol)-1]["data"][]=array(intval($ls),$time-$etime);
 	}
-	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";
       }
     }
   }
@@ -315,13 +375,12 @@ if($xaxis=='size'){
 	}else{
 	  if($streamTo){
             if (!array_key_exists($ls,$microtimes[$streamTo])) continue;
-	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),round($time)-intval($microtimes[$streamTo][$ls]));
+	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),$time-$microtimes[$streamTo][$ls]);
 	  }else{
             if (!array_key_exists($ls,$microtimes[$stream])) continue;
-	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),round($time)-intval($microtimes[$stream][$ls]));
+	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),$time-$microtimes[$stream][$ls]);
 	  }
 	}
-	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";
       }
     }
   }
@@ -346,22 +405,69 @@ if($xaxis=='size'){
 	  if($streamTo==$stream){
 	    $minbutime=100000000000;
 	    foreach($minitimes as $bu=>$butime){
-	      //	      echo $ls.' '.$time.' '.$bu.' '.$butime[$ls]."\n";
 	      if(array_key_exists($ls,$butime) && $butime[$ls]<$minbutime){$minbutime = $butime[$ls];}
 	    }
-	    //	    echo $ls.' '.$minbutime."\n";
-	    if($minbutime && $minbutime<100000000000){
+	    if($minbutime && $minbutime<100000000000){ //?
 	      $macromini[count($macromini)-1]["data"][]=array(intval($ls),round($time)-$minbutime);
 	    }else{
 	      $macromini[count($macromini)-1]["data"][]=array(intval($ls),0);
 	    }
 	  }else if(!$streamTo){
-             $minitime = intval($minitimes[$stream][$ls]);
-             if ($minitime)
-	       $macromini[count($macromini)-1]["data"][]=array(intval($ls),round($time)-intval($minitimes[$stream][$ls]));
+             $minitime = $minitimes[$stream][$ls];
+             if (intval($minitime))
+	       $macromini[count($macromini)-1]["data"][]=array(intval($ls),$time-$minitime);
 	  }
 	}
-	//    echo round($time).'             '.intval($microtimes[$stream][$ls])/1000."\n";                                      
+      }
+    }
+  }
+
+  //transfer startTime - macro
+  foreach($transfertimes1 as $stream=>$histo){
+    if ($streamTo && $streamTo!=$stream) continue;
+    if($stream=='Error') continue;
+    if(!$streamTo || $yaxis=='lap'){ 
+      $transfer1macro[]=array("name"=>$stream,"data"=>array());
+    }
+    else if($streamTo==$stream){
+      $transfer1macro[]=array("name"=>$stream,"data"=>array());
+    }
+    $previoustime=0;
+    foreach($histo as $ls=>$time){
+      if($yaxis=='lap'){
+        if($previoustime!=0){
+          $transfer1macro[count($transfer1macro)-1]["data"][]=array(intval($ls),($time-$previoustime)/($interval*1.0));
+        }
+        $previoustime=$time;
+      }else{
+        $macrotime = $macrotimes[$stream][$ls];
+        if (intval($macrotime))
+          $transfer1macro[count($transfer1macro)-1]["data"][]=array(intval($ls),$time-$macrotime);
+      }
+    }
+  }
+
+  //transfer status 2 - transfer startTime
+  foreach($transfertimes2 as $stream=>$histo){
+    if ($streamTo && $streamTo!=$stream) continue;
+    if($stream=='Error') continue;
+    if(!$streamTo || $yaxis=='lap'){ 
+      $transfer2transfer1[]=array("name"=>$stream,"data"=>array());
+    }
+    else if($streamTo==$stream){
+      $transfer2transfer1[]=array("name"=>$stream,"data"=>array());
+    }
+    $previoustime=0;
+    foreach($histo as $ls=>$time){
+      if($yaxis=='lap'){
+        if($previoustime!=0){
+          $transfer2transfer1[count($transfer2transfer1)-1]["data"][]=array(intval($ls),($time-$previoustime)/($interval*1.0));
+        }
+        $previoustime=$time;
+      }else{
+        $transfertime = $transfertimes1[$stream][$ls];
+        if (intval($transfertime))
+          $transfer2transfer1[count($transfer2transfer1)-1]["data"][]=array(intval($ls),$time-$transfertime);
       }
     }
   }
@@ -410,18 +516,20 @@ $allsizes[5]["data"]=array();
 $invf = 1.0 / ($interval * 23.31*1000000);
 foreach ($res["aggregations"]["lss"]["buckets"] as $ls){  
   if (!$ls["doc_count"]) continue;
-  $allsizes[0]["data"][]=array($ls["key"],round($ls["size"]["value"]*$invf));
-  $allsizes[1]["data"][]=array($ls["key"],round($ls["physics"]["size"]["value"]*$invf));
-  $allsizes[2]["data"][]=array($ls["key"],round($ls["parking"]["size"]["value"]*$invf));
-  $allsizes[3]["data"][]=array($ls["key"],round($ls["express"]["size"]["value"]*$invf));
-  $allsizes[4]["data"][]=array($ls["key"],round($ls["dqm"]["size"]["value"]*$invf));
-  $allsizes[5]["data"][]=array($ls["key"],round($ls["other"]["size"]["value"]*$invf));
+  $allsizes[0]["data"][]=array($ls["key"],$ls["size"]["value"]*$invf);
+  $allsizes[1]["data"][]=array($ls["key"],$ls["physics"]["size"]["value"]*$invf);
+  $allsizes[2]["data"][]=array($ls["key"],$ls["parking"]["size"]["value"]*$invf);
+  $allsizes[3]["data"][]=array($ls["key"],$ls["express"]["size"]["value"]*$invf);
+  $allsizes[4]["data"][]=array($ls["key"],$ls["dqm"]["size"]["value"]*$invf);
+  $allsizes[5]["data"][]=array($ls["key"],$ls["other"]["size"]["value"]*$invf);
 }
 $retval["allsizes"]=$allsizes;
 
 $retval["serie0"]=$microeol;
 $retval["serie1"]=$minimicro;
 $retval["serie2"]=$macromini;
+$retval["serie3"]=$transfer1macro;
+$retval["serie4"]=$transfer2transfer1;
 $retval["run"]=$run;
 echo json_encode($retval);
 

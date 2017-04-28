@@ -16,6 +16,38 @@
         }
     },
     "aggs": {
+      "inrange": {
+        "filter": {
+          "range": {
+            "ls": {
+              "from": 0,
+                "to": 550
+              }
+          }
+        },
+	"aggs":{
+          "ls": {
+              "histogram": {
+                  "field": "ls",
+                  "interval": 1,
+                  "min_doc_count": 0,
+                  "extended_bounds": {
+                      "min": 0,
+                      "max": 550
+                  }
+              },
+              "aggs": {
+                  "streamMaxDocCount": {
+                      "terms":{
+                          "field":"stream",
+                          "size":10,
+		          "order": {"_count" : "desc"}
+                      }
+		  }
+              }
+	    }
+	  }
+        },
         "stream": {
             "terms": {
                 "size": 100,

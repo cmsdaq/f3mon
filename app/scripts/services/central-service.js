@@ -15,15 +15,16 @@
             status: {
                 currentTab: 0,
                 changeTab: function(num,reload) {
-                    if (this.currentTab===0 && (num===1 || num===2)) {//reset if switching from main view
-                      $rootScope.chartInitDone = false;
+                    if (!reload || num!=0 || this.currentTab==0) {//reset if switching from main view or clicking on F3mon icon
+                      $rootScope.chartInitDone = true;
                     }
+                    else $rootScope.chartInitDone = false;
                     this.currentTab = num;
                     if (reload)
                       broadcast('reload')
                     else
                       broadcast('refresh')
-                    if (this.currentTab===0) setTimeout(function(){$rootScope.chartInitDone=true;},2);
+                    if (reload && !$rootScope.chartInitDone) setTimeout(function(){$rootScope.chartInitDone=true;},2);//ensure it's set after init
                 },
                 isTabSelected: function(num) {
                     return this.currentTab == num;
@@ -48,19 +49,9 @@
     })
 
 
-    .factory('streamRatesService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+    .factory('streamRatesService', function($rootScope, poller, configService, runInfoService, indexListService) {
         var mypoller,config;
         var runInfo = runInfoService.data;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/streamhist.php', {
-	var resource = $resource('api/streamhist', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-        
         
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
@@ -85,13 +76,14 @@
                 micromerge: {},
                 minimerge: {},
                 macromerge: {},
+                transfer: {},
                 streams: {},
                 navbar: {},
                 lastTime: false,
                 lsList: false,
                 interval: false,
                 noData: function() {
-                    return _.isEmpty(this.streams) && _.isEmpty(this.micromerge) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge)
+                    return _.isEmpty(this.streams) && _.isEmpty(this.micromerge) && _.isEmpty(this.minimerge) && _.isEmpty(this.macromerge) && _.isEmpty(this.transfer)
                 },
             },
             queryParams: {
@@ -133,8 +125,8 @@
             if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/streamhist', {
+                    action: 'jsonp',
                     delay: config.slowPollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
@@ -154,6 +146,7 @@
                         service.data.micromerge = data.micromerge;
                         service.data.minimerge = data.minimerge;
                         service.data.macromerge = data.macromerge;
+                        service.data.transfer = data.transfer;
                         service.data.navbar = data.navbar;
                         service.data.input = data.input;
                         broadcast('updated');
@@ -168,7 +161,7 @@
                 })
             } else {
 
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/streamhist', {
                     argumentsArray: [service.queryParams]
                 });
             }
@@ -234,24 +227,12 @@
     })
 
     //First Drill Down plot service
-    .factory('drillDownService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+    .factory('drillDownService', function($rootScope, poller, configService, runInfoService, indexListService) {
         var mypoller, cache,config;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/minimacroperstream.php', {
-	var resource = $resource('api/minimacroperstream', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
         
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
         });
-
-
 
         var service = {
             queryParams: {
@@ -269,8 +250,8 @@
             //if (!runInfo.lastLs || !runInfo.streams) { return; };
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/minimacroperstream', {
+                    action: 'jsonp',
                     delay: config.slowPollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
@@ -286,7 +267,7 @@
                     //}
                 })
             } else {
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/minimacroperstream', {
                     argumentsArray: [service.queryParams]
                 });
             }
@@ -323,39 +304,24 @@
     })
 
     //Second Drill Down plot service
-    .factory('secondDrillDownService', function($resource, $rootScope, poller, configService, drillDownService, runInfoService, indexListService) {
+    .factory('secondDrillDownService', function($rootScope, poller, configService, drillDownService, runInfoService, indexListService) {
         var mypoller, cache, config;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/minimacroperbu.php?', {
-	var resource = $resource('api/minimacroperhost', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
-
         
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
         });
 
-
-
         var service = {
             queryParams: drillDownService.queryParams
         };
-
-
 
         service.start = function() {
             cache = '';
             //if (!runInfo.lastLs || !runInfo.streams) { return; };
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/minimacroperhost', {
+                    action: 'jsonp',
                     delay: config.slowPollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
@@ -371,7 +337,7 @@
                     //}
                 })
             } else {
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/minimacroperhost', {
                     argumentsArray: [service.queryParams]
                 });
             }
@@ -405,24 +371,17 @@
     })
 
 
-    .factory('microStatesService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+    .factory('microStatesService', function($rootScope, poller, configService, runInfoService, indexListService) {
         var mypoller,config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
 
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-
         var resourceType = 'nstates-summary';
-        var resource;
+
+        var micro_api;
 
         var setResource = function(newapi) {
-          resource =  $resource('api/'+newapi, {
-            callback: 'JSON_CALLBACK',
-          }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-          });
+          micro_api = 'api/'+newapi;
           mypoller = undefined;
         }
         setResource(resourceType);
@@ -563,8 +522,8 @@
             //console.log('Microstates STARTED');
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get(micro_api, {
+                    action: 'jsonp',
                     delay: service.pollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
@@ -585,7 +544,7 @@
                     console.log("wrong us format exp:"+service.queryParams.format+" received:" + data.format)
                 })
             } else {
-                mypoller = poller.get(resource, {
+                mypoller = poller.get(micro_api, {
                     argumentsArray: [service.queryParams],
                     delay: service.pollingDelay
                 });
@@ -656,7 +615,7 @@
         return service;
     })
 
-    .factory('logsService', function($resource, $rootScope, $sce, poller, configService, runInfoService, indexListService) {
+    .factory('logsService', function($rootScope, $sce, poller, configService, runInfoService, indexListService) {
         var mypoller, cache, config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
@@ -693,16 +652,6 @@
                 from: 0,
             },
         };
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/logtable.php', {
-	var resource = $resource('api/logtable', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
 
         service.pageChanged = function(newPageNumber) {
             service.stop();
@@ -752,8 +701,8 @@
 
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/logtable', {
+                    action: 'jsonp',
                     delay: config.slowPollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
@@ -777,8 +726,9 @@
                     //    //broadcast('updated');
                     //}
                 })
-            } else {
-                mypoller = poller.get(resource, {
+            } else { //?
+                mypoller = poller.get('api/logtable', {
+                    //action: 'jsonp',
                     argumentsArray: [service.queryParams]
                 });
             }
@@ -835,20 +785,10 @@
     })
 
 
-    .factory('streamSummaryService', function($resource, $rootScope, poller, configService, runInfoService, indexListService) {
+    .factory('streamSummaryService', function($rootScope, poller, configService, runInfoService, indexListService) {
         var mypoller,config;
         var runInfo = runInfoService.data;
         var indexInfo = indexListService.selected;
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/nstates-summary.php', {
-	var resource = $resource('api/teols', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
 
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
@@ -887,8 +827,8 @@
             if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/teols', {
+                    action: 'jsonp',
                     delay: service.pollingDelay,
                     smart: true,
                     argumentsArray: [service.queryParams]
@@ -900,7 +840,7 @@
                         broadcast('updated');
                 })
             } else {
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/teols', {
                     argumentsArray: [service.queryParams],
                     delay: service.pollingDelay
                 });

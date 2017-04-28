@@ -17,7 +17,7 @@
 
     .config(function($provide, paginationTemplateProvider) {
         //Template required by the dirpagination plugin
-        paginationTemplateProvider.setPath('views/dirPagination.tpl.html');
+        paginationTemplateProvider.setPath('views/modals/dirPagination.tpl.html');
 
 
 //        $provide.constant('config', {
@@ -108,7 +108,7 @@
 
                         if (hideAllOthers) {
                             series.forEach(function(serie) {
-                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge','input'].indexOf(serie.name) > -1) {
+                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge','transfer','input'].indexOf(serie.name) > -1) {
                                     return
                                 } else if (serie.name == selectedName) {
                                     serie.setVisible(true, false)
@@ -129,7 +129,7 @@
                         maskedStreamList = []
                         series.forEach(function(serie) {
                               if (!serie.visible) {
-                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge','input'].indexOf(serie.name) <= -1)
+                                if (['navigator', 'Navigator', 'micromerge', 'minimerge', 'macromerge','transfer','input'].indexOf(serie.name) <= -1)
                                   maskedStreamList.push(serie.name);
                               }
                         });
@@ -184,7 +184,7 @@
 
                 //get percents
                 var totals = $.grep(items,function(item,index){
-                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge']) <0;
+                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge','transfer']) <0;
                 })
 
                 totals.forEach(function(item){
@@ -193,7 +193,7 @@
                 })
 
                 var totalsRate = $.grep(items,function(item,index){
-                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge','input']) <0;
+                    return $.inArray(item.series.name,['micromerge', 'minimerge','macromerge','transfer','input']) <0;
                 })
 
                 var sumRate = 0;
@@ -240,7 +240,7 @@
                 var streamcount = 0;
                 items.forEach(function(item) {
                   var name = item.series.name;
-                  if (-1==$.inArray(name,['micromerge','minimerge','macromerge','input'])) streamcount++;
+                  if (-1==$.inArray(name,['micromerge','minimerge','macromerge','transfer','input'])) streamcount++;
                 });
 
                 // build the values
@@ -249,7 +249,7 @@
                     var name = item.series.name;
 
                     series = item.series;
-                    var isMerge = $.inArray(name,['micromerge','minimerge','macromerge']) !== -1;
+                    var isMerge = $.inArray(name,['micromerge','minimerge','macromerge','transfer']) !== -1;
                     var isInput = name=='input';
 
                     var formatString;
@@ -420,7 +420,7 @@
             minPadding: 0,
             maxPadding: 0,
             id: "rates",
-            height: "70%",
+            height: "68%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
@@ -429,13 +429,14 @@
         }, {
             title: {
                 text: 'Micro %',
+                margin: 20
             },
             showLastLabel: true,
             max: 100,
             min: 0,
             id: "micropercent",
-            height: "8%",
-            top: "74%",
+            height: "6.5%",
+            top: "72%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
@@ -443,14 +444,14 @@
             title: {
                 text: 'Mini %',
                 align: 'middle',
-                margin: 30,
+                margin: 10
             },
             showLastLabel: true,
             max: 100,
             min: 0,
             id: "minipercent",
-            height: "8%",
-            top: "83%",
+            height: "6.5%",
+            top: "79%",
             lineWidth: 1,
             offset: 0,
             opposite: true,
@@ -467,23 +468,43 @@
             max: 100,
             min: 0,
             id: "macropercent",
-            height: "8%",
-            top: "92%",
+            height: "6.5%",
+            top: "86%",
             lineWidth: 1,
             offset: 0,
             opposite: false,
         }, {
             title: {
+                text: 'Transfer %',
+                align: 'middle',
+                margin: 20
+            },
+            showLastLabel: true,
+            //minPadding: 0,
+            //maxPadding: 0,
+            max: 100,
+            min: 0,
+            id: "transferpercent",
+            height: "6.5%",
+            top: "93%",
+            lineWidth: 1,
+            offset: 0,
+            opposite: true,
+            labels: {
+                align: 'center'
+            }
+        }, {
+            title: {
                 text: 'Built Events' ,
                 align: 'middle',
-                margin: 40,
+                margin: 10,
             },
             //type:'logarithmic',
             showLastLabel: true,
             //minPadding: 0,
             //maxPadding: 0,
             id: "ratesin",
-            height: "70%",
+            height: "68%",
             lineWidth: 1,
             offset: 0,
             minorGridLineWidth: 0.,
@@ -538,8 +559,8 @@
                 text: ''
             },
             tickmarkPlacement: 'on',
-            type: "category",
-            labels:{rotation: 0}
+            type: "category"//,
+            //labels:{rotation: 0}
         }],
         yAxis: [{
             title: {

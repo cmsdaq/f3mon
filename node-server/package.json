@@ -16,7 +16,8 @@
     "express-session": "*",
     "heapdump": "*",
     "request": "*",
-    "morgan":"*"
+    "morgan":"*",
+    "compression":"*"
   },
   "engines": {
     "node": ">=6.9"

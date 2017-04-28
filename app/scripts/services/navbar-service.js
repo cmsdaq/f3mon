@@ -11,37 +11,19 @@
 (function() {
     angular.module('f3monApp')
 
-    .factory('configService', function($resource, $rootScope, $cookieStore, poller) {
+    //.config(function($sceDelegateProvider) {
+    //    $sceDelegateProvider.resourceUrlWhiteList(['self']);
+    //})
+
+    .factory('configService', function($rootScope, $cookieStore, poller) {
 
         var statusPoller, configPoller;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var statusRes = $resource(prePath+'/api/serverStatus.php', {
-        var statusRes = $resource('api/serverStatus', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var configRes = $resource(prePath+'/api/getConfig.php', {
-	var configRes = $resource('api/getConfig', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
-
-
 
         var waitingForGreenStatus = function() {
             if (angular.isUndefined(statusPoller)) {
                 // Initialize poller and its callback
-                statusPoller = poller.get(statusRes, {
-                    action: 'jsonp_get',
+                statusPoller = poller.get('api/serverStatus', {
+                    action: 'jsonp',
                     delay: 3000,
                     smart: true,
                     argumentsArray: []
@@ -61,8 +43,8 @@
         var waitingForGreenOrYellowStatus = function() {
             if (angular.isUndefined(statusPoller)) {
                 // Initialize poller and its callback
-                statusPoller = poller.get(statusRes, {
-                    action: 'jsonp_get',
+                statusPoller = poller.get('api/serverStatus', {
+                    action: 'jsonp',
                     delay: 3000,
                     smart: true,
                     argumentsArray: []
@@ -82,8 +64,8 @@
 
         var waitingForConfig = function() {
             var configName = $cookieStore.get('f3monConfigName') || 'default';
-            configPoller = poller.get(configRes, {
-                action: 'jsonp_get',
+            configPoller = poller.get('api/getConfig', {
+                action: 'jsonp',
                 delay: 3000,
                 smart: true,
                 argumentsArray: [{
@@ -137,26 +119,15 @@
 
 
     //Service for the system selector
-    .factory('indexListService', function($resource, $rootScope, poller, configService) {
+    .factory('indexListService', function($rootScope, poller, configService) {
         var config = false;
         var mypoller;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/getIndices.php', {
-        var resource = $resource('api/getIndices', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
-
 
         var start = function() {
 
             if (angular.isUndefined(mypoller)) {
-                var mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                var mypoller = poller.get('api/getIndices', {
+                    action: 'jsonp',
                     delay: config.fastPollingDelay,
                     smart: true
                     //,argumentsArray: [{"sysSuffix":"2015"}] #uncomment this to look at _subsys2015_ set of indices
@@ -218,17 +189,8 @@
     })
 
     //Service for the run ranger button
-    .factory('runRangerService', function($resource, $rootScope, configService, poller, indexListService, runInfoService) {
+    .factory('runRangerService', function($rootScope, configService, poller, indexListService, runInfoService) {
         var mypoller,config;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/runList.php', {
-        var resource = $resource('api/runList', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP'
-            }
-        });
 
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
@@ -238,14 +200,16 @@
         var runRanger = {};
         runRanger.isActive = true;
 
+        runRanger.preloadRun = false;
+
         runRanger.start = function() {
             if (!this.isActive) {
                 return
             };
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/runList', {
+                    action: 'jsonp',
                     delay: config.fastPollingDelay,
                     smart: true,
                     argumentsArray: [{
@@ -261,7 +225,7 @@
                 })
             } else {
                 //Restart poller
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/runList', {
                     argumentsArray: [{
                         sysName: indexListService.selected.subSystem,
                         size: 1
@@ -282,7 +246,8 @@
         };
 
         runRanger.shutdown = function() {
-            mypoller.stop();
+            if (!angular.isUndefined(mypoller))
+              mypoller.stop();
             this.isActive = false;
             runRanger.flipAction()
             this.broadcast('status');
@@ -294,7 +259,17 @@
 
         $rootScope.$on('indices.selected', function(event) {
             runInfoService.reset();
-            runRanger.start();
+            //redirect to run loaded by URL
+            if (runRanger.preloadRun) {
+              console.log('preloading run ' + runRanger.preloadRun)
+              runInfoService.select(runRanger.preloadRun);
+              runRanger.preloadRun = false;
+              //set button inactive
+              runRanger.isActive = false;
+              runRanger.broadcast('status');
+            }
+            else
+              runRanger.start();
         });
 
         return runRanger;
@@ -302,23 +277,12 @@
 
 
     //Service for the river status button
-    .factory('riverStatusService', function($resource, $rootScope, configService, poller, runInfoService, indexListService) {
+    .factory('riverStatusService', function($rootScope, configService, poller, runInfoService, indexListService) {
         var mypoller,config;
 
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/riverStatus.php', {
-        var resource = $resource('api/riverStatus', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP'
-            }
-        });
-        
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
         });
-
 
         var service = {
             data: {
@@ -336,8 +300,8 @@
         service.restart = function() {
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/riverStatus', {
+                    action: 'jsonp',
                     delay: config.fastPollingDelay,
                     smart: true
                 });

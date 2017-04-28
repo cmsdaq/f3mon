@@ -16,7 +16,9 @@ function parseHash(key) {
 function bootstrap() {
 
 	$.ajaxSetup({
-		async: true
+                headers : {   
+                  'f3mon-compression' : 'true'
+                }
 	});
 
 	Highcharts.setOptions(Highcharts.theme_du);

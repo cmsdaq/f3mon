@@ -1,0 +1,15 @@
+[Unit]
+Description=F3Mon priv
+Wants=network-online.target
+After=network.service elasticsearch.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/f3mon/priv
+ExecStart=/usr/bin/node --expose-gc /opt/f3mon/priv/app.js 8080 es-cdaq-priv /var/log/f3mon/priv 0
+Restart=on-failure
+RestartSec=10
+#RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

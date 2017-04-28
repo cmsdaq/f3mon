@@ -5,7 +5,8 @@
             <div class="panel panel-primary" ng-controller="runInfoCtrl">
                 <!-- Default panel contents -->
                 <div class="panel-heading">
-                    <span ng-click='selectTour("runInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <span ng-click='selectTour("runInfoPanel")' style="margin-left:10px" class="clickable pull-right"> <i class="help fa fa-question"></i></span>
+                    <span ng-click='setLocationRun(data.runNumber)' style="margin-left:10px" class="clickable pull-right"> <i class="fa fa-link"/> </i></span>
 
                     <!--<button ng-click='restartCollectorDialog(data.runNumber)' type="button" class="btn btn-xs btn-primary pull-right" data-toggle="tooltip" title="Restart data collector."><i class="fa fa-retweet"></i>
                     </button> -->
@@ -22,12 +23,6 @@
                                     <th scope="row">StartTime: </th>
                                     <td>{{data.startTime ? (data.startTime | amDateFormat : 'MMM D YYYY, HH:mm' ) : 'N/A'}}</td>
                                 </tr>
-<!-- 
-                                <tr>
-                                    <th scope="row">StartTimeRaw: </th>
-                                    <td>{{data.startTime ? (data.startTime) : 'N/A'}}</td>
-                                </tr>
- -->
                                 <tr>
                                     <th scope="row">EndTime: </th>
                                     <td>{{data.endTime ? (0>=data.activeBUs || data.activeBUs===undefined) ? (data.endTime | amDateFormat : 'MMM D YYYY, HH:mm') : 'degraded' : (data.runNumber ? 'ongoing' : 'N/A')}}</td>
@@ -54,12 +49,6 @@
                                     <td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) +" active CPU slots ("+dataDisks.resourceFrac.active+")" : "N/A" }}</td>
                                 </tr>
 
-<!--                                <tr>
-                                    <th scope="row">BUs: </th>
-                                    <td >{{data.totalBUs ? ((data.activeBUs/data.totalBUs) | percentage:2 ) +" enabled" : "N/A" }}</td>
-                                </tr>
--->
-
                             </tbody>
                         </table>
                     </div>
@@ -75,10 +64,7 @@
                     <span ng-click='selectTour("disksInfoPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <h3 class="panel-title">
 
-                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#disks-panel-body-collapse"><i class="fa fa-power-off"></i></button>
-                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                    </div>
+                    <f3mon-collapse-control/>
                     Disks Information
                     </h3>
                 </div>
@@ -123,10 +109,7 @@
                     <span class="badge pull-right"># Runs: {{data.numRuns}}</span>
                     <h3 class="panel-title">
 
-                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#runlist-panel-body-collapse"><i class="fa fa-power-off"></i></button>
-                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                    </div>
+                    <f3mon-collapse-control/>
                     Run List
                     </h3>
                 </div>
@@ -147,14 +130,19 @@
                                 </tr>
                             </thead>
                             <tbody ng-show="!data.noData()">
-                                <!--<tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag" style='{{row.selected ? "background-color:rgba(255, 100, 255, 0.4);":""}}'>-->
-                                <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag" style='{{row.selected ? "background-color:rgba(173,216,230,0.4);":""}}'>
+                                <tr dir-paginate="row in data.displayed | itemsPerPage: data.itemsPerPage" total-items="data.displayTotal" pagination-id="runListPag"
+				    style='{{row.selected ? "background-color:rgba(173,216,230,0.4);":""}}'>
                                     <!--<td>{{row.runNumber+"&#149;"}}</td>-->
                                     <td>{{row.runNumber}}</td>
                                     <td>{{row.startTime ? ( row.startTime | amDateFormat:"DD/MM/YY HH:mm") : "N/A"}}</td>
                                     <td>{{row.endTime ? ((0>=row.activeBUs || row.activeBUs===undefined) ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "degraded") : "ongoing"}}</td>
                                     <!--<td>{{row.endTime ? (row.endTime | amDateFormat:"DD/MM/YY HH:mm") : "ongoing"}}</td>-->
-                                    <td style='text-align: right'><a ng-click='selectRun(row.runNumber)' role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Display this run."><span class="fa fa-play-circle "></span></a>
+
+                                    <td style='text-align: right'>
+				      <a ng-click='selectRun(row.runNumber)' role="button" class="btn btn-default btn-xs run-show" data-toggle="tooltip" title="Display this run.">
+				        <span class="fa fa-play-circle ">
+				        </span>
+				      </a>
                                     </td>
                                 </tr>
                             </tbody>
@@ -164,23 +152,16 @@
                                 </tr>
                             </tbody>
                             <tfoot ng-show="!data.noData()">
-
                                 <tr>
                                     <td colspan="10" class="text-center" style='vertical-align: middle'>
                                         <dir-pagination-controls max-size='5' boundary-links='true' on-page-change="pageChanged(newPageNumber)" pagination-id="runListPag"></dir-pagination-controls>
                                     </td>
-
                                 </tr>
-
                                 <tr>
-                            
                                     <td colspan="4" class="text-right" style='vertical-align: middle'>
                                         <input style="width:35%" class="pull-left form-control" ng-model='data.searchText' ng-change='search()' type="text" placeholder='search...' />
-<!--                                        <dir-pagination-controls max-size='7' on-page-change="pageChanged(newPageNumber)" pagination-id="runListPag"></dir-pagination-controls> -->
                                     </td>
-
                                 </tr>
-
                             </tfoot>
                         </table>
                     </div>
@@ -196,10 +177,7 @@
                     <span ng-click='selectTour("riverListPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
                     <h3 class="panel-title">
 
-                    <div class="btn-group btn-group-xs pull-left" style="margin-right:10px">
-                      <!--<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#rivers-panel-body-collapse"><i class="fa fa-power-off"></i></button>
-                      --><button type="button" class="btn btn-primary" ng-click="collapseChanged()" ><i class="fa fa-power-off"></i></button>
-                    </div>
+                    <f3mon-collapse-control/>
                     River List
                     <!--<a href="" data-toggle="collapse" data-target="#rivers-panel-body-collapse" >River List</a>-->
                     </h3>
@@ -254,6 +232,5 @@
                 </div>
             </div>
         </div>
-
     </div>
 </div>

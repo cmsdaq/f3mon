@@ -25,7 +25,7 @@
                       <!-- Alert Link HLT-->
                     <li id="logButtonHLT" ng-class="{'active': globalStatus.isTabSelected(2)}">
                       <a href="" ng-click='globalStatus.changeTab(2,true)'><i class="fa fa-bell"></i> HLT Alerts
-                        <span class="label label-success" id="logNumHLT"  ng-class="{'label-danger':logdata.numHLT > 0}">{{logdata.numHLT || 0}}</span>  
+                        <span class="label label-success" id="logNumHLT"  ng-class="{'label-danger':logdata.numHLT > 0}">{{logdata.numHLT || 0}}</span>
                       </a>
                     </li>
                 </ul>
@@ -96,7 +96,7 @@
                 <div class='btn-group' class="btn-group" id='pauseButton' style="margin-left: 2px">
                     <button type="button" class="btn navbar-btn btn-success" ng-class="{'btn-success':isActive,'btn-danger':!isActive}" ng-controller="pollerCtrl" ng-click="toggle()">
                         <span >
-                          <i class="fa" ng-class="{'fa-play':isActive,'fa-pause':!isActive}"></i>
+                          <i class="fa" ng-class="{'fa-play':!isActive,'fa-pause':isActive}"></i>
                         </span>
                     </button>
                 </div>

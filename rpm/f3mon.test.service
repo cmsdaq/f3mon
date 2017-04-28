@@ -1,0 +1,15 @@
+[Unit]
+Description=F3Mon server test
+Wants=network-online.target
+After=network.service elasticsearch.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/f3mon/test
+ExecStart=/usr/bin/node --expose-gc /opt/f3mon/test/app.js 4000 es-cdaq-runtime /var/log/f3mon/test 0
+Restart=on-failure
+RestartSec=10
+#RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

@@ -3,6 +3,13 @@ var plots=[];
 
 
 function bootstrap(){
+
+    $.ajaxSetup({
+                headers : {   
+                  'f3mon-compression' : 'true'
+                }
+    });
+
     Highcharts.setOptions(Highcharts.theme_du);
     //$("#loading_dialog").loading();
 	    //    $('#loading_dialog').hide();

@@ -67,7 +67,9 @@ module.exports.query = function (req, res) {
   if (qparam_streamList == null){qparam_streamList = 'A';}
 
   var stream_id;
-  if (qparam_type==='macromerge')
+  var is_transfer = false;
+  if (qparam_type=='transfer') is_transfer=true;
+  if (qparam_type==='macromerge' || qparam_type=='transfer')
     stream_id = qparam_streamList
   else
     stream_id = qparam_stream
@@ -83,20 +85,17 @@ module.exports.query = function (req, res) {
   var totals = {}; //obj to hold per bu event counters
 
   //Get minimerge
-  var q2 = function(callback){
+  var q2 = function(){
 
-   //_this.queryJSON1.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("minimerge#run'+qparam_runNumber+'")'}}
-   //if (parseInt(qparam_runNumber)>286591)
    _this.queryJSON1.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
    _this.queryJSON1.query.bool.must[0].range.ls.from = qparam_from;
    _this.queryJSON1.query.bool.must[0].range.ls.to = qparam_to;
-   _this.queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
-   _this.queryJSON1.query.bool.must[2].term.stream.value = qparam_stream;
+   _this.queryJSON1.query.bool.must = [ _this.queryJSON1.query.bool.must[0],_this.queryJSON1.query.bool.must[1], {"term":{"stream":{"value":qparam_stream}}} ]
 
    global.client.search({
     index: 'runindex_'+qparam_sysName+'_read',
-    type: 'minimerge',
+    type: qparam_type,
     body : JSON.stringify(_this.queryJSON1)
     }).then (function(body){
       try {
@@ -157,23 +156,33 @@ module.exports.query = function (req, res) {
   //Get macromerge
   var q2macro = function(total_q1){
 
-    //_this.queryJSON2.query.bool.must[1] = {"script":{'script':'doc["_uid"].value.startsWith("macromerge#run'+qparam_runNumber+'")'}}
-    //if (parseInt(qparam_runNumber)>286591)
-    _this.queryJSON2.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
-    _this.queryJSON2.query.bool.must[0].range.ls.from = qparam_from;
-    _this.queryJSON2.query.bool.must[0].range.ls.to = qparam_to;
+    _this.queryJSON2.query.bool.must = [{"term":{"runNumber":qparam_runNumber}},{"range":{"ls":{"from":qparam_from,"to":qparam_to}}}]
+    if (is_transfer)
+      _this.queryJSON2.query.bool.must[2] = [ _this.queryJSON2.query.bool.must[0],,{"term":{"status":2}} ]
+    //_this.queryJSON2.query.bool.must[0].range.ls.from = qparam_from;
+    //_this.queryJSON2.query.bool.must[0].range.ls.to = qparam_to;
+    //_this.queryJSON2.query.bool.must[1] = {"term":{"runNumber":qparam_runNumber}};
 
     var streamListArray = qparam_streamList.split(',');
     var should_query = []
+
+    _this.queryJSON2.query.bool.must_not = [ {"term":{"type":"EventDisplay"}} ]
+
+    //if (qparam_type=='transfer') {
+    //  _this.queryJSON2.query.bool.must = [ _this.queryJSON2.query.bool.must[0],,{"term":{"status":2}} ]
+    //} else {
+    //  _this.queryJSON2.query.bool.must = [ _this.queryJSON2.query.bool.must[0]]
+    //}
     for (var str=0;str<streamListArray.length;str++) {
-      should_query.push( {"term" : { "stream" : streamListArray[str] }})
+      if (streamListArray[str]!="Error") // for now not supported
+        should_query.push( {"term" : { "stream" : streamListArray[str] }})
     }
     _this.queryJSON2.query.bool.should = should_query;
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
-      type: 'macromerge',
+      type: qparam_type,
       body : JSON.stringify(_this.queryJSON2)
       }).then (function(body){
         try {
@@ -183,10 +192,11 @@ module.exports.query = function (req, res) {
           for (var i=0;i<hosts.length;i++) {
                 var host = hosts[i].key;
                 if (host === '') continue;
-		var processed = hosts[i].processed.value;
+		var processed = hosts[i].processed.value + hosts[i].errorEvents.value;
 		var doc_count = hosts[i].doc_count;
+		var doc_count_2 = hosts[i].status2.doc_count;
 		//calc minimerge percents
-		var percent;
+		var percent,p;
 		if (total_q1*streamListArray.length === 0){
 			if (doc_count === 0){
 				percent = 0;
@@ -194,7 +204,14 @@ module.exports.query = function (req, res) {
 				percent = 100;
 			}
 		}else{
-			var p = 100*processed/total_q1;
+		        if (doc_count) {
+			  p = 100*(processed/doc_count)/total_q1;
+			  //factor in status 2 vs. status percentage in host drilldown for transfer
+			  //for now we can not determine if a stream should be merged/transferred by a host
+			  //so if doc is missing, status will be green (if at least one is successfully merged/trans. by that host)
+			  if (is_transfer) p = p * doc_count_2/doc_count;
+			}
+			else p = 0;
 			percent = Math.round(p*100)/100;
 		}
 		
@@ -275,7 +292,7 @@ module.exports.query = function (req, res) {
   if (this.respondFromCache(req,res,cb,eTime,requestKey,qname,ttl) === false) {
     if (qparam_type == 'minimerge')
       q1(); //call q1 with q2 as its callback
-    else if (qparam_type == 'macromerge')
+    else if (qparam_type == 'macromerge' || qparam_type=='transfer')
       q1macro();
   }
 }

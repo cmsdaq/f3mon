@@ -6,10 +6,7 @@ var old_setup;
 var errcount=0;
 
 function get_node_tree(callback,callback2) {
-//	$.ajaxSetup({
-//		async: false
-//		    });
-//
+
 	var setup = $('input[name=setup]:checked', '#setups').val();
         console.log('setup='+setup);
 	$.getJSON("api/pp?setup="+setup,function(data){
@@ -793,6 +790,14 @@ var post_db = function() {
 }
 
 var bootstrap_all = function() {
+    /*
+    $.ajaxSetup({
+		async: true,
+                headers : {   
+                  'f3mon-compression' : 'true'
+                }
+    });
+    */
     $('#setups').buttonset();
     get_node_tree(post_db,null);
 }

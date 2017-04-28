@@ -11,30 +11,8 @@
     angular.module('f3monApp')
 
     //Service for the status of run selected; Check StartTime, EndTime, streams and lastLs
-    .factory('runInfoService', function($resource, $rootScope, poller, configService, indexListService) {
+    .factory('runInfoService', function($rootScope, poller, configService, indexListService) {
         var mypoller, restartPoller, cache, config;
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/runInfo.php', {
-	var resource = $resource('api/runInfo', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var restartCollectorRes = $resource(prePath+'/api/startCollector.php', {
-	var restartCollectorRes = $resource('api/startCollector', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP'
-            }
-        });
-
-
 
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
@@ -95,8 +73,8 @@
 
 
         service.restartCollector = function(runNumber) {
-            restartPoller = poller.get(restartCollectorRes, {
-                action: 'jsonp_get',
+            restartPoller = poller.get('api/startCollector', {
+                action: 'jsonp',
                 delay: 5000,
                 smart: true,
                 argumentsArray: [{
@@ -128,8 +106,8 @@
         service.start = function() {
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/runInfo', {
+                    action: 'jsonp',
                     delay: config.fastPollingDelay,
                     smart: true,
                     argumentsArray: [{
@@ -158,7 +136,7 @@
                 });
             } else {
                 //Restart poller
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/runInfo', {
                     argumentsArray: [{
                         sysName: indexListService.selected.subSystem,
                         runNumber: service.data.runNumber
@@ -194,20 +172,8 @@
 
 
     //Service for the disks information panel
-    .factory('disksInfoService', function($resource, $rootScope, poller, configService, indexListService, runInfoService) {
+    .factory('disksInfoService', function($rootScope, poller, configService, indexListService, runInfoService) {
         var mypoller, config;
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/getDisksStatus.php', {
-        var resource = $resource('api/getDisksStatus', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP',
-            }
-        });
-
-
 
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
@@ -255,8 +221,8 @@
             if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/getDisksStatus', {
+                    action: 'jsonp',
                     delay: config.fastPollingDelay,
                     smart: true,
                     argumentsArray: [{
@@ -282,7 +248,7 @@
                 });
             } else {
                 //Restart poller
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/getDisksStatus', {
                     argumentsArray: [{
                         sysName: indexListService.selected.subSystem,
                         runNumber: runInfoService.data.runNumber
@@ -330,19 +296,8 @@
     })
 
     //Service for the disks information panel
-    .factory('runListService', function($resource, $rootScope, poller, configService, indexListService, runInfoService) {
+    .factory('runListService', function($rootScope, poller, configService, indexListService, runInfoService) {
         var mypoller, cache, config;
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/runListTable.php', {
-        var resource = $resource('api/runListTable', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP'
-            }
-        });
-
-
 
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
@@ -372,8 +327,8 @@
             if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
                 // Initialize poller and its callback
-                mypoller = poller.get(resource, {
-                    action: 'jsonp_get',
+                mypoller = poller.get('api/runListTable', {
+                    action: 'jsonp',
                     delay: config.fastPollingDelay,
                     smart: true,
                     argumentsArray: [{
@@ -402,7 +357,7 @@
                 })
             } else {
                 //Restart poller
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/runListTable', {
                     argumentsArray: [{
                         sysName: indexListService.selected.subSystem,
                         size: service.data.itemsPerPage,
@@ -490,44 +445,20 @@
     })
 
     //Service for the disks information panel
-    .factory('riverListService', function($resource, $rootScope, poller, configService, indexListService) {
+    .factory('riverListService', function($rootScope, poller, configService, indexListService) {
         var mypoller, closePoller, cache, config;
-
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var resource = $resource(prePath+'/api/runRiverListTable.php', {
-        var resource = $resource('api/runRiverListTable', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP'
-            }
-        });
-
-        var prePath = window.location.protocol + '//'+window.location.host.split(':')[0]+':80'+window.location.pathname;
-        //var closeCollectorRes = $resource(prePath+'/api/closeRun.php', {
-        var closeCollectorRes = $resource('api/closeRun', {
-            callback: 'JSON_CALLBACK',
-        }, {
-            jsonp_get: {
-                method: 'JSONP'
-            }
-        });
-
 
         $rootScope.$on('config.set', function(event) {
             config = configService.config;
             start();
         });
 
-
-
         var start = function() {
             service.active = true;
             if (service.paused) return;
             if (angular.isUndefined(mypoller)) {
-              mypoller = poller.get(resource, {
-                action: 'jsonp_get',
+              mypoller = poller.get('api/runRiverListTable', {
+                action: 'jsonp',
                 delay: config.fastPollingDelay,
                 smart: true,
                 argumentsArray: [{
@@ -546,7 +477,7 @@
               });
             } else {
                 //Restart poller
-                mypoller = poller.get(resource, {
+                mypoller = poller.get('api/runRiverListTable', {
                   argumentsArray: [{
                     size: service.data.itemsPerPage,
                     from: (service.data.currentPage - 1) * service.data.itemsPerPage,
@@ -600,8 +531,8 @@
         service.closeCollector = function(selected) {
             var runNumber = selected.runNumber;
             var subSystem = selected.subSystem;
-            closePoller = poller.get(closeCollectorRes, {
-                action: 'jsonp_get',
+            closePoller = poller.get('api/closeRun', {
+                action: 'jsonp',
                 delay: 5000,
                 smart: true,
                 argumentsArray: [{
