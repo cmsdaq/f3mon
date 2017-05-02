@@ -293,6 +293,17 @@
             initChart(true);
         });
 
+        var modal_complegend = $modal({
+            templateUrl: 'views/modals/completionLegend.tpl.html',
+            placement: 'center',
+            show: false,
+            backdrop: true
+        });
+
+        $scope.showCompLegend = function() {
+            modal_complegend.$promise.then(modal_complegend.show);
+        }
+
         //called when collapse button is clicked
         $scope.isCollapsed = false;
         $scope.collapseChanged = function() {

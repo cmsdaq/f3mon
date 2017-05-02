@@ -1,0 +1,68 @@
+<div class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" ng-click="$hide()">&times;</button>
+                <h4 class="modal-title">Completion color legend</h4>
+            </div>
+            <div class="modal-body">
+
+                    <table class="table table-striped table-hover table-condensed table-bordered" ng-show="true">
+
+                        <tbody>
+                            <tr > 
+			        <td>Completion level/Color</td>
+			        <td>mini</td>
+			        <td>micro</td>
+			        <td>macro</td>
+			        <td>transfer</td>
+                            </tr>
+                            <tr > 
+			        <td style='background-color:green'>green</td>
+			        <td>100% input events merged (or overriden when mini=100% and no crashes)</td>
+			        <td colspan="3">100% input events (EvB number) merged.DQM streams (DQM* without DQMHistograms) are ignored.Transfer currently ignores Error stream (no document yet)</td>
+                            </tr>
+
+                            <tr > 
+			        <td style='background-color:palegreen'>pale green</td>
+			        <td>LS with no input events (EvB)</td>
+				<td colspan="3">-</td>
+                            </tr>
+
+                            <tr > 
+			        <td style='background-color:olivedrab'>olive drab</td>
+			        <td>Crashes ("error" events accounted)</td>
+			        <td colspan="3">Incomplete DQM &gt; 50% when only DQM streams are selected in the plot legend.</td>
+                            </tr>
+
+                            <tr > 
+			        <td style='background-color:yellow;'>yellow</td>
+			        <td>Fraction of streams are not merged, while other stream(s) are 100%.(when overall &gt; 50%)</td>
+			        <td colspan="3">-</td>
+                            </tr>
+                            <tr > 
+			        <td style='background-color:pink'>pink</td>
+			        <td>-</td>
+			        <td>Non-DQM streams fully merged, but  for some DQM streams ack  (doc) is missing from some BUs</td>
+			        <td colspan="2">Non-DQM streams are fully merged or transferred, but for some DQM streams ack (doc) is missing</td>
+                            </tr>
+                            <tr > 
+			        <td style='background-color:orange'>orange</td>
+			        <td>Incomplete &gt;= 50% (no stream is 100%)</td>
+			        <td colspan="3">Incomplete &gt;= 50% (DQM ignored)</td>
+                            </tr>
+                            <tr > 
+			        <td style='background-color:red'>red</td>
+			        <td>Incomplete &lt; 50%</td>
+			        <td colspan="3">Incomplete &lt; 50% (DQM ignored)</td>
+                            </tr>
+                            <tr > 
+			        <td style='background-color:darkgreen'>dark green</td>
+			        <td colspan="4">Waiting for response from F3mon server</td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -6,7 +6,9 @@
             <div class="panel panel-primary" ng-controller="streamRatesCtrl" ng-show='panelSelected(1)'>
                 <!-- panel header contents (other directives included) -->
                 <div class="panel-heading" style="overflow:visible">
-                    <div><span ng-show="displayAux" ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                    <div>
+		      <span ng-show="displayAux" ng-click='selectTour("srPanel")' style="margin-left:10px" class="clickable pull-right"><i class="help fa fa-question"></i></span>
+                      <span ng-click='showCompLegend()' style="margin-left:10px" class="clickable pull-right"> <i class="fa fa-info-circle"/> </i></span>
 		    </div>
                     <div class="btn-group btn-group-xs pull-right" id='sr-ddswitch'>
                         <button type="button" ng-click='selectPanel(1)' class="btn btn-xs btn-default" ng-class="{'btn-primary':panelSelected(1),'disabled': !status.showDrillDown}">&larr;</button>
