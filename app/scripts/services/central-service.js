@@ -15,7 +15,7 @@
             status: {
                 currentTab: 0,
                 changeTab: function(num,reload) {
-                    if (!reload || num!=0 || this.currentTab==0) {//reset if switching from main view or clicking on F3mon icon
+                    if (!reload || num!=0 || (!reload && this.currentTab==0)) {//reset if switching from main view or clicking on F3mon icon
                       $rootScope.chartInitDone = true;
                     }
                     else $rootScope.chartInitDone = false;
