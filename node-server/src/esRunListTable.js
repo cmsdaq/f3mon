@@ -71,10 +71,10 @@ module.exports.query = function (req, res) {
 	    qsubmitted["query"] = {"script":{"script":{"inline":"doc[\"runNumber\"].value.toString().endsWith(\""+filterQ.replace(/\*/g,"")+"\")"}}}
         }
         else {
-	  delete qsubmitted["filter"];
+	  delete qsubmitted["query"];
         }
       }else{
-	delete qsubmitted["filter"];
+	delete qsubmitted["query"];
       }
 
       var _this = this
