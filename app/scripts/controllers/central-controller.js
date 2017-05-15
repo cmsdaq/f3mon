@@ -281,7 +281,7 @@
         })
     })
 
-    .controller('streamRatesCtrl', function($scope, $rootScope, $window, configService, runInfoService, streamRatesChartConfig,
+    .controller('streamRatesCtrl', function($scope, $rootScope, $window, $modal, configService, runInfoService, streamRatesChartConfig,
                                             angularMomentConfig, streamRatesService, microStatesService, colors)
     {
 
@@ -398,7 +398,7 @@
         var lastStackedState = false;
 
         var lastTransState = false;
-        $scope.showTrans=false;
+        $scope.showTrans=true;
 
         var axisType="linear"; // actual axis type because logAxis setting could be disabled
 
@@ -694,7 +694,7 @@
               $scope.unit = config.streamRatesUnit; //default unit
               $scope.selectorMode = "stream";
               $scope.showInputRate = false;
-              $scope.showTrans = false;
+              $scope.showTrans = true;
               lastTransState = false;
               axisSet = false;
 	      //TODO:should update/reset masked streams?

@@ -748,11 +748,14 @@
         })
 
         var isSafari=false;
-        if (navigator.appVersion.indexOf('Safari/')!==-1) var isSafari=true;
+        var isChrome=false;
+        if (navigator.appVersion.indexOf('Safari/')!==-1) isSafari=true;
+	if (navigator.appVersion.indexOf('Chrome/')!==-1) {isSafari=false;isChrome=true;}
 
         $rootScope.$on('runInfo.updated', function(event) {            
             var q = service.queryParams;
             service.stop();
+	    //console.log('upd start time start!'+q.startTime + ' r:' + runInfo.startTime);
             if (runInfo.startTime===false) return;
 
             //convert to unix millis time
@@ -765,11 +768,25 @@
               }
               else delete q.endTime;
             }
-            else {
-              var dts = new Date(runInfo.startTime+'+0000');
+	    else if (isChrome) {
+	      //chrome does not recognize time zone if miliseconds are present.
+	      var dts,dte;
+	      if (runInfo.startTime.indexOf('.')===-1) dts =  new Date(runInfo.startTime+'+0000')
+	      else dts = new Date(runInfo.startTime.substring(0,runInfo.startTime.indexOf('.'))+'+0000')
               q.startTime = dts.getTime();
               if (runInfo.endTime!==false) {
-                var dte = new Date(runInfo.endTime+'+0000');
+	        if (runInfo.endTime.indexOf('.')===-1) dts =  new Date(runInfo.endTime+'+0000')
+	        else dte = new Date (runInfo.endTime.substring(0,runInfo.endTime.indexOf('.'))+'+0000')
+                q.endTime = dte.getTime();
+              }
+              else delete q.endTime;
+	    }
+            else {
+	      //Firefox handles this better
+	      var dts = new Date(runInfo.startTime+'+0000')
+              q.startTime = dts.getTime();
+              if (runInfo.endTime!==false) {
+	        var dte = new Date (runInfo.endTime+'+0000')
                 q.endTime = dte.getTime();
               }
               else delete q.endTime;

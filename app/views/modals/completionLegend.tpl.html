@@ -3,7 +3,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" ng-click="$hide()">&times;</button>
-                <h4 class="modal-title">Completion color legend</h4>
+                <h3 class="modal-title">Completion color legend</h3>
+		<h5> descending from lower to higher severity of the problem </h5>
             </div>
             <div class="modal-body">
 
@@ -33,6 +34,12 @@
 			        <td style='background-color:olivedrab'>olive drab</td>
 			        <td>Crashes ("error" events accounted)</td>
 			        <td colspan="3">Incomplete DQM &gt; 50% when only DQM streams are selected in the plot legend.</td>
+                            </tr>
+
+                            <tr > 
+			        <td style='background-color:olive'>olive</td>
+			        <td colspan="3">-</td>
+			        <td colspan="1">All streams injected but not all transferred</td>
                             </tr>
 
                             <tr > 
