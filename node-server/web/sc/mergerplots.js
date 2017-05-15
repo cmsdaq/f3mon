@@ -151,6 +151,7 @@ function bootstrap(){
     }
 }
 function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
+    destroyCharts();
     //console.log(minls+' '+maxls+' '+fullrun);
     location.hash='run='+run
     location.hash+='&setup='+setup
@@ -197,7 +198,7 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 		    }
 		    points.push({name:stream,data:entries});
 		}
-		console.log(points);
+		//console.log(points);
 		plot(points,'#plot0','transfer b/w','time',yaxis);
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();
@@ -208,11 +209,11 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 	query = "php/transfer-test.php?setup="+my_setup+"&run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
 	console.log(query);
 	$.getJSON(query,function(data){
-		console.log(data);
-		plot(data["serie1"],'#plot1','copy time delay',xaxis,'seconds');
-		plot(data["serie2"],'#plot2','copy bw',xaxis,'MB/s');
-		plot(data["0"]["copytime"],'#plot5','transfer time','seconds','files');
-		plot(data["1"]["bw"],'#plot6','bandwidth freq','MB','files');
+		//console.log(data);
+		plot(data["serie1"],'#plot0','copy time delay',xaxis,'seconds');
+		plot(data["serie2"],'#plot1','copy bw',xaxis,'MB/s');
+		plot(data["0"]["copytime"],'#plot2','transfer time','seconds','files');
+		plot(data["1"]["bw"],'#plot3','bandwidth freq','MB','files');
 
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();
@@ -302,5 +303,18 @@ function plot(plotData,tag,title,xaxis,yaxis) {
 		}
 	    }
 	});
+
+}
+
+
+function destroyCharts() {
+
+try {$('#plot0').highcharts().destroy();} catch (e) {}
+try {$('#plot1').highcharts().destroy();} catch (e) {}
+try {$('#plot2').highcharts().destroy();} catch (e) {}
+try {$('#plot3').highcharts().destroy();} catch (e) {}
+try {$('#plot4').highcharts().destroy();} catch (e) {}
+try {$('#plot5').highcharts().destroy();} catch (e) {}
+try {$('#plot6').highcharts().destroy();} catch (e) {}
 
 }

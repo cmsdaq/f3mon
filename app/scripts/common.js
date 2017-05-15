@@ -15,4 +15,4 @@
                templateUrl: 'views/all/f3mon-collapse-control.html'
            };
     })
-})
+}) ();
