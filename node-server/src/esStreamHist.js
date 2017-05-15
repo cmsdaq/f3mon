@@ -5,6 +5,7 @@ module.exports = new Common()
 
 //var streamIncompleteCol = "purple";
 var streamIncompleteCol = "pink";
+//var streamIncompleteColStatus1 = "pink";
 var streamIncompleteColMicro = "yellow";
 
 //percColor function
@@ -121,6 +122,16 @@ module.exports.query = function (req, res) {
                    +'&='+qparam_lastLs+'&='+qparam_intervalNum+'&='+qparam_sysName
                    +'&='+qparam_timePerLs+'&='+qparam_useDivisor+'&='+qparam_accum;
 
+  var streamListShouldQuery=[]
+  var streamListShouldQueryNoErr=[]
+  if (!qparam_allStreams) {
+    streamListArray.forEach(function(item){
+      streamListShouldQuery.push({"term":{"stream":item}})
+      if (item!="Error")
+        streamListShouldQueryNoErr.push({"term":{"stream":item}})
+    });
+  }
+
   var ttl = global.ttls.streamhist; //cached ES response ttl (in seconds)
 
   //helper variables with cb-wide scope
@@ -130,7 +141,7 @@ module.exports.query = function (req, res) {
   var streamBeforeTotal = 0;
   var streamBeforeTotal_b = 0;
   var took = 0;
-  var streamNum; //without DQM
+  var streamNum;
   var streamNumWithDQM;
   var postOffSt;
   var maxls = 0;
@@ -151,24 +162,37 @@ module.exports.query = function (req, res) {
 
   //Get transfer
   var q6 = function (_this){
-        var queryJSON1 = _this.queryJSON1;
-        queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}},{"term":{"status":2}}]; //status 1: begin transfer, status 2: done transfer
-        queryJSON1.query.bool.must_not=[{"term":{"type":"EventDisplay"}}]; //stream not handled in HLT
-	//TODO: use colors
-	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
-	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
-	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
-	queryJSON1.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
-	queryJSON1.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
+        var queryJSON = _this.queryJSON4;
+        //queryJSON4.query.bool.must=[{"term":{"runNumber":qparam_runNumber}},{"term":{"status":1}}]; //status 1: begin transfer, status 2: done transfer
+        queryJSON.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}]
+        queryJSON.query.bool.must_not=[{"term":{"type":"EventDisplay"}},{"term":{"stream":"Error"}}]; //stream doc not filled yet
 
+	//if not all streams are included, filter by explicit stream list
+        if (!qparam_allStreams) {
+          queryJSON.query.bool.should = streamListShouldQueryNoErr;
+	  queryJSON.query.bool.minimum_should_match=1;
+	}
+	else {
+	  delete queryJSON.query.bool.should;
+	  delete queryJSON.query.bool.minimum_should_match;
+	}
+
+	//TODO: use colors
+	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+	queryJSON.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
+	queryJSON.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
+
+        //console.log(JSON.stringify(queryJSON))
 	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'transfer',
-         body : JSON.stringify(queryJSON1)
+         body : JSON.stringify(queryJSON)
     	}).then (function(body){
           try {
         	var results = body.hits.hits; //hits for query
@@ -188,6 +212,8 @@ module.exports.query = function (req, res) {
 
                 var procNoDQMAccum = beforeLs.procNoDQM.processed.value
                 var processedAccum = allDQM ? beforeLs.procAll.value : beforeLs.procNoDQM.processed.value
+                var processedAccumWithDQM1 = beforeLs.procAll.value;
+                var processedAccumWithDQM2 = beforeLs.status2.procAll.value;
                 //var processedAccumWithDQM_count = beforeLs.doc_count
 
                 var totAcc = 0;
@@ -197,20 +223,27 @@ module.exports.query = function (req, res) {
                         if (qparam_accum && ls>maxls) continue;
 
 
-                        var procNoDQM;
-                        var processed;
-                        var processedWithDQM_count;
-                        if (qparam_accum) {
+                        var procNoDQM; //used when any of the non-DQM streams are selected in the legend (DQMHisgtograms is counted as non-DQM as it's merged 100%)
+                        var processed; //used to show completion when only DQM streams are selected
+			var processedWithDQM1,processedWithDQM2; //used to compare status 1 and 2, thus all DQM and non-DQM streams are counted in
+                        var processedWithDQM_count;//used to compare document count, thus all DQM and non-DQM streams are counted in
+
+                        if (qparam_accum) {//accumulation mode (handles all except document counts)
                           procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
                           processedAccum = processed = (allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value) + processedAccum;
+                          processedAccumWithDQM1 = processedWithDQM1 = lsList[i].procAll.value;
+                          processedAccumWithDQM2 = processedWithDQM2 = lsList[i].status2.procAll.value;
                           //processedAccumWithDQM_count = processedWithDQM_count = lsList[i].doc_count + processedAccumWithDQM_count;
                         } else {
                           procNoDQM = lsList[i].procNoDQM.processed.value;
                           processed = allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value
+                          processedWithDQM1 = lsList[i].procAll.value;
+                          processedWithDQM2 = lsList[i].status2.procAll.value;
+
                           processedWithDQM_count = lsList[i].doc_count
                         }
 			var streamNum_noError = streamNum - streamErrorFound 
-			var streamNumDQM_noError = streamNumWithDQM - streamErrorFound 
+			var streamNumDQM_noError = streamNumWithDQM - streamErrorFound
 
                         var total;
                         if (qparam_accum)
@@ -222,9 +255,12 @@ module.exports.query = function (req, res) {
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
                         var processedSel;
-                        var processedSel;
-                        if (allDQM) processedSel = processed;
-                        else processedSel = procNoDQM;
+                        if (allDQM) {
+			  processedSel = processed;
+			}
+                        else {
+			  processedSel = procNoDQM;
+                        }
 
 			//calc transfer percents
  			var percent,p;
@@ -242,6 +278,7 @@ module.exports.query = function (req, res) {
                                   percent = Math.round(p*100)/100;
                         }
                         var color = percColor(percent);
+
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
 			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM && percent>=100) {
@@ -253,6 +290,10 @@ module.exports.query = function (req, res) {
 			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNumDQM_noError))
 			      color=streamIncompleteCol;
 			  }
+			}
+			//transfer status 1 and status 2 difference in event count (will be shown as olive) if otherwise OK
+			if (color=="green" || color=="olivedrab") {
+                          if (processedWithDQM2 < processedWithDQM1) color="olive";
 			}
 
                         var eolts = undefined;
@@ -283,22 +324,33 @@ module.exports.query = function (req, res) {
 
   //Get macromerge
   var q5 = function (_this){
-        var queryJSON1 = _this.queryJSON1;
-        queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}];
-	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
-	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
-	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
-	queryJSON1.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
-	queryJSON1.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
+        var queryJSON = _this.queryJSON1;
+        queryJSON.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}];
+
+	//if not all streams are included, filter by explicit stream list
+        if (!qparam_allStreams) {
+          queryJSON.query.bool.should = streamListShouldQuery;
+	  queryJSON.query.bool.minimum_should_match=1;
+	}
+	else {
+	  delete queryJSON.query.bool.should;
+	  delete queryJSON.query.bool.minimum_should_match;
+	}
+
+	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+	queryJSON.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
+	queryJSON.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
 
 	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'macromerge',
-         body : JSON.stringify(queryJSON1)
+         body : JSON.stringify(queryJSON)
     	}).then (function(body){
           try {
         	var results = body.hits.hits; //hits for query
@@ -410,23 +462,34 @@ module.exports.query = function (req, res) {
   //Get minimerge
   var q4 = function (_this){
 
-        var queryJSON1 = _this.queryJSON1;
-        queryJSON1.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}];
-	queryJSON1.aggs.inrange.filter.range.ls.from = qparam_from;
-	queryJSON1.aggs.inrange.filter.range.ls.to = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.interval = interval;
-	queryJSON1.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
-	queryJSON1.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
-	queryJSON1.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
-	queryJSON1.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
+        var queryJSON = _this.queryJSON1;
+        queryJSON.query.bool.must=[{"term":{"runNumber":qparam_runNumber}}];
 
-	//console.log(JSON.stringify(queryJSON1,null,2))
+	//if not all streams are included, filter by explicit stream list
+        if (!qparam_allStreams) {
+          queryJSON.query.bool.should = streamListShouldQuery;
+	  queryJSON.query.bool.minimum_should_match=1;
+	}
+	else {
+	  delete queryJSON.query.bool.should;
+	  delete queryJSON.query.bool.minimum_should_match;
+	}
+
+	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+	queryJSON.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON.aggs.inrange.aggs.ls.aggs.streamMaxDocCount.terms.size=8 //important: small term size returns inaccurate results. if this is a problem, increase this value.
+	queryJSON.aggs.sumbefore.aggs.streamMaxDocCount.terms.size=1 //currently not used
+
+	//console.log(JSON.stringify(queryJSON,null,2))
 	global.client.search({
 	 index: 'runindex_'+qparam_sysName+'_read',
          type: 'minimerge',
-         body : JSON.stringify(queryJSON1)
+         body : JSON.stringify(queryJSON)
     	}).then (function(body){
           try {
         	var results = body.hits.hits; //hits for query
@@ -488,7 +551,6 @@ module.exports.query = function (req, res) {
                         var streams_only_partial = false;
 			//if (ls==150) console.log(JSON.stringify(lsList[i],null,2));
 			//if (ls==150) console.log('mdoc:'+doc_count + ' labels:' + stream_labels.length + ' streamNum:' + streamNumWithDQM)
-
 			if (!qparam_accum) {//accum supported at this time
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
 			  //only test this if some stream is completely written by all BUs and some other is not
@@ -554,39 +616,49 @@ module.exports.query = function (req, res) {
   //Get stream out
   var q3 = function (_this){
 
-    var queryJSON2 = _this.queryJSON2;
+    var queryJSON = _this.queryJSON2;
 	//queryJSON2.query.filtered.filter.and.filters[0].prefix._id = qparam_runNumber;
 	//queryJSON2.query.prefix._id = qparam_runNumber;
-	queryJSON2.query.parent_id.id = parseInt(qparam_runNumber);
+	queryJSON.query.bool.must[0].parent_id.id = parseInt(qparam_runNumber);
 
-	queryJSON2.aggs.inrange.filter.range.ls.from = qparam_from;
-	queryJSON2.aggs.inrange.filter.range.ls.to = qparam_to;
-	queryJSON2.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
-	queryJSON2.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON2.aggs.inrange.aggs.ls.histogram.interval = interval;
-	queryJSON2.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+	//if not all streams are included, filter by explicit stream list
+        if (!qparam_allStreams) {
+          queryJSON.query.bool.should = streamListShouldQuery;
+	  queryJSON.query.bool.minimum_should_match=1;
+	}
+	else {
+	  delete queryJSON.query.bool.should;
+	  delete queryJSON.query.bool.minimum_should_match;
+	}
 
-	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
-	queryJSON2.aggs.stream.aggs.inrange.filter.range.ls.to = qparam_to;
-	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
-	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
-	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.interval = interval;
-	queryJSON2.aggs.stream.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
-	queryJSON2.aggs.stream.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
+	queryJSON.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+
+	queryJSON.aggs.stream.aggs.inrange.filter.range.ls.from = qparam_from;
+	queryJSON.aggs.stream.aggs.inrange.filter.range.ls.to = qparam_to;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.min = qparam_from;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.extended_bounds.max = qparam_to;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.interval = interval;
+	queryJSON.aggs.stream.aggs.inrange.aggs.ls.histogram.offset = aggOffset; 
+	queryJSON.aggs.stream.aggs.sumbefore.filter.range.ls.to = qparam_from_before;
 
         if (qparam_accum) {
-          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.out = {"sum": { "field": "out"}}
-          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"sum": { "field": "filesize"}}
+          queryJSON.aggs.stream.aggs.inrange.aggs.ls.aggs.out = {"sum": { "field": "out"}}
+          queryJSON.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"sum": { "field": "filesize"}}
         }
         else {
-          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.out = {"avg": { "field": "out"}}
-          queryJSON2.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"avg": { "field": "filesize"}}
+          queryJSON.aggs.stream.aggs.inrange.aggs.ls.aggs.out = {"avg": { "field": "out"}}
+          queryJSON.aggs.stream.aggs.inrange.aggs.ls.aggs.filesize = {"avg": { "field": "filesize"}}
        }
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
       type: 'stream-hist',
-      body : JSON.stringify(queryJSON2)
+      body : JSON.stringify(queryJSON)
     }).then (function(body){
       try {
       var results = body.hits.hits; //hits for query
@@ -612,8 +684,8 @@ module.exports.query = function (req, res) {
       var nStreamsMicro=0;
 
       for (var i=0;i<streams.length;i++){
-
-		if (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1){
+                //also filter out based on stream list from labels
+		if (!qparam_allStreams && (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1)){
                         continue;
                 }
                 nStreamsMicro+=1;
@@ -834,7 +906,20 @@ module.exports.query = function (req, res) {
   var qstreams = function (_this){
     var queryJSON = {
       "size":1,
-      "query":{"parent_id":{"id":qparam_runNumber,"type":"stream_label"}},"aggs":{"streams":{"terms":{"field":"stream","size":200,"min_doc_count":1}}}
+      "query":{
+        "bool":{
+	  "must":
+            [{"parent_id":{"id":qparam_runNumber,"type":"stream_label"}}]
+	  
+	}
+      },
+      "aggs":{"streams":{"terms":{"field":"stream","size":200,"min_doc_count":1}}}
+    }
+
+    //if not all streams are included, filter by explicit stream list
+    if (!qparam_allStreams) {
+      queryJSON.query.bool.should = streamListShouldQuery;
+      queryJSON.query.bool.minimum_should_match=1;
     }
 
     global.client.search({
@@ -847,8 +932,8 @@ module.exports.query = function (req, res) {
 	for (var i=0;i<results.length;i++) {
 	  stream_labels.push(results[i].key);
 	  if (results[i].key=="Error") streamErrorFound=true;
-          //if (results[i].key.startsWith("DQM") && !results[i].key.startsWith("DQMHistograms"))
-          //  stream_labels_DQMonly.push(results[i].key);
+	  //if (results[i].key.startsWith("DQM") && !results[i].key.startsWith("DQMHistograms"))
+	  //  stream_labels_DQMonly.push(results[i].key);
 	}
         q3(_this);
       } catch (e) {_this.exCb(res,e,requestKey)}
@@ -862,21 +947,21 @@ module.exports.query = function (req, res) {
   //Get totals
   var q2 = function (_this){
 
-    var queryJSON3 = _this.queryJSON3;
-    queryJSON3.aggregations.ls.histogram.interval = interval;
-    queryJSON3.aggregations.ls.histogram.offset = 1;
-    queryJSON3.aggregations.ls.histogram.extended_bounds.min = qparam_from
-    queryJSON3.aggregations.ls.histogram.extended_bounds.max = qparam_to;
-    queryJSON3.aggregations.ls.histogram.offset = aggOffset; 
-    queryJSON3.query.bool.must[1].parent_id.id = qparam_runNumber;
-    queryJSON3.query.bool.must[0].range.ls.from = qparam_from;
-    queryJSON3.query.bool.must[0].range.ls.to = qparam_to;
-    queryJSON3.aggregations.sumbefore.filter.range.ls.to = 0;//not used, taken from previous agg
+    var queryJSON = _this.queryJSON3;
+    queryJSON.aggregations.ls.histogram.interval = interval;
+    queryJSON.aggregations.ls.histogram.offset = 1;
+    queryJSON.aggregations.ls.histogram.extended_bounds.min = qparam_from
+    queryJSON.aggregations.ls.histogram.extended_bounds.max = qparam_to;
+    queryJSON.aggregations.ls.histogram.offset = aggOffset; 
+    queryJSON.query.bool.must[1].parent_id.id = qparam_runNumber;
+    queryJSON.query.bool.must[0].range.ls.from = qparam_from;
+    queryJSON.query.bool.must[0].range.ls.to = qparam_to;
+    queryJSON.aggregations.sumbefore.filter.range.ls.to = 0;//not used, taken from previous agg
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
       type: 'eols',
-      body : JSON.stringify(queryJSON3)
+      body : JSON.stringify(queryJSON)
     }).then (function(body){
       try {
         var results = body.hits.hits; //hits for query
@@ -901,7 +986,7 @@ module.exports.query = function (req, res) {
                 "events" : {},		//obj repres. associative array (but order not guaranteed!)
                 "bytes" : {},
                 "files" : {},
-		"doc_counts" : {}	//obj repres. associative array (but order not guaranteed!)
+		"doc_counts" : {}
         };	
 
         var retInput = {
@@ -957,20 +1042,20 @@ module.exports.query = function (req, res) {
  
     var nav_to = qparam_lastLs + navInterval -1 - (qparam_lastLs%navInterval);//sum up to the one-before-next element interval
  
-    var queryJSON3 = _this.queryJSON3;
-    queryJSON3.aggregations.ls.histogram.interval = parseInt(navInterval);
-    queryJSON3.aggregations.ls.histogram.offset = 1;
-    queryJSON3.aggregations.ls.histogram.extended_bounds.min = 1;
-    queryJSON3.aggregations.ls.histogram.extended_bounds.max = nav_to;//qparam_lastLs;
-    queryJSON3.query.bool.must[1].parent_id.id = qparam_runNumber;
-    queryJSON3.query.bool.must[0].range.ls.from = 1;
-    queryJSON3.query.bool.must[0].range.ls.to = nav_to;
-    queryJSON3.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
+    var queryJSON = _this.queryJSON3;
+    queryJSON.aggregations.ls.histogram.interval = parseInt(navInterval);
+    queryJSON.aggregations.ls.histogram.offset = 1;
+    queryJSON.aggregations.ls.histogram.extended_bounds.min = 1;
+    queryJSON.aggregations.ls.histogram.extended_bounds.max = nav_to;//qparam_lastLs;
+    queryJSON.query.bool.must[1].parent_id.id = qparam_runNumber;
+    queryJSON.query.bool.must[0].range.ls.from = 1;
+    queryJSON.query.bool.must[0].range.ls.to = nav_to;
+    queryJSON.aggregations.sumbefore.filter.range.ls.to = qparam_from_before;
 
     global.client.search({
       index: 'runindex_'+qparam_sysName+'_read',
       type: 'eols',
-      body : JSON.stringify(queryJSON3)
+      body : JSON.stringify(queryJSON)
     }).then (function(body){
       try {
         var results = body.hits.hits; //hits for query

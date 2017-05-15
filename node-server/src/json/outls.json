@@ -10,9 +10,15 @@
         "date": "desc"
     },
     "query": {
-        "parent_id": {
+        "bool":{
+	  "must":[
+            {
+	      "parent_id": {
                 "type": "stream-hist",
                 "id": 290011
+              }
+	    }
+	  ]
         }
     },
     "aggs": {

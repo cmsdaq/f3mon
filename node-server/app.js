@@ -510,7 +510,7 @@ app.get('/f3mon/api/minimacroperhost', esMiniMacroPerHost.query.bind(esMiniMacro
 
 //callback 15
 var esStreamHist = require('./src/esStreamHist');
-esStreamHist.setup(getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"));
+esStreamHist.setup(getQuery("minimacromerge.json"),getQuery("outls.json"),getQuery("teols.json"),getQuery("transfers.json"));
 app.get('/f3mon/api/streamhist', esStreamHist.query.bind(esStreamHist)); 
 
 //callback 16
