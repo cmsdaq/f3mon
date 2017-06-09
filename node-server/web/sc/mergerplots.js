@@ -149,6 +149,14 @@ function bootstrap(){
 	    doPlots($('#runno').val(),$('#xaxis').val(),$('#yaxis').val(),$('#stream').val(),$('#setup option:selected').text(),$('#minls').val(),$('#maxls').val(),$('#fullrun').is(':checked'));
 	    $("#loading_dialog").loading();
     }
+    if ($('#process').val()=="transfer") $('#yaxis').prop('disabled', true);
+    else $('#yaxis').prop('disabled', false);
+    $('#process').change(function() {
+      if ($(this).val()=="transfer") $('#yaxis').prop('disabled', true);
+          else $('#yaxis').prop('disabled', false);
+    });
+
+ 
 }
 function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
     destroyCharts();
@@ -187,26 +195,31 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
 		$('#disable1').show();
 	    });
     }
+    /*
     else if($('#process').val()=="BW"){
 	console.log("doing transfer b/w");
-	$.getJSON("php/transfer-test.php?setup="+my_setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
+	$.getJSON("php/transfer-test2.php?setup="+my_setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream,function(data){
 		var points=[];
 		for(var stream in data){
+		    //console.log(stream);
+		    //console.log(data[stream]);
 		    var entries = [];
 		    for(var time in data[stream]){
+		        //console.log(time + '  ' + data[stream][time])
 			entries.push([time*1000,data[stream][time]]);
 		    }
 		    points.push({name:stream,data:entries});
 		}
-		//console.log(points);
 		plot(points,'#plot0','transfer b/w','time',yaxis);
 		$("#loading_dialog").loading("loadStop");
 		$('#plots').show();
 		$('#disable1').show();
 	    });
-    }else{
+	    }*/
+    else{
 	console.log("doing transfer query");
-	query = "php/transfer-test.php?setup="+my_setup+"&run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
+	//query = "php/transfer-test.php?setup="+my_setup+"&run="+run+"&stream="+stream+"&xaxis="+xaxis+"&chart=yes";
+	query = "php/transfer-test.php?setup="+my_setup+"&run="+run+"&stream="+stream;
 	console.log(query);
 	$.getJSON(query,function(data){
 		//console.log(data);

@@ -7,10 +7,14 @@ $run = $_GET["run"];
 $setup = $_GET["setup"];
 $stream = $_GET["stream"];
 $xaxis = $_GET["xaxis"];
-$formatchart = $_GET["chart"];
-$formatstrip = $_GET["strip"];
-$formatbinary=$_GET["binary"];
-
+//$formatchart = $_GET["chart"];
+//$formatstrip = $_GET["strip"];
+//$formatbinary=$_GET["binary"];
+//
+//$setup="cdaq";
+//$xaxis="ls";
+//$stream="Physic*";
+//
 $series1 = new dataSeries("copytime");
 $series2 = new dataSeries("bw");
 $h1;
@@ -55,32 +59,27 @@ if (!$conn) {
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
 
-
 if($run!=0){
+
   $query = "
-select LUMISECTION,STREAM,
-CTIME as CREATIME,  
-inj.ITIME as INJTIME, 
-inj.FILESIZE as FILESIZE, 
-new.ITIME as NEWTIME, 
-cop.ITIME as COPYTIME, 
-chk.ITIME as CHKTIME, 
-ins.ITIME as INSTIME, 
-rep.ITIME as REPACKTIME, 
-del.DTIME as DELTIME  
-FROM CMS_STOMGR.FILES_CREATED files			
-LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_INSERTED ins using (FILENAME)
-LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_NEW new using (FILENAME)
-LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_COPIED cop using (FILENAME)
-LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_REPACKED rep using (FILENAME)
-LEFT OUTER JOIN CMS_STOMGR.FILES_TRANS_CHECKED chk using (FILENAME)
-LEFT OUTER JOIN CMS_STOMGR.FILES_DELETED del using (FILENAME)
-LEFT OUTER JOIN CMS_STOMGR.FILES_INJECTED inj using (FILENAME)
+select files.LS as LS,
+files.STREAM as STREAM,
+files.P5_INJECTED_TIME as INJTIME, 
+files.TRANSFER_START_TIME as NEWTIME, 
+files.TRANSFER_END_TIME as COPYTIME, 
+files.T0_CHECKED_TIME as CHKTIME, 
+files.T0_REPACKED_TIME as REPACKTIME, 
+files.P5_DELETED_TIME as DELTIME, 
+fqc.FILE_SIZE as FILESIZE
+FROM CMS_STOMGR.FILE_TRANSFER_STATUS files
+LEFT OUTER JOIN CMS_STOMGR.FILE_QUALITY_CONTROL fqc using (FILENAME)
 where files.RUNNUMBER=".$run;
+
   if($stream){
-    $query = $query." AND STREAM like '%".$stream."%'";
+   $stream =  str_replace("*","%",$stream);
+   $query = $query." AND files.STREAM like '".$stream."'";
   }
-  $query = $query."ORDER BY STREAM ASC, LUMISECTION ASC";
+  $query = $query."ORDER BY STREAM ASC, LS ASC";//lumisection?
 
 
   $stid = oci_parse($conn, $query);
@@ -89,7 +88,6 @@ if (!$stid) {
     $e = oci_error($conn);
     trigger_error(htmlentities($e['message'], ENT_QUOTES), E_USER_ERROR);
 }
-
 
 /* oci_execute($stid, OCI_DESCRIBE_ONLY); // Use OCI_DESCRIBE_ONLY if not fetching rows */
 
@@ -128,20 +126,20 @@ $bandwidth = array();
 $streams = array();
 $status = array();
 $totals = array();
-/* INJTIME, new.ITIME as NEWTIME, cop.ITIME as COPYTIME, chk.ITIME as CHKTIME, ins.ITIME as INS\ */
-/*   TIME, rep.ITIME as REPACKTIME, del.DTIME as DELTIME */
 try{
-if($formatchart){
+//if($formatchart){
+if(true){
 
   foreach(array_keys($result) as $i){
-    if($result[$i]["COPYTIME"]==null || $result[$i]["INJTIME"]==null){
+    if($result[$i]["COPYTIME"]==null || $result[$i]["INJTIME"]==null || $result[$i]["NEWTIME"]==null) {
       continue;
     }
-
-    $cpt=DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["COPYTIME"])->format('U');
-    $injt=DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["INJTIME"])->format('U');
-    $copytime = $cpt-$injt;
-    $bwtime = $copytime;
+    $injt = DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["INJTIME"])->format('U');
+    $newt = DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["NEWTIME"])->format('U');
+    $cpt =  DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["COPYTIME"])->format('U');
+    //echo $injt." ".$newt." ".$cpt."\n";
+    $copytime = $cpt-$injt;//also include inj to start transfer
+    $bwtime = $cpt-$newt;//only latency during copy
     $copybw = $result[$i]["FILESIZE"]/$bwtime/1024/1024;
     /* echo $result[$i]["STREAM"]."\n"; */
     /* echo $i." ".$copybw."\n"; */
@@ -151,8 +149,8 @@ if($formatchart){
 	$streams[] = $result[$i]["STREAM"];
 	$transtimes[]=array("name"=>$result[$i]["STREAM"],"data"=>array());
 	$bandwidth[]=array("name"=>$result[$i]["STREAM"],"data"=>array());
-	$h1 = new histogram1D("cpt".$result[$i]["STREAM"],20,0.,200.,200.);
-	$h2 = new histogram1D("cpbw".$result[$i]["STREAM"],20,0.,100.,100.);
+	$h1 = new histogram1D("cpt_".$result[$i]["STREAM"],20,0.,200.,200.);
+	$h2 = new histogram1D("cpbw_".$result[$i]["STREAM"],20,0.,100.,100.);
 	$series1->addHistogram($h1);
 	$series2->addHistogram($h2);
       }
@@ -160,18 +158,17 @@ if($formatchart){
     $h1->fill($copytime);
     $h2->fill($copybw);
     if($xaxis!="size"){
-      $transtimes[count($transtimes)-1]["data"][] = array(intval($result[$i]["LUMISECTION"]),$copytime);
-      $bandwidth[count($transtimes)-1]["data"][] = array(intval($result[$i]["LUMISECTION"]),$copybw);
-      if(count($totals)<intval($result[$i]["LUMISECTION"])|| $totals[intval($result[$i]["LUMISECTION"])]==0){
-	$totals[intval($result[$i]["LUMISECTION"])]=$copybw;
+      $transtimes[count($transtimes)-1]["data"][] = array(intval($result[$i]["LS"]),$copytime);
+      $bandwidth[count($transtimes)-1]["data"][] = array(intval($result[$i]["LS"]),$copybw);
+      if(count($totals)<intval($result[$i]["LS"])|| $totals[intval($result[$i]["LS"])]==0){
+	$totals[intval($result[$i]["LS"])]=$copybw;
       }else{
-	$totals[intval($result[$i]["LUMISECTION"])]+=$copybw;
+	$totals[intval($result[$i]["LS"])]+=$copybw;
       }
     }else{
       $transtimes[count($transtimes)-1]["data"][] = array(intval($result[$i]["FILESIZE"]),$copytime);
       $bandwidth[count($transtimes)-1]["data"][] = array(intval($result[$i]["FILESIZE"]),$copybw);
     }
-
   }
 
   if($xaxis!="size"){
@@ -186,34 +183,44 @@ if($formatchart){
   $retval["params"] = array("xaxis"=>$xaxis);
   $retval["serie1"] = $transtimes;
   $retval["serie2"] = $bandwidth;
+
+  array_push($retval,$series1->series);
+  array_push($retval,$series2->series);
+
 }
+/*
 else if(!$formatstrip){
   foreach(array_keys($result) as $i){
+    //earliest timestamp
+    if($result[$i]["INJTIME"]!=null){//diff between inject and transfer start (if any)
+      $creatime = DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["INJTIME"])->format('U');
+      $result[$i]["INJTIME"]=null;
 
-    $creatime = DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["CREATIME"])->format('U');
-    if($result[$i]["INJTIME"]!=null){
-      $result[$i]["INJTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["INJTIME"])->format('U')-$creatime;
-    }
-    if($result[$i]["NEWTIME"]!=null){
-      $result[$i]["NEWTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["NEWTIME"])->format('U')-$creatime;
-    }
-    if($result[$i]["COPYTIME"]!=null){
-      $result[$i]["COPYTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["COPYTIME"])->format('U')-$creatime;
-    }
-    if($result[$i]["CHKTIME"]!=null){
-      $result[$i]["CHKTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["CHKTIME"])->format('U')-$creatime;
-    }
-    if($result[$i]["INSTIME"]!=null){
-      $result[$i]["INSTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["INSTIME"])->format('U')-$creatime;
-    }
-    if($result[$i]["REPACKTIME"]!=null){
-      $result[$i]["REPACKTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["REPACKTIME"])->format('U')-$creatime;
-    }
-    if($result[$i]["DELTIME"]!=null){
-      $result[$i]["DELTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["DELTIME"])->format('U')-$creatime;
+      if($result[$i]["NEWTIME"]!=null){//diff between inject and transfer start (if any)
+        $result[$i]["NEWTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["NEWTIME"])->format('U')-$creatime;
+        //$result[$i]["INJTIME"]= $result[$i]["NEWTIME"]-$creatime;
+      }
+      if($result[$i]["COPYTIME"]!=null){
+        $result[$i]["COPYTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["COPYTIME"])->format('U')-$creatime;
+        //$result[$i]["COPYTIME"]= $result[$i]["NEWTIME"]-$creatime;
+      }
+      if($result[$i]["CHKTIME"]!=null){
+        $result[$i]["CHKTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["CHKTIME"])->format('U')-$creatime;
+        //$result[$i]["CHKTIME"]= $result[$i]["NEWTIME"]-$creatime;
+      }
+      if($result[$i]["REPACKTIME"]!=null){
+        $result[$i]["REPACKTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["REPACKTIME"])->format('U')-$creatime;
+        //$result[$i]["REPACKTIME"]= $result[$i]["NEWTIME"]-$creatime;
+      }
+      if($result[$i]["DELTIME"]!=null){
+        $result[$i]["DELTIME"]= DateTime::createFromFormat("d#M#y H#i#s*A",$result[$i]["DELTIME"])->format('U')-$creatime;
+        //$result[$i]["DELTIME"]= $result[$i]["NEWTIME"]-$creatime;
+      }
+      //echo json_encode($result[$i])."\n";
     }
 
-    $result[$i]["COPYBW"]= $result[$i]["COPYTIME"]>0 ? 0. : $result[$i]["FILESIZE"]/($result[$i]["COPYTIME"]-$result[$i]["INJTIME"]);  
+    //newtime is transfer start
+    $result[$i]["COPYBW"]= $result[$i]["COPYTIME"]>0 ? 0. : $result[$i]["FILESIZE"]/($result[$i]["COPYTIME"]-$result[$i]["NEWTIME"]);
   }
   $retval = $result;
 }
@@ -227,41 +234,40 @@ else{
     if($formatbinary)
       {
 	if($result[$i]["COPYTIME"]!=null){
-	  $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]=1;
+	  $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]=1;
 	}
 	else{
-	  $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]=0;
+	  $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]=0;
 	}
 
       }
     else{
     if($result[$i]["INJTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="INJECTED";
+      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="INJECTED";
     }
     if($result[$i]["NEWTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="NEW";
+      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="NEW";
     }
     if($result[$i]["COPYTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="COPIED";
+      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="COPIED";
     }
     if($result[$i]["CHKTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="CHECKED";
+      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="CHECKED";
     }
-    if($result[$i]["INSTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="INSERTED";
-    }
+    //if($result[$i]["INSTIME"]!=null){
+    //  $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="INSERTED";
+    //}
     if($result[$i]["REPACKTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="REPACKED";
+      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="REPACKED";
     }
     if($result[$i]["DELTIME"]!=null){
-      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LUMISECTION"]]="DELETED";
+      $status[count($status)-1][$result[$i]["STREAM"]][$result[$i]["LS"]]="DELETED";
     }
     }
   }
   $retval=$status;
 }
-array_push($retval,$series1->series);
-array_push($retval,$series2->series);
+*/
 echo json_encode($retval);
 }
 catch(Exception $e){
