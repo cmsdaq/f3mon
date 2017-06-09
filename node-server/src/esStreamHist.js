@@ -104,8 +104,6 @@ module.exports.query = function (req, res) {
   if (qparam_lastLs<21){qparam_lastLs = 21;}
   if (!qparam_useDivisor){qparam_timePerLs = 1;}
 
-  var new_color_coding = true;
-
   var allDQM=true;
   streamListArray.forEach(function(s) {
     if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms')) allDQM=false;
@@ -141,7 +139,7 @@ module.exports.query = function (req, res) {
   var streamBeforeTotal = 0;
   var streamBeforeTotal_b = 0;
   var took = 0;
-  var streamNum;
+  var streamNum=0;
   var streamNumWithDQM;
   var postOffSt;
   var maxls = 0;
@@ -211,58 +209,44 @@ module.exports.query = function (req, res) {
 		var beforeLs = body.aggregations.sumbefore;
 
                 var procNoDQMAccum = beforeLs.procNoDQM.processed.value
-                var processedAccum = allDQM ? beforeLs.procAll.value : beforeLs.procNoDQM.processed.value
-                var processedAccumWithDQM1 = beforeLs.procAll.value;
-                var processedAccumWithDQM2 = beforeLs.status2.procAll.value;
+                var processedAccum = beforeLs.procAll.value
+                var processedAccum2 = beforeLs.status2.procAll.value;
                 //var processedAccumWithDQM_count = beforeLs.doc_count
 
-                var totAcc = 0;
+                var totAcc = streamBeforeTotal;
 
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
                         if (qparam_accum && ls>maxls) continue;
 
-
-                        var procNoDQM; //used when any of the non-DQM streams are selected in the legend (DQMHisgtograms is counted as non-DQM as it's merged 100%)
-                        var processed; //used to show completion when only DQM streams are selected
-			var processedWithDQM1,processedWithDQM2; //used to compare status 1 and 2, thus all DQM and non-DQM streams are counted in
-                        var processedWithDQM_count;//used to compare document count, thus all DQM and non-DQM streams are counted in
-
-                        if (qparam_accum) {//accumulation mode (handles all except document counts)
-                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
-                          processedAccum = processed = (allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value) + processedAccum;
-                          processedAccumWithDQM1 = processedWithDQM1 = lsList[i].procAll.value;
-                          processedAccumWithDQM2 = processedWithDQM2 = lsList[i].status2.procAll.value;
-                          //processedAccumWithDQM_count = processedWithDQM_count = lsList[i].doc_count + processedAccumWithDQM_count;
-                        } else {
-                          procNoDQM = lsList[i].procNoDQM.processed.value;
-                          processed = allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value
-                          processedWithDQM1 = lsList[i].procAll.value;
-                          processedWithDQM2 = lsList[i].status2.procAll.value;
-
-                          processedWithDQM_count = lsList[i].doc_count
-                        }
 			var streamNum_noError = streamNum - streamErrorFound 
 			var streamNumDQM_noError = streamNumWithDQM - streamErrorFound
 
+                        var procNoDQM; //used when any of the non-DQM streams are selected in the legend (DQMHisgtograms is counted as non-DQM as it's merged 100%)
+                        var processed; //used to show completion when only DQM streams are selected
+			var processed2; //used to compare status 1 and 2, thus all DQM and non-DQM streams are counted in
                         var total;
-                        if (qparam_accum)
-                          total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*(streamNum_noError);
-                        else 
-                          total = streamTotals.events[ls]*(streamNum_noError);
-                        totAcc += streamTotals.events[ls];
+
+                        if (qparam_accum) {//accumulation mode (handles all except document counts)
+                          procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
+                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                          processedAccum2 = processed2 = lsList[i].status2.procAll.value;
+                          total = (streamTotals.events[ls] + totalsAccum)*(allDQM?streamNumDQM_noError:streamNum_noError);
+                          totalsAccum += streamTotals.events[ls];
+                        } else {
+                          procNoDQM = lsList[i].procNoDQM.processed.value;
+                          processed = lsList[i].procAll.value;
+                          processed2 = lsList[i].status2.procAll.value;
+                          total = streamTotals.events[ls]*(allDQM?streamNumDQM_noError:streamNum_noError);
+                        }
 
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
-                        var processedSel;
-                        if (allDQM) {
-			  processedSel = processed;
-			}
-                        else {
-			  processedSel = procNoDQM;
-                        }
+			var dqmonly_count = lsList[i].procOnlyDQM.doc_count;
 
-			//calc transfer percents
+			var processedSel = allDQM ? processed:procNoDQM;
+
+			//calc transfer percents and color
  			var percent,p;
                         if (total == 0){
                                 if (doc_count == 0 || mdoc_count == 0){
@@ -281,19 +265,29 @@ module.exports.query = function (req, res) {
 
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
-			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM && percent>=100) {
-			  //bucket doc_count for stream with max documents
+			//DQM incomplete coloring. relies on doc count from completed streams, so can't use it in allDQM mode
+			//also not yet implemented in accumulation mode
+			else if (!allDQM && !qparam_accum && total > 0 && percent>=100) {
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
-			  if (maxBuckets.length) {
+			  //only test this if some stream is completely written by all BUs and some other is not
+			  if (maxBuckets.length && maxBuckets[0].doc_count) {
+                            /*
 			    var stream_max_docs = maxBuckets[0].doc_count;
 			    //assumes streamError doc is not written. In case of the opposite, - streamErrorFound part should be removed
 			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length - streamErrorFound, streamNumDQM_noError))
 			      color=streamIncompleteCol;
+                            */
+			    //don't want error stream here, but it is not counted in DQM anyway
+			    var max_docs = Math.max(streamNumWithDQM-streamNum,stream_labels_num-stream_labels_numNoDQM)*maxBuckets[0].doc_count;
+			    if (max_docs>dqmonly_count)
+			      //partial stream doc count with all BUs reporting some other stream complete
+			      color=streamIncompleteCol;
 			  }
 			}
+
 			//transfer status 1 and status 2 difference in event count (will be shown as olive) if otherwise OK
 			if (color=="green" || color=="olivedrab") {
-                          if (processedWithDQM2 < processedWithDQM1) color="olive";
+                          if (processed2 < processed) color="olive";
 			}
 
                         var eolts = undefined;
@@ -369,10 +363,10 @@ module.exports.query = function (req, res) {
 		var beforeLs = body.aggregations.sumbefore;
 
                 var procNoDQMAccum = beforeLs.procNoDQM.processed.value
-                var processedAccum = allDQM ? beforeLs.procAll.value : beforeLs.procNoDQM.processed.value
+                var processedAccum = beforeLs.procAll.value;
                 //var processedAccumWithDQM_count = beforeLs.doc_count
 
-                var totAcc = 0;
+                var totalsAccum = streamBeforeTotal;
 
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
@@ -380,30 +374,24 @@ module.exports.query = function (req, res) {
 
                         var procNoDQM;
                         var processed;
-                        var processedWithDQM_count;
+                        var total;
                         if (qparam_accum) {
                           procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
-                          processedAccum = processed = (allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value) + processedAccum;
-                          //processedAccumWithDQM_count = processedWithDQM_count = lsList[i].doc_count + processedAccumWithDQM_count;
+                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                          total = (streamTotals.events[ls] + totalsAccum)*(allDQM?streamNumWithDQM:streamNum);
+                          totalsAccum += streamTotals.events[ls];
                         } else {
                           procNoDQM = lsList[i].procNoDQM.processed.value;
-                          processed = allDQM ? lsList[i].procAll.value : lsList[i].procNoDQM.processed.value
-                          processedWithDQM_count = lsList[i].doc_count
+                          processed = lsList[i].procAll.value;
+                          total = streamTotals.events[ls]*(allDQM?streamNumWithDQM:streamNum);
                         }
-
-                        var total;
-                        if (qparam_accum)
-                          total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*streamNum;
-                        else 
-                          total = streamTotals.events[ls]*streamNum;
-                        totAcc += streamTotals.events[ls];
 
 			var doc_count = streamTotals.doc_counts[ls];
 			var mdoc_count = lsList[i].doc_count;
-                        var processedSel;
-                        var processedSel;
-                        if (allDQM) processedSel = processed;
-                        else processedSel = procNoDQM;
+			var dqmonly_count = lsList[i].procOnlyDQM.doc_count;
+
+			//choose counter depending on mode (if DQM is ignored or not)
+                        var processedSel = allDQM ? processed : procNoDQM;
 
 			//calc macromerge percents
  			var percent,p;
@@ -423,11 +411,15 @@ module.exports.query = function (req, res) {
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
 
-			else if (new_color_coding && total > 0 && doc_count && !qparam_accum && !allDQM && percent>=100) {
+			//DQM incomplete coloring. relies on doc count from completed streams, so can't use it in allDQM mode
+			//also not yet implemented in accumulation mode
+			else if (!allDQM && !qparam_accum && total > 0 && percent>=100) {
 			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
-			  if (maxBuckets.length) {
-			    var stream_max_docs = maxBuckets[0].doc_count;
-			    if (mdoc_count < stream_max_docs*Math.max(stream_labels.length,streamNumWithDQM))
+			  //only test this if some stream is completely written
+			  if (maxBuckets.length && maxBuckets[0].doc_count) {
+			    var max_docs = Math.max(streamNumWithDQM-streamNum,stream_labels_num-stream_labels_numNoDQM)*maxBuckets[0].doc_count;
+			    if (max_docs>dqmonly_count)
+			      //partial stream doc count with all BUs reporting some other stream complete
 			      color=streamIncompleteCol;
 			  }
 			}
@@ -506,63 +498,42 @@ module.exports.query = function (req, res) {
 		var lsList = body.aggregations.inrange.ls.buckets;
 		var beforeLs = body.aggregations.sumbefore;
 
+                //for keeping sum of events over LS bins
                 var procNoDQMAccum = beforeLs.procNoDQM.processed.value
-                var processedAccum = allDQM ? beforeLs.procAll.value:beforeLs.procNoDQM.processed.value
-
-                var totAcc = 0;
-
-                var lsBUCount = {}
+                var processedAccum = beforeLs.procAll.value
+                var totalsAccum = streamBeforeTotal;
 
 		//show fake 100% micro value if mini is already 100%
                 var fakeMicro = false
                 if (retObj.micromerge.percents.length==lsList.length) fakeMicro=true;
-                //else console.log(fakeMicro)
 
 		for (var i=0;i<lsList.length;i++){
 			var ls = lsList[i].key+postOffSt;
                         if (qparam_accum && ls>maxls) continue;
-
+                        //procNoDQM - always use count without DQM
+			//processed - if all streams are DQM, use count with DQM
+			//NB: mini, macro and transfer documents actually sum what is processed+errorEvents in stream-hist, into processed field
+			//errorEvents field instead contains the exit code mask from JSON file
                         var procNoDQM;
                         var processed;
+                        var total;
                         if (qparam_accum) {
                           procNoDQMAccum = procNoDQM = lsList[i].procNoDQM.processed.value + procNoDQMAccum;
-                          processedAccum = processed = (allDQM ? lsList[i].procAll.value:lsList[i].procNoDQM.processed.value) + processedAccum;
+                          processedAccum = processed = lsList[i].procAll.value + processedAccum;
+                          total = (streamTotals.events[ls] + totalsAccum)*(allDQM?streamNumWithDQM:streamNum);
+                          totalsAccum += streamTotals.events[ls];
                         } else {
                           procNoDQM = lsList[i].procNoDQM.processed.value;
-                          processed = allDQM ? lsList[i].procAll.value:lsList[i].procNoDQM.processed.value;
+                          processed = lsList[i].procAll.value
+                          total = streamTotals.events[ls]*(allDQM?streamNumWithDQM:streamNum);
                         }
-			//console.log('ls ' + JSON.stringify(lsList[i]))
-
-                        var total;
-                        if (qparam_accum)
-                          total = (streamTotals.events[ls] + totAcc + streamBeforeTotal)*streamNum;
-                        else 
-                          total = streamTotals.events[ls]*streamNum;
-                        totAcc += streamTotals.events[ls];
 
 			var doc_count = streamTotals.doc_counts[ls];
-			//console.log(doc_count)
 			var mdoc_count = lsList[i].doc_count;
 			var dqmonly_count = lsList[i].procOnlyDQM.doc_count;
-                        var processedSel;
-                        if (allDQM) processedSel = processed;
-                        else processedSel = procNoDQM;
 
-                        var streams_only_partial = false;
-			//if (ls==150) console.log(JSON.stringify(lsList[i],null,2));
-			//if (ls==150) console.log('mdoc:'+doc_count + ' labels:' + stream_labels.length + ' streamNum:' + streamNumWithDQM)
-			if (!qparam_accum) {//accum supported at this time
-			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
-			  //only test this if some stream is completely written by all BUs and some other is not
-			  if (maxBuckets.length && maxBuckets[0].doc_count==doc_count) {
-			    var max_docs = (Math.max(streamNumWithDQM,stream_labels.length)-streamNum)*maxBuckets[0].doc_count;
-			    if (max_docs>dqmonly_count)
-			      streams_only_partial = true;
-			    //var max_docs = doc_count*Math.max(streamNumWithDQM,stream_labels.length);
-			    //if (max_docs>lsList[i].doc_count)
-			    //  streams_only_partial = true;
-			  }
-			}
+			//choose counter depending on mode (if DQM is ignored or not)
+                        var processedSel = allDQM ? processed : procNoDQM;
 
 			//calc minimerge percents
  			var percent;
@@ -581,8 +552,22 @@ module.exports.query = function (req, res) {
                         }
                         var color = percColor(percent);
                         if (allDQM && percent<100. && percent>50.) color = "olivedrab";
-			//partial stream doc count with all BUs reporting
-			if (new_color_coding && total>0 && percent>0. && streams_only_partial) color=streamIncompleteCol;
+
+			//DQM incomplete coloring. relies on doc count from completed streams, so can't use it in allDQM mode
+			//also not yet implemented in accumulation mode
+			//TODO:implement for cumulative mode (need to add maxDocCount to "before" bin aggregation)
+			else if (!allDQM && !qparam_accum && doc_count && total > 0 && percent>=100) {
+
+			  var maxBuckets = lsList[i].streamMaxDocCount.buckets;
+			  //only test this if some stream is completely written by all BUs and some other is not
+			  if (maxBuckets.length && maxBuckets[0].doc_count==doc_count) {
+			    var max_docs = Math.max(streamNumWithDQM-streamNum,stream_labels_num-stream_labels_numNoDQM)*maxBuckets[0].doc_count;
+			    if (max_docs>dqmonly_count)
+			      //partial stream doc count with all BUs reporting some other stream complete
+			      color=streamIncompleteCol;
+			  }
+
+			}
 
                         var entry = {
                         "x" : ls,
@@ -590,10 +575,9 @@ module.exports.query = function (req, res) {
                         "color" : color
                         };
                         minimerge.percents.push(entry);
-                        //if (fakeMicro && false /* HACK */) {
                         if (fakeMicro) {
                           var tobj = retObj.micromerge.percents[i];
-                          if (tobj.y<percent) {
+                          if ((tobj.color!=streamIncompleteColMicro || percent==100) && tobj.y<percent) {
                             tobj.y=percent;
 			    if (tobj.color==streamIncompleteCol && color==streamIncompleteCol) {}//avoid recalc for this color code
                             else tobj.color=percColor2(percent,tobj.err);
@@ -682,7 +666,9 @@ module.exports.query = function (req, res) {
       var totSumError={};
       //todo: query stream_label to know exact number of streams (not only found in this LS range)
       var nStreamsMicro=0;
+      var lsPartialCompleteMap = {};
 
+      //first pass: calculate stream rates. For micro completion, go over all streams and sum in per-LS counters.
       for (var i=0;i<streams.length;i++){
                 //also filter out based on stream list from labels
 		if (!qparam_allStreams && (streams[i].key == '' || streamListArray.indexOf(streams[i].key) == -1)){
@@ -725,14 +711,15 @@ module.exports.query = function (req, res) {
                           //totDocCountIn[ls]=0;
                           totSumError[ls] = 0;
                         }
+			var sumProcessed=0, sumError = 0;
 		
                         if (qparam_accum) {
 
                           //for total %
-                          totSumIn[ls] += lsList[j].in.value + totStreamIn;
+                          totSumIn[ls] += sumProcessed = lsList[j].in.value + totStreamIn;
                           //totDocCountIn[ls] += lsList[j].doc_count + totStreamDocCountIn;
                           if (lsList[j].error!=undefined)
-                            totSumError[ls] += lsList[j].error.value + totStreamErr;
+                            totSumError[ls] += sumError = lsList[j].error.value + totStreamErr;
                           //else
                           //  totSumError[ls] += totStreamErr;
 
@@ -744,9 +731,9 @@ module.exports.query = function (req, res) {
                         else {
 
                           //for total %
-                          totSumIn[ls] += lsList[j].in.value;
+                          totSumIn[ls] += sumProcessed = lsList[j].in.value;
                           if (lsList[j].error!=undefined)
-                            totSumError[ls] += lsList[j].error.value;
+                            totSumError[ls] += sumError = lsList[j].error.value;
 
 			  totStreamIn = lsList[j].in.value; 
 			  //totStreamDocCountIn = lsList[j].doc_count;
@@ -788,7 +775,12 @@ module.exports.query = function (req, res) {
 				outval = Math.round((outval/qparam_timePerLs)*100)/100;
 				fsval = Math.round((fsval/qparam_timePerLs)*100)/100;
 			}
-
+			if (total) {
+			  //mark if any stream is complete
+			  var pserr = 100*(sumProcessed+sumError)/total;
+			  if (pserr>99.995)
+                            lsPartialCompleteMap[ls]=true;
+                        }
                         var seval = 0;
                         if (outval>0) seval = Math.round(fsval/outval);
 
@@ -816,6 +808,7 @@ module.exports.query = function (req, res) {
 	var lsList = streamTotals.lsList;
         totAcc = 0;
 		
+        //second pass: calculate completion from per-LS counters 
 	for (var i=0;i<lsList.length;i++){
 		var ls = lsList[i];
 		var processed = totSumIn[ls];
@@ -832,18 +825,6 @@ module.exports.query = function (req, res) {
 		var doc_count = streamTotals.doc_counts[ls];
 		//var mdoc_count = lsList[i].doc_count;
 
-                var streams_only_partial = false;
-		if (!qparam_accum) {//accum supported at this time
-                    var lsList_all = body.aggregations.inrange.ls.buckets;
-		    var maxBuckets = lsList_all[i].streamMaxDocCount.buckets;
-                    //only test this if some stream is completely written by all BUs
-		    if (maxBuckets.length) {
-		      var max_docs=maxBuckets[0].doc_count*Math.max(streams.length,stream_labels.length);
-		      if (max_docs>lsList_all[i].doc_count)
-		        streams_only_partial = true;
-		    }
-		}
-	
 		//calc minimerge percents
 		var percent;
 		if (total == 0){
@@ -861,9 +842,10 @@ module.exports.query = function (req, res) {
 		}
 		var color = percColor2(percent,err>0);
                 if (total==0) color = "palegreen";
-		//console.log('ls:'+ls+' ' +streamTotals.doc_counts[ls] + ' ' + lsDocCount[ls] + ' ' +Math.max(stream_labels.length,nStreamsMicro))
-		if (new_color_coding && total>0 && percent>50. && streams_only_partial) color=streamIncompleteColMicro;
 
+                //override yellow if partially complete streams
+		if (total>0 && percent>50. && percent<100 &&  lsPartialCompleteMap.hasOwnProperty(ls))
+		  color=streamIncompleteColMicro;
 		var entry = {
 			"x" : ls,
 			"y" : percent,
@@ -878,16 +860,14 @@ module.exports.query = function (req, res) {
 	retObj.micromerge = micromerge;
 	retObj.lsList = streamTotals.lsList;
 	
-	//Filter DQM from streamlist
-	var mmStreamList = [];
+	//Construct stream list from stream-hist docs (used if stream_label is not yet complete). DQM is not present.
+	streamNumWithDQM = streamListArray.length;
 	for (var k=0;k<streamListArray.length;k++){
 		var s = streamListArray[k];
 		if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM) {
-			mmStreamList.push(streamListArray[k]);
+		        streamNum++;
 		}
 	}
-	streamNum = mmStreamList.length; // TODO: use Math.max( stream_label.length,mmStreamList.length)
-	streamNumWithDQM = streamListArray.length;
 	
 	q4(_this); //q4(q5)
       } catch (e) {_this.exCb(res,e,requestKey)}
@@ -900,6 +880,8 @@ module.exports.query = function (req, res) {
 
   //get stream_label list
   var stream_labels = [];
+  var stream_labels_num=0;
+  var stream_labels_numNoDQM=0;
   //var stream_labels_DQMonly=[];
   var streamErrorFound = false;
 
@@ -930,11 +912,16 @@ module.exports.query = function (req, res) {
       try {
         var results = body.aggregations.streams.buckets; //hits for query
 	for (var i=0;i<results.length;i++) {
-	  stream_labels.push(results[i].key);
-	  if (results[i].key=="Error") streamErrorFound=true;
+	  var s = results[i].key;
+	  stream_labels.push(s);
+	  if (!(s.substr(0,3)==='DQM') || (s==='DQMHistograms') || allDQM)
+	    stream_labels_numNoDQM++;
+	  if (s=="Error") streamErrorFound=true;
+
 	  //if (results[i].key.startsWith("DQM") && !results[i].key.startsWith("DQMHistograms"))
 	  //  stream_labels_DQMonly.push(results[i].key);
 	}
+	stream_labels_num=stream_labels.length;
         q3(_this);
       } catch (e) {_this.exCb(res,e,requestKey)}
     }, function (error){

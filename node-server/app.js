@@ -500,7 +500,7 @@ app.get('/sc/api/runInfo', esRunInfo.query.bind(esRunInfo));
 
 //callback 13
 var esMiniMacroPerStream = require('./src/esMiniMacroPerStream');
-esMiniMacroPerStream.setup(getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("teolsperstream.json"));
+esMiniMacroPerStream.setup(getQuery("microperstream.json"),getQuery("minimacroperstream.json"),getQuery("transferperstream.json"),getQuery("teolsperstream.json"));
 app.get('/f3mon/api/minimacroperstream', esMiniMacroPerStream.query.bind(esMiniMacroPerStream)); 
 
 //callback 14

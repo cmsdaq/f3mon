@@ -1,0 +1,63 @@
+{
+   "size": 0,
+   "query": {
+      "bool": {
+         "must": [
+            {
+               "term": {
+                  "runNumber": 0
+	       }
+            },
+            {
+               "range": {
+                  "ls": {
+                     "from": 0,
+                     "to": 0
+                  }
+               }
+            }
+         ]
+      }
+   },
+   "aggs": {
+      "stream": {
+         "terms": {
+            "size":100,
+            "field": "stream"
+         },
+         "aggs":{
+             "processed":{
+                 "sum":{
+                     "field":"processed"
+                 }
+             },
+             "errorEvents":{
+                 "sum":{
+                     "field":"errorEvents"
+                 }
+             },
+	     "status2": {
+	         "filter": {
+		     "range": {
+		         "status":{
+			     "gte":2
+			 }
+		     }
+		 },
+		 "aggs":{
+			 "processed":{
+			     "sum":{
+				 "field":"processed"
+			     }
+			 },
+			 "errorEvents":{
+			     "sum":{
+				 "field":"errorEvents"
+			     }
+			 }
+		 }
+             }
+         }
+      }
+   }
+}
