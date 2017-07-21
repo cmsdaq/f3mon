@@ -41,7 +41,7 @@ function upd() {
              catch (err) {console.log(err)};
              setTimeout(upd,1000);
            }
- ).error(function(error) {
+ ).fail(function(error) {
    //console.log(error)
    $('#idles').html("");
    $('#used').html("");
@@ -105,14 +105,14 @@ function runcmd(cmd) {
              console.log(data.action)
              if (data.action==="notOK") alert("Command was not executed because LevelZero state is "+data.rcstatus + ' and DAQ state is ' + data.daqstatus);
            }
-        ).error(function(error) { 
+        ).fail(function(error) { 
           if (error.status==403) {
             console.log(JSON.stringify(error))
             redirlogin()
           }
         });
     }
-  }).error(function(error) { 
+  }).fail(function(error) { 
     //alert(JSON.stringify(error))
     //alert("Try reloading the page if you get this error")
     if (error.status==403) {

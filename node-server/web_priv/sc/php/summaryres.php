@@ -10,10 +10,10 @@ $hostname = php_uname('n');
 $added="";
 if ($bu=="null") {}
 else if ($bu=="") {echo '["noBU"]';exit(1);}
-else {$added=',{prefix:{"appliance":"'.$bu.'"}}';}
+else {$added=',{"prefix":{"appliance":"'.$bu.'"}}';}
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/boxinfo/_search?size=0';
-$data = '{query:{bool:{must:[{range:{fm_date:{from:"now-60s"}}}'.$added.']}},aggs:{i:{sum:{field:"idles"}},u:{sum:{field:"used"}},"b":{sum:{field:"broken"}},c:{sum:{field:"cloud"}},q:{sum:{field:"quarantined"}},rd:{sum:{field:"usedRamdisk"}},rdt:{sum:{field:"totalRamdisk"}},runs:{terms:{field:"activeRunList",size:0}}},size:0}';
+$data = '{"query":{"bool":{"must":[{"range":{"fm_date":{"from":"now-60s"}}}'.$added.']}},"aggs":{"i":{"sum":{"field":"idles"}},"u":{"sum":{"field":"used"}},"b":{"sum":{"field":"broken"}},"c":{"sum":{"field":"cloud"}},"q":{"sum":{"field":"quarantined"}},"rd":{"sum":{"field":"usedRamdisk"}},"rdt":{"sum":{"field":"totalRamdisk"}},"runs":{"terms":{"field":"activeRunList","size":100}}},"size":0}';
 $crl = curl_init();
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -40,7 +40,7 @@ foreach ($res["aggregations"]["runs"]["buckets"] as $rn){
 
 $crl = curl_init();
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/run/_search?size=1';
-$data='{sort:{startTime:"desc"}}';
+$data='{"sort":{"startTime":"desc"}}';
 curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt ($crl, CURLOPT_CONNECTTIMEOUT, $timeout);

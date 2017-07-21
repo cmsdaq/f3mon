@@ -37,10 +37,10 @@ if ($setup=="cdaq" || $setup=="dv") {
   if ($use_es) {
     $url = 'http://cmsos-iaas-cdaq.cms:9200/'.$es_zone_prefix.'-levelzerofm_dynamic_*/_search';
     //$data='{ "query": { "match_all": {} }, "size": 1, "sort": [ { "creationtime_": { "order": "desc" } } ] }';
-    $data='{ "query":{"bool":{"must":[{range:{creationtime_:{from:"now-1m"}}}]}}, "size": 1, "sort": [ { "creationtime_": { "order": "desc" } } ] }';
+    $data='{ "query":{"bool":{"must":[{"range":{"creationtime_":{"from":"now-1m"}}}]}}, "size": 1, "sort": [ { "creationtime_": { "order": "desc" } } ] }';
   }
   else {
-    $url = 'http://pc-c2e11-18-01.cms:9941/urn:xdaq-application:lid=16/retrieveCollection?fmt=json&flash=urn:xdaq-flashlist:levelZeroFM_dynamic';
+    $url = 'http://xaas-cdaq-04.cms:9946/urn:xdaq-application:lid=16/retrieveCollection?fmt=json&flash=urn:xdaq-flashlist:levelZeroFM_dynamic';
   }
   $crl = curl_init();
   curl_setopt ($crl, CURLOPT_URL,$url);
@@ -73,10 +73,10 @@ if ($setup=="cdaq" || $setup=="dv") {
       #check second flashlist
       if ($use_es) {
         $url = 'http://cmsos-iaas-cdaq.cms:9200/'.$es_zone_prefix.'-levelzerofm_subsys_*/_search';
-        $data='{ "query":{"bool":{"must":[{"term": {"SUBSYS":"DAQ"}},{range:{creationtime_:{from:"now-1m"}}}]}}, "size": 1, "sort": [ { "creationtime_": { "order": "desc" } } ] }';
+        $data='{ "query":{"bool":{"must":[{"term": {"SUBSYS":"DAQ"}},{"range":{"creationtime_":{"from":"now-1m"}}}]}}, "size": 1, "sort": [ { "creationtime_": { "order": "desc" } } ] }';
       }
       else {
-        $url = 'http://pc-c2e11-18-01.cms:9941/urn:xdaq-application:lid=16/retrieveCollection?fmt=json&flash=urn:xdaq-flashlist:levelZeroFM_subsys';
+        $url = 'http://xaas-cdaq-04.cms:9946/urn:xdaq-application:lid=16/retrieveCollection?fmt=json&flash=urn:xdaq-flashlist:levelZeroFM_subsys';
       }
       $crl = curl_init();
       curl_setopt ($crl, CURLOPT_URL,$url);
@@ -131,7 +131,7 @@ $host_list = array();
 if ($myaction=="OK") {
  
   $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/boxinfo/_search?size=200';
-  $data = '{query:{bool:{must:[{prefix:{host:"'.$buprefix.'"}},{range:{fm_date:{from:"now-60s"}}}]}},size:200}';
+  $data = '{"query":{"bool":{"must":[{"prefix":{"host":"'.$buprefix.'"}},{"range":{"fm_date":{"from":"now-60s"}}}]}},"size":200}';
   $crl = curl_init();
   curl_setopt ($crl, CURLOPT_URL,$url);
   curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
@@ -168,7 +168,6 @@ if ($myaction=="OK") {
 
 	$i++;
         //echo "POST ".$url." executed\n";	
- 
   }
 
   do {
