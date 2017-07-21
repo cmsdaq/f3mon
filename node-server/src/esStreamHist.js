@@ -287,7 +287,8 @@ module.exports.query = function (req, res) {
 
 			//transfer status 1 and status 2 difference in event count (will be shown as olive) if otherwise OK
 			if (color=="green" || color=="olivedrab") {
-                          if (processed2 < processed) color="olive";
+                          //if (processed2 < processed) color="olive";
+                          if (processed2 < processed) color="#8A8A0A";
 			}
 
                         var eolts = undefined;

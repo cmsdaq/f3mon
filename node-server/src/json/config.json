@@ -1,7 +1,7 @@
 {"config":{
         "defaultSubSystem":"cdaq",
-        "fastPollingDelay":3000,
-        "slowPollingDelay":5000,
+        "fastPollingDelay":2000,
+        "slowPollingDelay":4000,
         "chartWaitingMsg":"No monitoring information.",
         "msChartMaxPoints":60,
         "defaultTimezone":"Locale",

@@ -322,7 +322,8 @@ module.exports.query = function (req, res) {
 
                 //special transfer color
 		if (color=="green" || color=="olivedrab") {
-		        if (processed2 < processed) color="olive";
+		        //if (processed2 < processed) color="olive";
+		        if (processed2 < processed) color="#8A8A0A";
 		        //if (processed2+errorEvents2 < processed+errorEvents) color="olive";
 		}
 		

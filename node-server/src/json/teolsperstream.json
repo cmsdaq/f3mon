@@ -33,7 +33,14 @@
                "sum": {
                   "field": "NFiles"
                }
-            }
+            },
+	    "lsterms": {
+	      "terms":{
+	        "field":"ls",
+	        "size":8,
+	        "order":{"_term":"desc"}
+	      }
+	    }
    }
 }
 

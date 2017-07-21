@@ -42,7 +42,7 @@ module.exports.query = function (req, res) {
           "bus":{
             "terms":{"size":200,"field":"appliance"},
             "aggs" : {
-              "fu_hits":{"top_hits":{"size":30,"sort":[{"host":{"order":"asc"}}]}},
+              "fu_hits":{"top_hits":{"size":60,"sort":[{"host":{"order":"asc"}}]}},
               "filter_alive": {
                 //"filter":{"range":{"fm_date":{"gte":"now-10s"}}}, //todo: detectedStaleHandle?
                 "filter":{"bool":{"must":[{"range":{"fm_date":{"gte":"now-10s"}}}, {"term":{"detectedStaleHandle":false}}]}},
@@ -59,7 +59,7 @@ module.exports.query = function (req, res) {
                     //criteria: everything 0 except quarantined
                     "filter":{"bool":{"must":[{"range":{"quarantined":{"gte":1}}},{"term":{"idles":0}},{"term":{"used":0}},{"term":{"broken":0}},{"term":{"cloud":0}}]}},
                     "aggs" : {
-                      "fus":{"terms":{"size":30,"field":"host"}}
+                      "fus":{"terms":{"size":60,"field":"host"}}
                     }
                   },
                   "usedDataDir":{"sum":{"field":"usedDataDir"}},
@@ -69,17 +69,17 @@ module.exports.query = function (req, res) {
 
               "filter_stale_handle": {
                 "filter":{"bool":{"must":[{"range":{"fm_date":{"gte":"now-10s"}}}, {"term":{"detectedStaleHandle":true}}]}}, //
-                "aggs":{"fus":{"terms":{"size":30,"field":"host"}}}
+                "aggs":{"fus":{"terms":{"size":60,"field":"host"}}}
               },
 
               "filter_stale": {
                 "filter":{"range":{"fm_date":{"gte":"now-3600s","lte":"now-10s"}}},
-                "aggs":{"fus":{"terms":{"size":30,"field":"host"}}}
+                "aggs":{"fus":{"terms":{"size":60,"field":"host"}}}
               },
               "filter_dead": {
                 //"filter":{"range":{"fm_date":{"lte":"now-3600s"}}},
                 "filter":{"bool":{"must_not":[{"range":{"fm_date":{"gte":"now-1h"}}}]}}, //seems faster than above
-                "aggs":{"fus":{"terms":{"size":30,"field":"host"}}}
+                "aggs":{"fus":{"terms":{"size":60,"field":"host"}}}
               }
             }
           }
@@ -182,7 +182,7 @@ module.exports.query = function (req, res) {
                               //"cloud":{"terms":{"field":"cloudState"}},
                               "cloud_filter":{"filter":{"term":{"cloudState":"on"}}}//,
                               //,"fu_hits":{"top_hits":{"size":1}}
-                              ,"fu_hits":{"top_hits":{"size":30,"sort":[{"host":{"order":"asc"}}]}},
+                              ,"fu_hits":{"top_hits":{"size":60,"sort":[{"host":{"order":"asc"}}]}},
                               //,"aggs":{"nodes":{"terms":{"size":50,"field":"_id"}}}
                               "cpu":{"terms":{"field":"cpu_name","size":1}}
                             }
@@ -337,7 +337,7 @@ module.exports.query = function (req, res) {
         took += body.took;
         retObj["central_server"] = {
           "status":body.status,
-          "number_of_data_nodes":body.nodes.count.data_only + body.nodes.count.master_data,
+          "number_of_data_nodes":body.nodes.count.data,
           "active_primary_shards":body.indices.shards.primaries,
           "disk_free_bytes":body.nodes.fs.free_in_bytes,
           "disk_total_bytes":body.nodes.fs.total_in_bytes
@@ -359,7 +359,7 @@ module.exports.query = function (req, res) {
         took += body.took;
         retObj["eslocal_server"] = {
           "status":body.status,
-          "number_of_data_nodes":body.nodes.count.data_only + body.nodes.count.master_data,
+          "number_of_data_nodes":body.nodes.count.data,
           "active_primary_shards":body.indices.shards.primaries,
           "disk_free_bytes":body.nodes.fs.free_in_bytes,
           "disk_total_bytes":body.nodes.fs.total_in_bytes

@@ -216,7 +216,8 @@ module.exports.query = function (req, res) {
 		var color = percColor(percent);	
 		//check for transfer-in-progress
 		if (color=="green") {
-		  if (doc_count_2<doc_count) color="olive";
+		  //if (doc_count_2<doc_count) color="olive";
+		  if (doc_count_2<doc_count) color="#8A8A0A";
 		}
 		
 		var entry = {
@@ -280,11 +281,13 @@ module.exports.query = function (req, res) {
 		    host_item.streams.buckets.forEach(function (item) {
 		      if (item.key.startsWith("DQM") && item.key!="DQMHistograms") hasDQM=true;
 		    });
-		    if (hasDQM && entry.color!="green" && entry.color!="olive")//entry.y==100?
+		    //if (hasDQM && entry.color!="green" && entry.color!="olive")//entry.y==100?
+		    if (hasDQM && entry.color!="green" && entry.color!="#8A8A0A")//entry.y==100?
 		      if (entry_arr[2])
 		        entry.color="green";
 		      else
-		        entry.color="olive";
+		        //entry.color="olive";
+		        entry.color="#8A8A0A";
 		  }
 		}
 		else

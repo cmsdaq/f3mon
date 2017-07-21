@@ -1,39 +1,43 @@
 {
-   "size": 0,
-   "query": {
-      "bool": {
-         "must": [
-            {
-               "range": {
-                  "ls": {
-                     "from": 1642,
-                     "to": 1642
-                  }
-               }
-            },
-            {
-               "prefix": {
-                  "_id": {
-                     "value": "225956"
-                  }
-               }
-            }
-         ]
-      }
-   },
-   "aggs": {
-      "stream": {
-         "terms": {
-            "size":100,
-            "field": "stream"
-         },
-         "aggs":{
-             "processed":{
-                 "sum":{
-                     "field":"in"
-                 }
-             }
-         }
-      }
-   }
+    "size": 0,
+    "query": {
+	"bool": {
+	    "must": [
+		{
+		    "parent_id":{
+			"type":"stream-hist",
+			"id":0
+		    }
+		},
+		{
+		    "range": {
+			"ls": {
+			    "from": 0,
+			    "to": 0
+			}
+		    }
+		}
+	    ]
+	}
+    },
+    "aggs": {
+	"stream": {
+	    "terms": {
+		"size":100,
+		"field": "stream"
+	    },
+	    "aggs":{
+		"processed":{
+		    "sum":{
+			"field":"in"
+		    }
+		},
+		"errorEvents":{
+		    "sum":{
+			"field":"err"
+		    }
+		}
+	    }
+	}
+    }
 }

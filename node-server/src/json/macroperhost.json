@@ -1,37 +1,63 @@
 {
-   "size": 0,
-   "query": {
-      "bool": {
-         "must": [
-         ],
-         "should" : [
-         ],
-         "minimum_should_match" : 1
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+      ],
+      "should" : [
+      ],
+      "minimum_should_match" : 1
+    }
+  },
+  "aggs": {
+
+    "host_list": {
+      "terms": {
+	"size":100,
+	"field": "host",
+	"order" : { "_term" : "asc" }
+      },
+      "aggs": {
+        "streams":{
+          "terms":{
+	    "size":100,
+	    "field":"stream"
+	  }
+	}
       }
-   },
-   "aggs": {
-      "host": {
-         "terms": {
-            "size":100,
-            "field": "host"
-         },
-         "aggs":{
-             "processed":{
-                 "sum":{
-                     "field":"processed"
-                 }
-             },
-             "errorEvents":{
-                 "sum":{
-                     "field":"errorEvents"
-                 }
-             },
-	     "status2":{
-	         "filter":{
-		     "term":{"status":2}
-		 }
-	     }
-         }
+    },
+    "sel":{
+      "filter":{
+        "range":{
+	  "ls":{"from":0,"to":0}
+	}
+      },
+      "aggs":{
+	"host": {
+	  "terms": {
+	    "size":100,
+	    "field": "host",
+	    "order" : { "_term" : "asc" }
+	  },
+	  "aggs":{
+	    "processed":{
+	      "sum":{
+		"field":"processed"
+	      }
+	    },
+	    "errorEvents":{
+	      "sum":{
+		"field":"errorEvents"
+	      }
+	    },
+	    "status2":{
+	      "filter":{
+		"term":{"status":2}
+	      }
+	    }
+	  }
+	}
       }
-   }
+    }
+  }
 }

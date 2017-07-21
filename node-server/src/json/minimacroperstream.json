@@ -4,17 +4,15 @@
       "bool": {
          "must": [
             {
-               "range": {
-                  "ls": {
-                     "from": 1642,
-                     "to": 1642
-                  }
-               }
+               "term": {
+                  "runNumber": 0
+	       }
             },
             {
-               "prefix": {
-                  "_id": {
-                     "value": "run225956"
+               "range": {
+                  "ls": {
+                     "from": 0,
+                     "to": 0
                   }
                }
             }
@@ -31,11 +29,6 @@
              "processed":{
                  "sum":{
                      "field":"processed"
-                 }
-             },
-             "errorEvents":{
-                 "sum":{
-                     "field":"errorEvents"
                  }
              }
          }
