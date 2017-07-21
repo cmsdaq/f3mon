@@ -8,7 +8,17 @@
 <script src="node_modules/jquery/dist/jquery.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
 <script src="node_modules/highcharts/highcharts.js"></script>
+<script src="node_modules/highcharts/highcharts-3d.js"></script>
+<script src="node_modules/highcharts/modules/exporting.js"></script>
+<script src="node_modules/highcharts/modules/offline-exporting.js"></script>
+<!--<script src="https://rawgithub.com/paulo-raca/highcharts-draggable-3d/master/draggable-3d.js"></script>-->
+<script src="js/draggable-3d.js"></script>
+
+<!--<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>-->
+
 <script src="highcharts-regression.js"></script>
+
 <!--<script src="node_modules/highcharts/themes/sand-signika.js"></script>-->
 <!--<script src="js/Highcharts/js/highcharts.js"></script>
 <script src="js/Highcharts/js/themes/dark-unica.js"></script>-->
@@ -27,60 +37,59 @@
 <div>
     <table class="pure-table" id="selector">
      <tr>
-     <td> 
+     <td valign="top"> 
       <div class="pure-u-1-1" style="margin-left:20px;margin-right:20px;">
       <form class="pure-form" id="target" action="">
         <!--<br><label for="fillno">Fill </label><input id="fillno" name="fillno">-->
         <br>
-        <label for="runno" title="csv list of run numbers">Run Numbers </label><input id="runno" name="runno"></input>
-        <label for="runno">Index </label><select id="index"><option value="current">current</option></select>
+
+        <label for="fillno"><button type="button" id="opener" onclick="return false">Fill</button></label>
+        <input id="fillno" name="fillno" size=6 />
+
+        <label for="indexno">Index </label><select id="index"><option value="current">current</option></select>
+	<br>
+	<br>
+        <label for="runno" title="csv list of run numbers">Run Numbers </label><input id="runno" name="runno" size=60></input>
+        <label for="rfill"><button type="button" id="opener2" onclick="return false">RunFilter</button></label>
         <label for="maxpu" title="optionally set max PU range to be plotted. default 50 or 60 with trend option"> Max PU </label><input id="maxpu" name="maxpu" size="4"></input>
         <label for="maskpu" title="optionally provide PU range to mask, e.g. 10.3-20,35.9-36.1,38.85"> PU Mask </label><input id="maskpu" name="maskpu" size="20"></input>
 
         <br>
+        <div id="progressbar"></div>
 	<br>
         <label for="fitputime"></label><input type="checkbox" id="fitputime" name="fitputime"></input><label for="fitputime">run fit and plot time/PU trend</label>
-	<br>
-        <label for="alternative"></label><input type="checkbox" id="alternative" name="alternative"></input>
-        <label for="alternative" title="this method might be more accurate with high and uneven CPU usage across the cluster, but produces more spikes">alternative event time method</label>
 	<br>
         <label for="pPb"></label><input type="checkbox" id="pPb" name="pPb"></input>
         <label for="pPb" title="use lower PU limits">pPb (lower PU range)</label>
         <br>
         <br>
  
-        <input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
+        <input type="submit" value="Plot" onclick="$.ajaxQ.abortAll()"><button type="button" onclick='setlink()'>Set link</button>
 
-	<!--<div id="radio1">-->
-	    <input type=radio name=hctheme value=blue id=blue checked=checked onClick="setThemeHash('blue');window.location.reload()"><label for="blue">blue</label>
+	    <input type=radio name=hctheme value=blue id=blue onClick="setThemeHash('blue');window.location.reload()"><label for="blue">blue</label>
 	    <input type=radio name=hctheme value=black id=black onClick="setThemeHash('black');window.location.reload()"><label for="black">black</label>
-	    <input type=radio name=hctheme value=white id=white onClick="setThemeHash('white');window.location.reload()"><label for="white">white</label>
-	<!--</div>-->
+	    <input type=radio name=hctheme value=white id=white checked=checked onClick="setThemeHash('white');window.location.reload()"><label for="white">white</label>
 
       </form>
-      <br><br>
+      <br>
       <table class="pure-table" id="runinfo">
-        <tr><th>Fill Number</th><th>Run Number</th><th>Start Time</th><th>End Time</th><th>Duration (s)</th><th>Time tick (s)</th></tr>
-        <tr><td id="fill"><td id="run"></td><td id="start"></td><td id="end"><td id="duration"><td id="unit"></td></tr> 
+        <tr>
+	  <th>Fill Number</th><th>Runs</th>
+	</tr>
+        <tr>
+	  <td id="fill"/><td id="pruns"/>
+	</tr> 
       </table>
       </div>
-     </td>
-     <td>
-      <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
-      <form class="pure-form" id="target2" action="">
-      Run/LS selector<br>
-      <button type="button" onclick='$("#runinfo2").toggle();if (this.innerHTML=="Hide") this.innerHTML="Show"; else this.innerHTML="Hide"'>Show</button>
-      <table class="pure-table" id="runinfo2">
-        <tr><th>Runs</th><th>LS from</th><th>LS to</th><th>full range</th><th>include</th>
-        <!--<tr><td>x</td><td>y</td></tr>-->
-        <!--<tr><td></td><td></td><td></td><td></td><td></td></tr>-->
-      </table>
-      </form>
-      </div>
+
      </td>
      </tr>
+    <tr><td>
+    <div id="progressbar2"></div>
+    <center><button id="abort_all" onclick='$.ajaxQ.abortAll()'>Abort query</button></center>
+    </td></tr>
     </table>
-    <br><br>
+    <br>
     <table class="pure-table" id="plots">
       <tr>
 	<td>
@@ -102,6 +111,11 @@
 	  </div>
 	</td>
 
+	<td>
+	  <div id="plot17">
+	  </div>
+	</td>
+
       </tr>
 
       <tr>
@@ -110,14 +124,54 @@
 	  </div>
 	</td>
 
+	<td>
+          <button type="button" id="csv18" onclick='plotToCsv("size","fuetimelsalt")'>CSV</button>
+	  <div id="plot18">
+	  </div>
+	</td>
+
       </tr>
     </table>
   </div>
 </div>
 
-<br><br><div id="progressbar"></div>
+<br><br>
 
 
+
+<div id="dialog1" title="Fill Selector">
+  <center><table>
+  <tr>
+  <td>
+  <table class="pure-table pure-table-bordered" id="fillselector">
+  <tr><th id="fsth">.</th>
+  </table> 
+  </td>
+
+  <td>
+  <table class="pure-table pure-table-bordered" id="fillselector2">
+  <tr><th id="fsth2">..</th>
+  </table> 
+  </td>
+
+  <td>
+  <table class="pure-table pure-table-bordered" id="fillselector3">
+  <tr><th id="fsth3">...</th>
+  </table> 
+  </td>
+  </tr>
+  </table></center> 
+
+</div>
+
+
+<div id="dialog2" title="Run/LS Filter">
+      <form class="pure-form" id="target2" action="">
+      <table class="pure-table" id="runinfo2">
+        <tr><th>Runs</th><th>LS from</th><th>LS to</th><th>full range</th><th>include</th>
+      </table>
+      </form>
+</div>
 
 
 <div class="pure-u-1-1" id="loading_dialog"></div>

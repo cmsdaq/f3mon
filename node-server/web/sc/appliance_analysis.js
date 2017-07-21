@@ -32,6 +32,7 @@ function bootstrap(){
         if (isNaN($('#runno').val()) || !$('#runno').val().length) return;
         var mysetup = $('input[name=setup]:checked', '#setups').val();
         if (mysetup==="cdaq" && parseInt($('#runno').val())<=286591) mysetup="cdaq2016";//hack - will be replaced by year selector
+	//var mysetup = "cdaq2017";
 	$.getJSON("api/maxls?runNumber="+$('#runno').val()+'&setup='+mysetup,function(data) {
           if (data.maxls!=null) {
             //console.log(JSON.stringify(data));
@@ -106,6 +107,7 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 
     var my_setup = $('input[name=setup]:checked', '#setups').val();
     if (my_setup==="cdaq" && parseInt(run)<=286591) my_setup="cdaq2016";//hack - will be replaced by year selector
+    //var my_setup = "cdaq2017";
 
     pippo=$.getJSON("php/appliance_analysis.php?run="+run+"&setup="+my_setup+lspart,function(data){
 
