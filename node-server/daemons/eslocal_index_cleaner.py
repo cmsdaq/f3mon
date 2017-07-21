@@ -62,8 +62,8 @@ while True:
   for r in rlines:
     rts = r.strip().split()
     if len(rts) and rts[0]=='close':
-      if rts[-1].startswith('run'):
-        runparts = rts[-1].split('_')
+      if rts[1].startswith('run'):
+        runparts = rts[1].split('_')
         system = runparts[1]
         rn = int(runparts[0][3:])
         if system in closed_indices:
