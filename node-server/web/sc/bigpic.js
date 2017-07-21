@@ -29,6 +29,13 @@ function get_node_tree(callback,callback2) {
             });
 }
 
+var cpuTypeMap = {
+  'E5-2670 0': [16,32],
+  'E5-2680 v3': [24,48],
+  'E5-2680 v4': [28,56],
+  'E5-2650 v4': [24,48]
+};
+
 function run_data_format(){
 
     //$.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=1",function(adata){
@@ -212,10 +219,12 @@ function cluster_data_format(callback){
 
 				    if(zero_fus){
 					content+='<tr class="forhiding unused-bu ordinal'+placeholder_ordinal+'" style="display:none">';
+					//content+='</tr>';
 					bus_with_zero_fus+=1;
-                                        //continue?
+					//console.log(bus_with_zero_fus);
+                                        //continue//?
 				    }
-				    else{
+				    else {
                                         //found fus (last 20s window of fu-box-status)
 					if(fu_keys!==undefined){
 					    //diff = $(pp_fu_nodes).not(Object.keys(vval.fus)).get();
@@ -223,12 +232,14 @@ function cluster_data_format(callback){
 					    diff.sort();
 					}
 					if(bus_with_zero_fus!=0){ //end zero-fu collapse
-					    content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
-					    content+='<td colspan=14 style="background-color:grey;"></td></tr>';
-					    bus_with_zero_fus=0;
+					    content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td colspan=16 style="background-color:grey;font-weight:bold">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+					    //content+='<td colspan=14 style="background-color:grey;"></td></tr>';
+					    content+='</tr>';
 					    placeholder_ordinal+=1;
 					}
+					bus_with_zero_fus=0;
 					content+='<tr class="forhiding" style="display:table-row">'; //new bu row
+					//content+='<tr class="forhiding" style="display:none">'; //new bu row
 				    }
 				      content+="<td>"+j+" ("+vval.active_runs+")<br>"; //name column with active runs
                                     if (vval.age<60)
@@ -482,9 +493,14 @@ function cluster_data_format(callback){
                                     var htstatus = '-'
                                     if (totalReportedMachines>0) {
                                       var resPerFU = totalReportedCores/totalReportedMachines;
-                                      if      ((resPerFU==32 && vval.cpu_name=='E5-2670 0') || (resPerFU==48 && vval.cpu_name=='E5-2680 v3') || resPerFU==56) {htstatus="on";htcol="lightgreen"}
-                                      else if (resPerFU==16 || (resPerFU==24 && vval.cpu_name=='E5-2680 v3') || (resPerFU==28 && vval.cpu_name=='E5-2680 v4')) {htstatus="off";htcol="lightyellow"}
-                                      else {htstatus="?"; htcol = 'red';}
+				      if (cpuTypeMap.hasOwnProperty(vval.cpu_name)) {
+				        var exp_cores = cpuTypeMap[vval.cpu_name];
+					if (resPerFU==exp_cores[1]) {htstatus="on";htcol="lightgreen"}
+					else if (resPerFU==exp_cores[0]) {htstatus="off";htcol="lightyellow"}
+					else if (resPerFU>exp_cores[0] && resPerFU<exp_cores[1]) {htstatus="MIX";htcol="purple";}
+					else {htstatus="?"; htcol = 'red';}
+				      }
+				      else htstatus="N/A";
                                     }
                                     content+="<td style='background-color:"+htcol+"'>"+htstatus+"</td>"
                                     //rack name
@@ -507,11 +523,16 @@ function cluster_data_format(callback){
 				    content+="</tr>";
 				}//);
 			    // complete the table with the last placeholder in case the last BU was an unused one
+			    
 			    if(bus_with_zero_fus!=0){
-				content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
-				content+='<td colspan=14 style="background-color:grey;"></td></tr>';
+
+			        content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td colspan=16 style="background-color:grey;font-weight:bold">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+				content+='</tr>';
+
+//				content+='<tr class="forhiding unused-placeholder ordinal'+placeholder_ordinal+'"><td style="font-weight:bold;border-color:magenta">'+bus_with_zero_fus+' BUs with no connected FUs</td>';
+//				content+='<td colspan=14 style="background-color:grey;"></td></tr>';
 			    }
-			    content+="</tr></tr>";//sm:why this??
+			    //content+="</tr></tr>";//sm:why this??
 		}//);
                 content+="</div>"
 		if (true ||data.hasOwnProperty("fumap")) {
@@ -548,27 +569,16 @@ function cluster_data_format(callback){
                         var htstatus = "<td/>";
                         if (cval.boxes>0) {
                           var cpm = (cval.totalCores+cval.totalCloud+cval.totalQuarantinedCores)/cval.boxes;
-                          if (cput=="E5-2680 v3") {
-                            if (cpm==48) htstatus="<td>on</td>";
-                            else if (cpm==24) htstatus="<td style='background-color:lightyellow'>off</td>";
-                            else if (cpm>24 && cpm <48) htstatus="<td style='background-color:red'>partial(HT)</td>";
-                            else if (cpm<24) htstatus="<td style='background-color:red'>partial(no HT)</td>";
+
+		          if (cpuTypeMap.hasOwnProperty(cput)) {
+			    var exp_cores = cpuTypeMap[cput];
+                            if (cpm==exp_cores[1]) htstatus="<td>on</td>";
+                            else if (cpm==exp_cores[0]) htstatus="<td style='background-color:lightyellow'>off</td>";
+                            else if (cpm>exp_cores[0] && cpm <exp_cores[1]) htstatus="<td style='background-color:red'>partial(HT)</td>";
+                            else if (cpm<exp_cores[0]) htstatus="<td style='background-color:red'>partial(no HT)</td>";
                             else htstatus="<td style='background-color:yellow'>overcommitted</td>";
-                          }
-                          else if (cput=="E5-2680 v4") {
-                            if (cpm==56) htstatus="<td>on</td>";
-                            else if (cpm==28) htstatus="<td style='background-color:lightyellow'>off</td>";
-                            else if (cpm>28 && cpm <56) htstatus="<td style='background-color:red'>partial(HT)</td>";
-                            else if (cpm<28) htstatus="<td style='background-color:red'>partial(no HT)</td>";
-                            else htstatus="<td style='background-color:yellow'>overcommitted</td>";
-                          }
-                          else if (cput=="E5-2670 0") {
-                            if (cpm==32) htstatus="<td>on</td>";
-                            else if (cpm==16) htstatus="<td style='background-color:lightyellow'>off</td>";
-                            else if (cpm>16 && cpm <32) htstatus="<td style='background-color:red'>partial(HT)</td>";
-                            else if (cpm<16) htstatus="<td style='background-color:red'>partial(no HT)</td>";
-                            else htstatus="<td style='background-color:yellow'>overcommitted</td>";
-                          }
+			  }
+                          else htstatus="<td>N/A</td>";
                         }
 		        content+="<tr><td>"+cput+"</td>";
 		        content +="<td>"+cval.boxes+"(+"+cval.boxes_bl+")<br>/"+cval.boxes_db+"</td>";
@@ -605,8 +615,8 @@ function cluster_data_format(callback){
 			content +="<td>"+val.active_primary_shards+"</td>";
                         var usedfs = 100-val.disk_free_bytes/val.disk_total_bytes*100;
                         var usedfscol = '';
-                        if (usedfs>80) usedfscol='yellow';
-                        if (usedfs>90) usedfscol='red';
+                        if (usedfs>=92) usedfscol='yellow';
+                        if (usedfs>=95) usedfscol='red';
 		        content +="<td style='background-color:"+usedfscol+"'>"+usedfs.toFixed(1)+"</td>";
 			content +="</tr>";
 		}
@@ -619,8 +629,8 @@ function cluster_data_format(callback){
 		    content +="<td>"+val.active_primary_shards+"</td>";
                     var usedfs = 100-val.disk_free_bytes/val.disk_total_bytes*100;
                     var usedfscol = '';
-                    if (usedfs>80) usedfscol='yellow';
-                    if (usedfs>90) usedfscol='red';
+                    if (usedfs>92) usedfscol='yellow';
+                    if (usedfs>95) usedfscol='red';
 		    content +="<td style='background-color:"+usedfscol+"'>"+usedfs.toFixed(1)+"</td>";
 		    content +="</tr>";
 		}
