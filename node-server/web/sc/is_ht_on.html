@@ -1,0 +1,47 @@
+<html>
+<head>
+<link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet" href="css/pure-min.css">
+<link rel="stylesheet" href="css/jquery-ui.css">
+<link rel="stylesheet" href="css/loading_spinner.css">
+
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+
+<script src="js/loading_spinner.js"></script>
+<script src="is_ht_on.js"></script>
+</head>
+<body onLoad="bootstrap();">
+
+<div>
+  <div class="pure-u-1-1" style="margin-left:15px;margin-right:15px;">
+  
+    <form class="pure-form" id="target" action="">
+      <br><label for="runno">Run Number(s) </label><input id="runno" name="runno" title="single run number or comma separated list of run numbers">
+      <label for="runno">Index </label>
+      <select id="index">
+      <option value="current">current</option>
+      </select>
+      <br><br>
+	<label for="minls">LS min</label><input id="minls" name="minls"></input>
+	<label for="maxls">max</label><input id="maxls" name="maxls"></input>
+	<label for="fullrun"></label><input type="checkbox" id="fullrun" name="fullrun"></input><label for="fullrun"> full run </label>
+      <br><br><input type="submit" value="Plot"><button type="button" onclick='setlink()'>Set link</button>
+
+    </form>
+    <br><br><table class="pure-table" id="runinfo">
+-      <tr>
+        <td id="run"</>
+	<td id="fill"/>
+	<td id="HT"/>
+	<td id="start"/>
+	<td id="end"/>
+      </tr> 
+    </table>
+  </div>
+</div>
+
+
+<div class="pure-u-1-1" id="loading_dialog"></div>
+</body>
+</html>
