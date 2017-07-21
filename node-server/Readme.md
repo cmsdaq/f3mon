@@ -25,7 +25,7 @@ patch -p0 < daemonize-gc.patch
 4. Copy whole node-server to a target location and rename it e.g. it can be named /cmsnfses-web/es-web/scratch/devel-username
 5. Copy dbinfo.json from /cmsnfses-web/es-web/prod to devel area
 6. From prod area, copy "web/sc/js", "web/sc/images", "web/sc/css", "web/sc/favicon" to web/sc (in case some files are not present)
-7. make symbolic link to legacy sctest script and f3mon documentation (outdated!) directory in "web": "ln -s ../../ecd/sctest sctest;" and "ln -s ../../ecd/doc doc".
+7. if needed, run a script to make symbolic link to legacy script and doc directories "cd web; ./mklinks.sh".
 ```
 
 #deployment to existing prod or test directory:
