@@ -148,7 +148,7 @@
                             </tbody>
                             <tbody ng-show="data.noData()">
                                 <tr>
-                                    <td colspan="4" class="text-center">No data available </td>
+                                    <td colspan="4" class="text-center">No run found</td>
                                 </tr>
                             </tbody>
                             <tfoot ng-show="!data.noData()">
@@ -157,6 +157,8 @@
                                         <dir-pagination-controls max-size='5' boundary-links='true' on-page-change="pageChanged(newPageNumber)" pagination-id="runListPag"></dir-pagination-controls>
                                     </td>
                                 </tr>
+                            </tfoot>
+                            <tfoot ng-show="true">
                                 <tr>
                                     <td colspan="4" class="text-right" style='vertical-align: middle'>
                                         <input style="width:35%" class="pull-left form-control" ng-model='data.searchText' ng-change='search()' type="text" placeholder='search...' />
