@@ -428,6 +428,7 @@
         };
 
         $rootScope.$on('indices.selected', function(event) {
+            service.data.searchText='';
             service.start();
         });
 
