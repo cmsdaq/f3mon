@@ -10,12 +10,27 @@ function bootstrap(){
   $.ajaxSetup({
                 headers : {   
                   'f3mon-compression' : 'true'
-                }
+                },
+		timeout: 242000
   });
 
   $("#leg").hide();
   $("#title").hide();
-  $.getJSON("php/errorsummary.php",function(data) {
+  var year_start = "2016";
+  var year_current = parseInt(new Date().getFullYear());
+  for (var i=year_current;i>=year_start;i--) {
+    var o = new Option(i,i);
+    //$(o).html("option text");
+    $('#index').append(o);
+  }
+  $('#index option[value='+year_current+']').attr('selected','selected');
+	
+
+
+  $( "#opener" ).click(function() {
+  console.log('clicked...');
+ 
+  $.getJSON("php/errorsummary.php?setup=cdaq"+$('#index').val(),function(data) {
     $("#leg").show();
     $("#title").show();
     $('#runlabel').html("run")
@@ -109,6 +124,8 @@ function bootstrap(){
     newrow+="</tr>";
     $('#runinfo2').append(newrow);
   });
+
+  });//click
 }
 
 

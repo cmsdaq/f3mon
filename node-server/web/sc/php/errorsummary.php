@@ -9,7 +9,7 @@ header("Content-Type: application/json");
 $size=99999;
 
 $crl = curl_init();
-$timeout = 60;
+$timeout = 240;
 $hostname = php_uname('n');
 if ($setup=="cdaq") $setup="cdaq*";//TODO: add year selection
 $url = 'http://'.$hostname.':9200/hltdlogs_'.$setup.'_read/hltdlog/_search';
@@ -32,7 +32,6 @@ $data='{"size":0,"query":{"bool":{"must":[{"range":{"run":{"from":100000,"to":10
       '"error":{"terms":{"size":1000,"order":{"_term":"asc"},"script":{"lang":"groovy","inline":"'.$script.'"}}}'.
       ',"run":{"terms":{"field":"run","order":{"_term":"desc"},"size":'.$size.'}'.
       ',"aggs":{"error":{"terms":{"size":1000,"order":{"_term":"asc"},"script":{"lang":"groovy","inline":"'.$script.'"}}}}}}}';
-
 
 //echo $data;
 
