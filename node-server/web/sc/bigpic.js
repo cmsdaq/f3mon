@@ -36,6 +36,31 @@ var cpuTypeMap = {
   'E5-2650 v4': [24,48]
 };
 
+var runbumap = {};
+var runbu_itr = 0;
+
+function flashlist_bu_info() {
+
+    runbu_itr++;
+    if ((runbu_itr-1)%5==0) //run less frequently
+    $.getJSON("php/busfromflashlist.php",function(data) {
+      //console.log(Object.keys(data));
+      Object.keys(data).forEach(function (rn) {
+        console.log('rn:'+rn) 
+        var bumap = {};
+        data[rn].forEach(function (bu){
+	  var key_stripped = bu.substring(0,bu.indexOf('.'))
+          bumap[key_stripped]=true;
+        });
+
+        var runbumap_temp={};
+	runbumap_temp[""+rn]=bumap;
+	runbumap = runbumap_temp;
+      });
+      //console.log(JSON.stringify(runbumap));
+    });
+}
+
 function run_data_format(){
 
     //$.getJSON("/f3mon/api/runList?sysName="+$('input[name=setup]:checked', '#setups').val()+"&size=1",function(adata){
@@ -168,7 +193,9 @@ function cluster_data_format(callback){
     var statusvar = 0.;
 
     var fumap = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
-    var fumap_tmpl = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0};
+    var fumap_tmpl = {"boxes":0,"boxes_bl":0,"boxes_db":0,"totalCores":0,"totalCloud":0,"totalQuarantinedCores":0,"totalHealthyBoxesHLT":0,"totalHealthyBoxesCloud":0,
+                      "cores_phys":0,"cores_ht":0
+                     };
     var fumap_cpu = {};
 
     if(update_funct){
@@ -241,7 +268,23 @@ function cluster_data_format(callback){
 					content+='<tr class="forhiding" style="display:table-row">'; //new bu row
 					//content+='<tr class="forhiding" style="display:none">'; //new bu row
 				    }
-				      content+="<td>"+j+" ("+vval.active_runs+")<br>"; //name column with active runs
+				      var is_blacklisted=false;
+				      var bu_runs = vval.active_runs;
+				      bu_runs.sort();
+				      var h_run = -1;
+				      if (bu_runs.length)
+				        var h_run = bu_runs[bu_runs.length-1];
+
+				      Object.keys(runbumap).forEach(function(flashrun) {
+					if (h_run==flashrun || h_run==-1) 
+					  //console.log(nameArray[jc] + ' !')
+					  if (!(runbumap[flashrun].hasOwnProperty(nameArray[jc]))) is_blacklisted=true;
+				      });
+				      if (is_blacklisted)
+				        content+="<td style='background-color:black;color:white'>"
+				      else
+				        content+="<td>";
+				      content+=j+" ("+vval.active_runs+")<br>"; //name column with active runs
                                     if (vval.age<60)
 				      content+="<div style='font-size:9pt;'>[age="+vval.age+" s ; fuCPU="+vval.cpu_name+"]</div>";//and doc age
                                     else
@@ -331,6 +374,11 @@ function cluster_data_format(callback){
 
                                     var totalReportedCores = vval.idle+vval.online+vval.quarantined+vval.cloud;
                                     var totalReportedMachines = vval.cloud_nodes.length+vval.idle_count+vval.online_count+vval.quarantined_nodes.length;
+
+                                    if (totalReportedMachines>0) {
+				      fucpu.cores_ht += vval.htc;
+				      fucpu.cores_phys += vval.physc;
+                                    }
 
 				    var running_color=""
                                     if (vval.idle_count===0 && vval.online_count>0) {}//running_color="style='background-color:aquamarine'";
@@ -493,14 +541,20 @@ function cluster_data_format(callback){
                                     var htstatus = '-'
                                     if (totalReportedMachines>0) {
                                       var resPerFU = totalReportedCores/totalReportedMachines;
-				      if (cpuTypeMap.hasOwnProperty(vval.cpu_name)) {
-				        var exp_cores = cpuTypeMap[vval.cpu_name];
-					if (resPerFU==exp_cores[1]) {htstatus="on";htcol="lightgreen"}
-					else if (resPerFU==exp_cores[0]) {htstatus="off";htcol="lightyellow"}
-					else if (resPerFU>exp_cores[0] && resPerFU<exp_cores[1]) {htstatus="MIX";htcol="purple";}
-					else {htstatus="?"; htcol = 'red';}
+				      
+				      var cores_ht = vval.htc;
+				      var cores_phys = vval.physc;
+
+				      if (cores_ht===2*cores_phys && cores_ht>0) {
+				        htstatus="on";htcol="lightgreen"
 				      }
-				      else htstatus="N/A";
+				      else if (cores_ht>cores_phys) {
+				        htstatus="MIX";htcol="purple";
+				      }
+				      else if (cores_ht==cores_phys && cores_phys>0) {
+				        htstatus="off";htcol="lightyellow"
+				      }
+				      else {htstatus="N/A";htcol='red';}
                                     }
                                     content+="<td style='background-color:"+htcol+"'>"+htstatus+"</td>"
                                     //rack name
@@ -566,10 +620,24 @@ function cluster_data_format(callback){
                     for (var cput in fumap_cpu) {
                       if (fumap_cpu.hasOwnProperty(cput)) {
                         var cval = fumap_cpu[cput];
-                        var htstatus = "<td/>";
+			var htcol = "red";
+                        var htstatus = "-";
                         if (cval.boxes>0) {
                           var cpm = (cval.totalCores+cval.totalCloud+cval.totalQuarantinedCores)/cval.boxes;
 
+		          if (cval.cores_ht===2*cval.cores_phys && cval.cores_ht>0) {
+			    htstatus="on";htcol="lightgreen";
+			  }
+			  else if (cval.cores_ht>cval.cores_phys) {
+			    htstatus="MIX";htcol="purple";
+			  }
+			  else if (cval.cores_ht==cval.cores_phys && cval.cores_phys>0) {
+			    htstatus="off";htcol="lightyellow"
+			  }
+			  else {htstatus="N/A";htcol='red';}
+	
+		          //content +="<td style='background-color:'"+htcol"'>"+htstatus+"</td>";
+                          /*
 		          if (cpuTypeMap.hasOwnProperty(cput)) {
 			    var exp_cores = cpuTypeMap[cput];
                             if (cpm==exp_cores[1]) htstatus="<td>on</td>";
@@ -579,11 +647,13 @@ function cluster_data_format(callback){
                             else htstatus="<td style='background-color:yellow'>overcommitted</td>";
 			  }
                           else htstatus="<td>N/A</td>";
+			  */
                         }
 		        content+="<tr><td>"+cput+"</td>";
 		        content +="<td>"+cval.boxes+"(+"+cval.boxes_bl+")<br>/"+cval.boxes_db+"</td>";
 		        content +="<td>"+cval.totalCores+"</td>";
-		        content +=htstatus+"<td/>";
+		        content +="<td style='background-color:"+htcol+"'>"+htstatus+"</td>";
+			content +="<td/>";
 		        content +="<td>"+cval.totalCloud+"</td>";
 		        content +="<td>"+cval.totalQuarantinedCores+"</td>";
 		        content +="</tr>";
@@ -795,6 +865,7 @@ var post_db = function() {
 		
 	    }
 	});
+    flashlist_bu_info();
     run_data_format();
     cluster_data_format(post_set);
 }
