@@ -63,7 +63,9 @@ module.exports.query = function (req, res) {
                     }
                   },
                   "usedDataDir":{"sum":{"field":"usedDataDir"}},
-                  "totalDataDir":{"sum":{"field":"totalDataDir"}}
+                  "totalDataDir":{"sum":{"field":"totalDataDir"}},
+		  "hyperthreads":{"sum":{"field":"cpu_hyperthreads"}},
+		  "phys_cores":{"sum":{"field":"cpu_phys_cores"}}
                 }
               },
 
@@ -108,6 +110,8 @@ module.exports.query = function (req, res) {
           target.idle_count = alives.idles_count.doc_count;
           target.quarantined = alives.quarantined.value;
           target.quarantined_nodes=[];
+	  target.htc = alives.hyperthreads.value
+	  target.physc = alives.phys_cores.value
           for (var j=0;j<buckets[i].filter_alive.quarantined_nodes.fus.buckets.length;j++)
             target.quarantined_nodes.push(buckets[i].filter_alive.quarantined_nodes.fus.buckets[j].key);
           //break;
@@ -305,6 +309,8 @@ module.exports.query = function (req, res) {
                          "cloud":0,
                          //"quarantined":source.quarantined,//? (resources)
                          "quarantined":0,//? (resources)
+			 "htc":0,
+			 "physc":0,
                          "cloud_nodes":[], //fill
                          "quarantined_nodes":[], //fill
                          "blacklisted_nodes":source.blacklist.sort(),

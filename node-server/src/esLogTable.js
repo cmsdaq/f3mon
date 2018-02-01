@@ -20,6 +20,8 @@ module.exports.query = function (req, res) {
     var cb = req.query.callback;
 
     //GET query string params
+    var qparam_run = this.checkDefault(req.query.run,0);
+    qparam_run = parseInt(qparam_run);
     var qparam_from = this.checkDefault(req.query.from,0);
     var qparam_size = this.checkDefault(req.query.size,100);
     var qparam_sortBy = this.checkDefault(req.query.sortBy,'');
@@ -49,8 +51,8 @@ module.exports.query = function (req, res) {
       //parameterize query
       this.queryJSON1.size = qparam_size;
       this.queryJSON1.from = qparam_from;
-      this.queryJSON1.query.bool.must[0].range.date.from = qparam_startTime;
-      this.queryJSON1.query.bool.must[0].range.date.to = qparam_endTime;
+      this.queryJSON1.query.bool.should[1].bool.must[0].range.date.from = qparam_startTime;
+      this.queryJSON1.query.bool.should[1].bool.must[0].range.date.to = qparam_endTime;
 
       if (qparam_search != ''){
 	var searchText = '';
@@ -59,10 +61,11 @@ module.exports.query = function (req, res) {
 	}else{
 	  searchText = qparam_search;
 	}
-	this.queryJSON1.query.bool.should[0].query_string.query = searchText;
+	this.queryJSON1.query.bool.must[1].query_string.query = searchText;
       }else{
-	this.queryJSON1.query.bool.should[0].query_string.query = '*';
+	this.queryJSON1.query.bool.must[1].query_string.query = '*';
       }
+      this.queryJSON1.query.bool.should[0].term.run = qparam_run;
 
       var missing = '_last';
       if (qparam_sortOrder == 'desc'){

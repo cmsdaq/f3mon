@@ -6,7 +6,7 @@ var stats_file;
 var times_file;
 var init_logindex=false;
 
-var instance = global.serverPort==80 ? 'prod': serverPort=='4000' ? 'test' : 'dev';
+var instance = global.serverPort==80 ? 'prod': serverPort=='8080' ? 'priv': serverPort=='4000' ? 'test' : 'dev';
 
 var tests=false ; // false
 
@@ -30,8 +30,8 @@ var bulk_inject = function() {
 
     var bulk_tmp = []
     global.bulk_buffer.forEach(function(item) {
-      bulk_tmp.push({index:{_index:'f3mon_stats',_type:'query_record'}})
-      item.instance = instance
+      bulk_tmp.push({index:{_index:'f3mon_stats_'+instance,_type:'query_record'}})
+      //item.instance = instance
       bulk_tmp.push(item)
     })
     global.client.bulk({body:bulk_tmp},function(body) {},function(error){console.log(error.message)})
@@ -59,9 +59,9 @@ module.exports = {
         mappings:{
             query_record:{
                 properties:{
-                    instance:{type:"keyword"},
+                    //instance:{type:"keyword"},
                     query:{type:"keyword"},
-                    ip_addr:{type:"ip"},
+                    ip:{type:"keyword"},
                     cached_response:{type:"boolean"},
                     date:{type:"date"},
                     took:{type:"float"},
@@ -72,13 +72,13 @@ module.exports = {
     }
 
     //initialize elasticsearch loggin index
-    if  (instance!=='dev' || tests)
+    if  ((instance!=='dev' && instance!=='test') || tests)
       global.client.indices.create({
-        index: 'f3mon_stats',
+        index: 'f3mon_stats_'+instance,
         body : JSON.stringify(index_body),
       }).then(function (body){
 
-        console.log('created index f3mon_stats')
+        console.log('created index f3mon_stats_'+instance)
         init_logindex=true;
 
       },function(error) {

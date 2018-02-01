@@ -9,26 +9,42 @@
       "must": [
           {
             "range": {
-              "date": {
-                "to": "now",
-                "from": "0"
-              }
-            }
-          },
-          {
-            "range": {
               "severityVal": {
                 "gte": "3"
               }
             }
+          },
+          {
+            "query_string": {
+              "query": "*"
+            }
           }
       ],
       "should": [
-                {
-                  "query_string": {
-                    "query": "*"
+        {
+	  "term": {
+	    "run":0
+	  }
+        },
+        {
+	  "bool":{
+            "must":[
+              {
+                "range": {
+                  "date": {
+                    "to": "now",
+                    "from": "0"
                   }
                 }
+              }
+	    ],
+	    "must_not":[
+	      {
+	        "exists": {"field":"run"}
+	      }
+	    ]
+	  }
+	}
       ],
       "minimum_should_match":1
     }
