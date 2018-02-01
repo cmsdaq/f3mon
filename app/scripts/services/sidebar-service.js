@@ -428,6 +428,7 @@
         };
 
         $rootScope.$on('indices.selected', function(event) {
+            //reset user-modifiable state of run selector
             service.data.searchText='';
             service.start();
         });

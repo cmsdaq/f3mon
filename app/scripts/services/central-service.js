@@ -642,6 +642,7 @@
             },
             queryParams: {
                 docType: 'hltdlog,cmsswlog',
+                run : 0,
                 startTime: false,
                 endTime: false,
                 sysName: false,
@@ -792,6 +793,8 @@
               else delete q.endTime;
             }
             q.sysName = indexInfo.subSystem;
+            q.run = runInfo.runNumber;
+            if (!q.run) q.run=0;
 
             service.start();
         });
