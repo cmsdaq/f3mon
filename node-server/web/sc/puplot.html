@@ -49,10 +49,12 @@
         <label for="indexno">Index </label><select id="index"><option value="current">current</option></select>
 	<br>
 	<br>
-        <label for="runno" title="csv list of run numbers">Run Numbers </label><input id="runno" name="runno" size=60></input>
+        <label for="runno" title="csv list of run numbers">Run Numbers </label><input id="runno" name="runno" size=96></input>
         <label for="rfill"><button type="button" id="opener2" onclick="return false">RunFilter</button></label>
+	<br>
         <label for="maxpu" title="optionally set max PU range to be plotted. default 50 or 60 with trend option"> Max PU </label><input id="maxpu" name="maxpu" size="4"></input>
         <label for="maskpu" title="optionally provide PU range to mask, e.g. 10.3-20,35.9-36.1,38.85"> PU Mask </label><input id="maskpu" name="maskpu" size="20"></input>
+        <label for="maxtime" title="optionally set max PU range to be plotted. default 50 or 60 with trend option"> Max CPUTime </label><input id="maxtime" name="maxtime" size="4"></input>
 
         <br>
         <div id="progressbar"></div>
@@ -120,7 +122,7 @@
 
       <tr>
 	<td>
-	  <div id="plot14">
+	  <div id="plot14a">
 	  </div>
 	</td>
 
@@ -131,6 +133,15 @@
 	</td>
 
       </tr>
+
+      <tr>
+	<td>
+	  <div id="plot14">
+	  </div>
+	</td>
+
+      </tr>
+
     </table>
   </div>
 </div>

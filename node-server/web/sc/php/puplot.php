@@ -9,6 +9,8 @@ header("Content-Type: application/json");
 $response=array();
 date_default_timezone_set("UTC");
 
+$lsceil=2000;
+
 
 $crl = curl_init();
 $hostname = 'es-cdaq';
@@ -45,6 +47,7 @@ if ($minls && $maxls) {
   $res = json_decode($ret,true);
   $start = $res["aggregations"]["minfmdate"]["value"];
   $end = $res["aggregations"]["maxfmdate"]["value"];
+  if (intval($maxls)-intval($minls)>2000) $lsceil=intval($minls)+2000;
 }
 
 //first get timestamps
@@ -62,7 +65,7 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 //TODO: order by LS and filter based on sharp changes in rate in neighboring points
 
 if ($minls && $maxls)
-  $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.intval($minls).',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"ls":{"terms":{"size":30000,"field":"ls"},"aggs":{"rate":{"sum":{"field":"NEvents"}},"bw":{"sum":{"field":"NBytes"}} }}}}';
+  $data =  '{"size":0,"query":{"bool":{"must":[{"range":{"ls":{"lt":'.$lsceil.'}}},{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.intval($minls).',"to":'.(intval($maxls)+1).'}}}]}},"aggs":{"ls":{"terms":{"size":30000,"field":"ls"},"aggs":{"rate":{"sum":{"field":"NEvents"}},"bw":{"sum":{"field":"NBytes"}} }}}}';
 else
   $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}},"aggs":{"ls":{"terms":{"size":30000,"field":"ls"},"aggs":{"rate":{"sum":{"field":"NEvents"}},"bw":{"sum":{"field":"NBytes"}} }}}}';
 
@@ -80,13 +83,94 @@ $response['eolsrate']=array();
 $response['eolsrate'][]=array();
 $response['eolsrate'][0]['name']=$run;
 $response['eolsrate'][0]['data']=array();
+
+//filtering
+$filtered_lskeys=array();
+
+$alength = count($res['aggregations']['ls']['buckets']);
+for ($cnt =0; $cnt<$alength;$cnt++) {
+  $add_filter=false;
+  $pre=array();
+  $prenum=1.;
+/*  if ($cnt-3>=0) {
+    $pre[]=$res['aggregations']['ls']['buckets'][$cnt-3]["rate"]["value"]/23.31;
+    $prenum++;
+  }*/
+  if ($cnt-2>=0) {
+    $pre[]=$res['aggregations']['ls']['buckets'][$cnt-2]["rate"]["value"]/23.31;
+    $prenum++;
+  }
+  if ($cnt-1>=0) {
+    $pre[]=$res['aggregations']['ls']['buckets'][$cnt-1]["rate"]["value"]/23.31;
+    $prenum++;
+  }
+
+  $pos=array();
+  $posnum=1.;
+/*  if ($cnt+3<$alength) {
+    $pos[]=$res['aggregations']['ls']['buckets'][$cnt+3]["rate"]["value"]/23.31;
+    $posnum++;
+  }*/
+  if ($cnt+2<$alength) {
+    $pos[]=$res['aggregations']['ls']['buckets'][$cnt+2]["rate"]["value"]/23.31;
+    $posnum++;
+  }
+  if ($cnt+1<$alength) {
+    $pos[]=$res['aggregations']['ls']['buckets'][$cnt+1]["rate"]["value"]/23.31;
+    $posnum++;
+  }
+  $p0=$res['aggregations']['ls']['buckets'][$cnt]["rate"]["value"]/23.31;
+  $pre[]=$p0;
+  $pos[]=$p0;
+
+  $preavg=0.;
+  $presigma=0.;
+  for ($cnt2 =0; $cnt2<$prenum;$cnt2++) {
+    $preavg+=$pre[$cnt2];
+  }
+//  continue;
+  $preavg=$preavg/$prenum;
+  for ($cnt2 =0; $cnt2<$prenum;$cnt2++) {
+    $presigma+=pow($pre[$cnt2]-$preavg,2);
+  }
+  $presigma=sqrt($presigma/$prenum);
+
+  $posavg=0.;
+  $possigma=0.;
+  for ($cnt2 =0; $cnt2<$posnum;$cnt2++) {
+    $posavg+=$pos[$cnt2];
+  }
+  $posavg=$posavg/$posnum;
+  for ($cnt2 =0; $cnt2<$posnum;$cnt2++) {
+    $possigma+=pow($pos[$cnt2]-$posavg,2);
+  }
+
+  $possigma=sqrt($possigma/$posnum);
+/*
+  echo json_encode($pre)."\n";
+  echo json_encode($pos)."\n";
+  echo "ls ".$res['aggregations']['ls']['buckets'][$cnt]["key"]." ".$preavg." ".$presigma."   ".$posavg." ".$possigma."\n";
+*/
+  if ($posavg<10000 && $preavg<10000) $add_filter=true;
+  if ($possigma>0.05*abs($posavg) || $presigma>0.05*abs($preavg)) $add_filter=true;
+
+  if ($add_filter)
+    $filtered_lskeys[intval($res['aggregations']['ls']['buckets'][$cnt]["key"])]=[$preavg,$presigma,$posavg,$possigma];
+
+}
+//echo json_encode($filtered_lskeys)."\n";
+//echo json_encode($res['aggregations']['ls']['buckets'])."\n";
+//exit(0);
+
 foreach($res['aggregations']['ls']['buckets'] as $kkey=>$vvalue){
   $key=$vvalue['key'];
+  if (array_key_exists($key,$filtered_lskeys)) continue;
   $rate  = $vvalue["rate"]["value"];
   $bw = $vvalue["bw"]["value"];
   if ($bw>0. && $key>0 ) $evsize[$key]=$bw/(1.*$rate);
-  $response['eolsrate'][0]['data'][]=array($key,$rate/23.31);
+  $response['eolsrate'][0]['data'][]=array(intval($key),$rate/23.31);
 }
+
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
 
@@ -121,6 +205,24 @@ $scriptuncorrCPU = "mysum = 0d;".
           "  else if (cpuName=='E5-2680 v4' || cpuName=='E5-2650 v4') archw=1.15;".
 	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
+	  "}";
+
+$scriptcorrCPU = " mysum = 0d;mysumu=0d;mycount=0d;".
+	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
+	    "uncorr = _source['fuSysCPUFrac'][i];".
+	    "corr=2*uncorr-uncorr*uncorr;".
+	    "mysum+=corr; mycount+=1;".
+	    "mysumu+=uncorr;".
+	  "};".
+	  "if (mycount>0) {".
+            "cpuw = _source['active_resources']/mycount;".
+            "archw=1d;".
+            "if (cpuw==32 || cpuw==16) archw=0.96;".
+            "if (cpuw==48 || cpuw==24) archw=1.13;".
+            "if (cpuw==56 || cpuw==28) archw=1.15;".
+            "if (cpuw<30) mysum=mysumu;".
+	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
+	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
 
 
@@ -199,7 +301,7 @@ $termscript = "if (doc['appliance'].value.startsWith('dv')) return doc['applianc
 //else
 //$filter1 = '"query":{"bool":{"must":[{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},{"term":{"activeFURun":'.$run.'}}]}}';
 
-$filter1 = '"query":{"bool":{"must":[{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},{"term":{"activeFURun":'.$run.'}},{"range":{"activeRunCMSSWMaxLS":{"from":1}}},{"range":{"fuDataNetIn":{"from":0.1}}}]}}';
+$filter1 = '"query":{"bool":{"must":[{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},{"term":{"activeFURun":'.$run.'}},{"range":{"activeRunCMSSWMaxLS":{"from":1}}},{"range":{"fuDataNetIn":{"from":0.1}}},{"range":{"activeRunCMSSWMaxLS":{"lt":'.$lsceil.'}}}]}}';
 //$filter1 = '"query":{"bool":{"must":[{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},{"term":{"activeFURun":'.$run.'}},{"range":{"activeRunCMSSWMaxLS":{"from":1}}}]}}';
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
@@ -208,6 +310,7 @@ $data = '{"size":0,'.$filter1.','.
           '"ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},'.
 	    '"aggs":{'.
 	      '"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},'.
+	      '"corrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrCPU.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},'.
               '"eventTimeUn":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit_etime.'"},"map_script":{"lang":"groovy","inline":"'.$scriptevtime.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce_etime.'"}}},'.
 	      '"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},'.
 	      '"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},'.
@@ -245,6 +348,11 @@ $res = json_decode($ret,true);
 $response['fuetimels'][]=array();
 $response['fuetimels'][0]['name']='/inst. BUFU rate';
 $response['fuetimels'][0]['data']=array();
+
+$response['pucpu'][]=array();
+$response['pucpu'][0]['name']='/';
+$response['pucpu'][0]['data']=array();
+
 $response['fuesizels'][]=array();
 $response['fuesizels'][0]['name']='/inst. BUFU rate';
 $response['fuesizels'][0]['data']=array();
@@ -255,9 +363,11 @@ $invmb = 1./1048576.;
 
 foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
   $myLS = intval($vvalue['lsavg']['value']);
+  if (array_key_exists($myLS,$filtered_lskeys)) continue;
   if (array_key_exists($myLS,$evsize)) {
     $esize = $evsize[$myLS];
     $erate = (1048576.0*$vvalue['sum_fudatain']['value'])/$esize;
+    $response['pucpu'][0]['data'][]=array($myLS,$vvalue['corrSysCPU']['value']);
 
     if ($erate>10000) {
       $myval = $vvalue['uncorrSysCPU']['value'] * $vvalue['sum_res']['value'] / $erate;
@@ -283,6 +393,7 @@ foreach($res['aggregations']['rescat']['buckets'] as $key=>$value){
   //echo $key."\n";
   foreach($value['ovr2']['buckets'] as $kkey=>$vvalue) {
     $myLS = intval($vvalue['lsavg']['value']);
+    if (array_key_exists($myLS,$filtered_lskeys)) continue;
     if (array_key_exists($myLS,$evsize)) {
       $esize = $evsize[$myLS];
       $erate = (1048576.0*$vvalue['sum_fudatain']['value'])/$esize;

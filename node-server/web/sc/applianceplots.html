@@ -56,6 +56,7 @@
 
       <br><br><label for="stable"></label><input type="checkbox" id="stable" name="stable"></input><label for="stable"> stable beams only</label>
               <label for="timeaxis"></label><input type="checkbox" id="timeaxis" name="timeaxis"></input><label for="timeaxis"> always show time on x-axis</label>
+              <label for="testplots"></label><input type="checkbox" id="testplots" name="testplots"></input><label for="testplots"> show test plots</label>
       <br><br>
       <input type="submit" value="Plot" onclick="$.ajaxQ.abortAll()"><button type="button" onclick='setlink()'>Set link</button>
 
@@ -83,62 +84,40 @@
     <br><br>
     <table class="pure-table" id="plots">
       <tr>
-	<td>
-	  <div id="plot1">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot1a">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot2">
-	  </div>
-	</td>
-      </tr>
-
-      <tr>
-	  <td><div id="plot10a"></div></td>
-	  <td><div id="plot16"/></td>
-	  <td><div id="plot17"/></td>
+	<td><div id="plotH0"></div></td>
+	<td><div id="plotH1"></div></td>
+	<td><div id="plotH2"></div></td>
       </tr>
       <tr>
-	  <td><div id="plot10b"/></td>
-	  <td><div id="plot15"/></td>
-	  <td><div id="plot13"/></td>
-      </tr>
-
-      <tr>
-	<td>
-	  <div id="plot3">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot12">
-	  </div>
-	</td>
-	<td>
-	  <div id="plot3a">
-	  </div>
-	</td>
+	<td><div id="plotA0"></div></td>
+	<td><div id="plotA1"/></td></td>
+	<td><div id="plotA2"/></td></td>
       </tr>
       <tr>
-
-	<td>
-	  <div id="plot20">
-	  </div>
-	</td>
-
-	<td>
-	  <div id="plot21">
-	  </div>
-	</td>
-
-	<td>
-	  <div id="plot22">
-	  </div>
-	</td>
-
+	<td><div id="plotB0"/></td></td>
+	<td><div id="plotB1"/></td></td>
+	<td><div id="plotB2"/></td></td>
+      </tr>
+      <tr>
+	<td><div id="plot10"></div></td>
+	<td><div id="plot11"></div></td>
+	<td><div id="plot12"></div></td>
+      </tr>
+      <tr>
+	<td><div id="plot20"></div></td>
+	<td><div id="plot21"></div></td>
+	<td><div id="plot22"></div></td>
+      </tr>
+      <tr>
+	<td><div id="plot30"></div></td>
+	<td><div id="plot31"></div></td>
+	<td><div id="plot40"></div></td>
+      </tr>
+      <tr>
+	<td><div id="plot41"></div></td>
+	<!--<td><div id="plot42"></div></td>-->
+	<td><div id="plot32"></div></td>
+	<td><div id="plot43"></div></td>
       </tr>
 
     </table>

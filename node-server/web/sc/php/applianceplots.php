@@ -1,13 +1,20 @@
 <?php 
 $run = $_GET["run"];
 $setup = $_GET["setup"];
+$multirun =intval($_GET["multirun"]);
+
+//$run = "304292";
+//$setup = "cdaq";
+//$multirun =1;
+
+$lsceil=2000;
+
 //if ($setup=="cdaq") $setup="cdaq*";
 $minls=null;
 $minls = $_GET["minls"];
 $maxls=null;
 $maxls = $_GET["maxls"];
 
-$multirun =intval($_GET["multirun"]);
 $perls = 0;
 $perls =intval($_GET["perls"]);
 $int = 0;
@@ -63,6 +70,7 @@ if ($minls && $maxls) {
   $res = json_decode($ret,true);
   $start = $res["aggregations"]["minfmdate"]["value"];
   $end = $res["aggregations"]["maxfmdate"]["value"];
+  if (intval($maxls)-intval($minls)>2000) $lsceil=intval($minls)+2000;
 }
 
 //time format conversion, calculate aggregation interval
@@ -81,70 +89,120 @@ $response["runinfo"]=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>
 
 //fetch EoLS documents (using scroll) to get per-LS event size, total L1 rate and LS timestamps
 //per-BU aggregation is no longer needed (fu data in is now used to get avg. l1 rate per BU). query could probably be fetched using aggregation
-if ($minls && $maxls)
-  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
-else {
-  $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}}';
+if (false) {
+
+  if ($minls && $maxls)
+    $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}}';
+  else {
+    $data =  '{"sort":["_doc"],"size":10000,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}}';
+  }
+
+  //echo $url." -d'".$data."'\n";
+  $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m';//&size=5000';
+
+  curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+  curl_setopt ($crl, CURLOPT_URL,$url);
+  curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+  $ret = curl_exec($crl);
+  $res = json_decode($ret,true);
+  $scroll_id=0;
+  $scroll_id=$res["_scroll_id"];
+  //echo $scroll_id."\n";
+  //$bwbybu=array();
+  $ratetotal=array();
+  $bwtotal = array();
+  $evsize=array();
+  $lstimes=array();
+
+  $http_status=200;
+  $first_scroll=true;
+
+  do{
+    if (!$first_scroll) {
+      $url = 'http://'.$hostname.':9200/_search/scroll';
+      $data = '{"scroll":"1m","scroll_id":"'.$scroll_id.'"}';
+      curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+      curl_setopt ($crl, CURLOPT_URL,$url);
+      curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+
+      $ret = curl_exec($crl);
+      $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
+    }
+    if($http_status==200){
+      if (!$first_scroll)
+        $res = json_decode($ret,true);
+      //echo $scroll_id."\n";
+      //let try again on second scroll
+      if (sizeof($res['hits']['hits'])==0 && !$first_scroll) break;
+      foreach($res['hits']['hits'] as $key=>$value){
+        $thebu = $value['_source']['appliance'];
+        $ls=$value['_source']['ls'];
+        $time=$value['_source']['fm_date'];
+        if (!array_key_exists($ls,$lstimes)) {
+          $lstimes[$ls]=strtotime($time)*1000;
+        }
+        if ($minsb && (intval($ls)<$minsb || intval($ls)>$maxsb)) continue; 
+        //$bwbybu[$thebu][$ls]=$value['_source']['NBytes'];
+        $ratetotal[$ls]=$value['_source']['TotalEvents'];
+        if ($value['_source']['NEvents']>0) {
+          $evsize[$ls]=$value['_source']['NBytes']/(1.0*$value['_source']['NEvents']);
+	  //bw per secod:
+          $bwtotal[$ls]=($ratetotal[$ls]/23.31)*($evsize[$ls]/1048576.);
+        }
+        else $bwtotal[$ls]=0;
+      }
+    }
+    //else echo "ERROR: ".$http_status;
+    $first_scroll=false;
+  }while($http_status == 200);
+  
 }
 
-//echo $url." -d'".$data."'\n";
-$url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?scroll=1m';//&size=5000';
+else {
 
-curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
-curl_setopt ($crl, CURLOPT_URL,$url);
-curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
-$ret = curl_exec($crl);
-$res = json_decode($ret,true);
-$scroll_id=0;
-$scroll_id=$res["_scroll_id"];
-//echo $scroll_id."\n";
-$bwbybu=array();
-$ratetotal=array();
-$bwtotal = array();
-$evsize=array();
-$lstimes=array();
+  $ratetotal=array();
+  $bwtotal = array();
+  $evsize=array();
+  $lstimes=array();
 
-$http_status=200;
-$first_scroll=true;
 
-do{
-  if (!$first_scroll) {
-    $url = 'http://'.$hostname.':9200/_search/scroll';
-    $data = '{"scroll":"1m","scroll_id":"'.$scroll_id.'"}';
-    curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
-    curl_setopt ($crl, CURLOPT_URL,$url);
-    curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+  $agg = ',"aggs":{"ls":{"terms":{"field":"ls","size":10000},"aggs":{"TotalEvents":{"max":{"field":"TotalEvents"}},"NEvents":{"sum":{"field":"NEvents"}},"NBytes":{"sum":{"field":"NBytes"}},"fm_date":{"max":{"field":"fm_date"}}}}}';
+  if ($minls && $maxls)
+    //$data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}'.$agg.'}';
+    $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},{"range":{"ls":{"lt":'.$lsceil.'}}}]}}'.$agg.'}';
+  else
+    $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}'.$agg.'}';
 
-    $ret = curl_exec($crl);
-    $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
-  }
-  if($http_status==200){
-    if (!$first_scroll)
-      $res = json_decode($ret,true);
-    //echo $scroll_id."\n";
-    //let try again on second scroll
-    if (sizeof($res['hits']['hits'])==0 && !$first_scroll) break;
-    foreach($res['hits']['hits'] as $key=>$value){
-      $thebu = $value['_source']['appliance'];
-      $ls=$value['_source']['ls'];
-      $time=$value['_source']['fm_date'];
-      if (!array_key_exists($ls,$lstimes)) {
-        $lstimes[$ls]=strtotime($time)*1000;
-      }
-      if ($minsb && (intval($ls)<$minsb || intval($ls)>$maxsb)) continue; 
-      //$bwbybu[$thebu][$ls]=$value['_source']['NBytes'];
-      $ratetotal[$ls]=$value['_source']['TotalEvents'];
-      if ($value['_source']['NEvents']>0) {
-        $evsize[$ls]=$value['_source']['NBytes']/(1.0*$value['_source']['NEvents']);
-	//bw per secod:
-        $bwtotal[$ls]=($ratetotal[$ls]/23.31)*($evsize[$ls]/1048576.);
-      }
-      else $bwtotal[$ls]=0;
+  //echo $data."\n";
+
+  $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/eols/_search?pretty';//&size=5000';
+  curl_setopt ($crl, CURLOPT_URL,$url);
+  curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
+  curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+
+  $ret = curl_exec($crl);
+  $http_status = curl_getinfo($crl, CURLINFO_HTTP_CODE);
+
+  $res = json_decode($ret,true);
+  //echo $ret."\n";
+  foreach($res['aggregations']['ls']['buckets'] as $key=>$value){
+    $ls=intval($key);
+    $time=$value['fm_date']['value_as_string'];
+    if (!array_key_exists($ls,$lstimes)) {
+      $lstimes[$ls]=strtotime($time)*1000;
     }
+      
+    if ($minsb && (intval($ls)<$minsb || intval($ls)>$maxsb)) continue; 
+    $ratetotal[$ls]=$value['TotalEvents']['value'];
+    if ($value['NEvents']['value']>0) {
+      $evsize[$ls]=$value['NBytes']['value']/(1.0*$value['NEvents']['value']);
+      //bw per second:
+      $bwtotal[$ls]=($ratetotal[$ls]/23.31)*($evsize[$ls]/1048576.);
+    }
+    else
+      $bwtotal[$ls]=0;
   }
-  //else echo "ERROR: ".$http_status;
-  $first_scroll=false;
-}while($http_status == 200);
+}
 
 $response['lstimes']=$lstimes;
       
@@ -208,7 +266,8 @@ $scriptcorrB02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	  "}";
 
 //CPU usage with correction
-//B: corrections from TSG (single-thread power vs. Ivy bridge) and 2x-x*x function used (~20% HT efficiency but turn-on effect is better paramretrized)
+//B: corrections from TSG (single-thread power vs. Ivy bridge) and 2x-x*x function used (~20% HT efficiency but turn-on effect is better parametrized)
+//TODO:dynamically detect HT on/off based on CPU type
 $scriptcorrC02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
 	    "uncorr = _source['fuSysCPUFrac'][i];".
@@ -343,7 +402,7 @@ $termscript = "if (doc['appliance'].value.startsWith('dv')) return doc['applianc
 $aggres = '"rescat":{"terms":{"script":{"lang":"groovy","inline":"'.$termscript.'"},"size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"eventTimeUn":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptevtimeD.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"corr2SysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrC02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"avg":{"avg":{"field":"ramdisk_occupancy"}},"avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}}   }}}}';
 
 //everything, including aggs not separated per scripted terms
-$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{'.$aggres.', "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"corr2SysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrC02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"timeMetric":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrF.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"eventTimeUn":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptevtimeC.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}} }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }} }}';
+$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":[{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},{"term":{"activeFURun":'.$run.'}},{"range":{"activeRunCMSSWMaxLS":{"lt":'.$lsceil.'}}}]}},"aggs":{'.$aggres.', "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"corr2SysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrC02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"timeMetric":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrF.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"eventTimeUn":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptevtimeC.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}} }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }} }}';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -478,14 +537,21 @@ foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
     $response['fuetimels'][1]['data'][]=array($myLS,$myval2);
     $bwtot=$bwtotal[$myLS];
     if ($bwtot!=0) {
-      $response['bwcompare'][0]['data'][]=array($myLS,$vvalue['sum_fudatain']['value']/(1.0*$bwtot));
+      if ($multirun) {
+	if (array_key_exists($myLS,$lstimes))
+          $response['bwcompare'][0]['data'][]=array($lstimes[$myLS],$vvalue['sum_fudatain']['value']/(1.0*$bwtot));
+      }
+      else
+        $response['bwcompare'][0]['data'][]=array($myLS,$vvalue['sum_fudatain']['value']/(1.0*$bwtot));
       //echo $myLS." ".$vvalue['sum_fudatain']['value']." : ".$bwtot."\n";
     }
   }
 }
 
 $response['fuetimelsres'] = array();
+$response['fuetimelsresls'] = array();
 $response['fucpures'] = array();
+$response['fucpuresls'] = array();
 $response['fucpures2'] = array();
 $key=0;
 foreach($res['aggregations']['rescat']['buckets'] as $keyN=>$value){
@@ -493,13 +559,19 @@ foreach($res['aggregations']['rescat']['buckets'] as $keyN=>$value){
   $response['fuetimelsres'][$key]=array();
   $response['fuetimelsres'][$key]['name']=$value['key'];
   $response['fuetimelsres'][$key]['data']=array();
+  $response['fuetimelsresls'][$key]=array();
+  $response['fuetimelsresls'][$key]['name']=$value['key'];
+  $response['fuetimelsresls'][$key]['data']=array();
   $key1=$key;
   $key2=$key;
   $response['fucpures'][$key1] = array();
+  $response['fucpuresls'][$key1] = array();
   $response['fucpures2'][$key2] = array();
   $response['fucpures'][$key1]['name']=$value['key']."";
+  $response['fucpuresls'][$key1]['name']=$value['key']."";
   $response['fucpures2'][$key2]['name']=$value['key']."";
   $response['fucpures'][$key1]['data']=array();
+  $response['fucpuresls'][$key1]['data']=array();
   $response['fucpures2'][$key2]['data']=array();
   foreach($value['ovr']['buckets'] as $kkey=>$vvalue){
     $myLS = intval($vvalue['lsavg']['value']);
@@ -507,6 +579,7 @@ foreach($res['aggregations']['rescat']['buckets'] as $keyN=>$value){
     $esize = $evsize[$myLS];
     $etime = $vvalue['eventTimeUn']['value']*$esize*$invmb;
     $response['fuetimelsresls'][$key]['data'][]=array($myLS,$etime);
+    $response['fucpuresls'][$key1]['data'][]=array($myLS,$vvalue['uncorrSysCPU']['value']);
     if ($multirun==0) {
       $response['fuetimelsres'][$key]['data'][]=array($myLS,$etime);
       $response['fucpures'][$key1]['data'][]=array($myLS,$vvalue['uncorrSysCPU']['value']);

@@ -161,6 +161,7 @@ function bootstrap(){
         setupDialogs();
 	setprogressbar(true,0,true,false);
         $('#abort_all').hide();
+	//$('#maxtime').val(0.5);
 
 	if (location.hash.length) {
 
@@ -570,9 +571,10 @@ function doPlots(runs){
 
 
 function createPlots() {
-
+ 
+        console.log('create plots ... ');
 	var maxpu_plot = 60;
-	var maxpu_2 = 50;
+	var maxpu_2 = 60;
 	var maxpu_3 = 60;
 	var minpu_2 = 20;
 	if ($("#pPb").is(':checked')) {
@@ -599,8 +601,8 @@ function createPlots() {
 	
 	if ($("#fitputime").is(':checked')) {
 		//data_copy["fuetimels"][0].showInLegend=false;
-		data_copy["fuetimels"][0].regression=true;
-		data_copy["fuetimels"][0].regressionSettings = {
+		data_copy["fuetimelsalt"][0].regression=true;
+		data_copy["fuetimelsalt"][0].regressionSettings = {
 			type: 'polynomial',
 			color: 'rgba(223, 83, 83, .9)',
 			useAllSeries:true,
@@ -609,8 +611,8 @@ function createPlots() {
 			xmax:maxpu_plot
 		}
 		//data_copy["fuetimels"][0].showInLegend=false;
-		data_copy["fuetimelsalt"][0].regression=true;
-		data_copy["fuetimelsalt"][0].regressionSettings = {
+		data_copy["fuetimels"][0].regression=true;
+		data_copy["fuetimels"][0].regressionSettings = {
 			type: 'polynomial',
 			color: 'rgba(223, 83, 83, .9)',
 			useAllSeries:true,
@@ -637,7 +639,51 @@ function createPlots() {
 	//if (isNaN(parseInt(maxpu))) {if ($("#fitputime").is(':checked')) maxpu=60; else maxpu=50;} else maxpu=parseInt(maxpu);
 	//if (parseInt(maxpu)<20) maxpu=20; else maxpu=parseInt(maxpu);
 	//console.log(JSON.stringify(data_copy["fuetimels"]));
-	plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,maxpu,0,(!$("#pPb").is(':checked')) ? 0.5:0.8);
+
+	//make plots to consistently show same run list even if no data
+	var dc_keys=Object.keys(data_copy);
+	var run_keys_int={}
+	var whitelist_dc_keys={"fuetimelsalt":true,"fuesizels":true,"fu3d":true,"eolsrate":true,"pucpu":true,"fuetimels":true};
+	dc_keys.forEach(function(item) {
+	  if (whitelist_dc_keys.hasOwnProperty(item)) {
+	    data_copy[item].forEach(function(runitem) {
+	      var rn = parseInt(runitem.name);
+	      run_keys_int[rn]=true;
+	    });
+	  }
+	});
+        run_keys_int=Object.keys(run_keys_int).sort();
+	dc_keys.forEach(function(item) {
+	  if (whitelist_dc_keys.hasOwnProperty(item)) {
+	    //if len mismatch, some runs are missing
+	    if (data_copy[item].length!=run_keys_int.length) {
+	      var dci_copy=[];
+	      run_keys_int.forEach(function(rki) {
+	        var found=false;
+	        for (var i=0;i<data_copy[item].length;i++) {
+		  if ( data_copy[item][i].name===''+rki ) {
+		    dci_copy.push(data_copy[item][i]);
+		    found=true;
+		    break;
+		  }
+		}
+		if (!found) {
+		  dci_copy.push({"name":''+rki,"data":[]})
+		}
+
+	      });
+	      data_copy[item]=dci_copy
+	    }
+	  }
+	});
+
+        var max_time_1 = $('#maxtime').val();
+	if (!isNaN(max_time_1))
+	  max_time_1 = parseFloat(max_time_1);
+	else max_time_1 = 0.;
+	var max_time = max_time_1 > 0. ? max_time_1: ( !$("#pPb").is(':checked') ? 0.5 :0.8 ) ;
+	console.log('mtime '  + max_time);
+	plot('#plot13','fu sys avg event time vs pileup','scatter',data_copy["fuetimels"],'','Pileup','seconds',undefined,maxpu,0,max_time);
 	plot('#plot15','avg event size vs pileup','scatter',data_copy["fuesizels"],'','Pileup','size',undefined,maxpu,undefined,2000000);
         plot3D('#plot17','size and time vs pileup',data_copy["fu3d"],'PU','event time','event size',0,undefined,undefined,undefined,undefined,undefined);
 	//console.log(minpu1)
@@ -646,9 +692,9 @@ function createPlots() {
 //	else
 		plot('#plot16','L1 (HLT input) rate vs pileup','scatter',data_copy["eolsrate"],'','Pileup','Hz',minpu1==-1?undefined:minpu1,maxpu,0,undefined);
 
-	plot('#plot14','fu (sys) avg event time vs pileup: categories','scatter',data_copy["fuetimels2"],'','Pileup','seconds',undefined,maxpu,0,(!$("#pPb").is(':checked')) ? 0.5:0.8);
-	plot('#plot18','fu sys avg event time vs pileup (alt:cross-check)','scatter',data_copy["fuetimelsalt"],'','Pileup','seconds',undefined,maxpu,0,(!$("#pPb").is(':checked')) ? 0.5:0.8);
-	//plot('#plot14','fu sys avg event time vs pileup','scatter',data["fuetimels2"],'','Pileup','seconds',undefined,50,0,0.5);
+	plot('#plot14','fu (sys) avg event time vs pileup: categories','scatter',data_copy["fuetimels2"],'','Pileup','seconds',undefined,maxpu,0,max_time);
+	plot('#plot14a','CPU vs pileup (HT-correction)','scatter',data_copy["pucpu"],'','Pileup','% CPU',undefined,maxpu,0,1);
+	plot('#plot18','fu sys avg event time vs pileup (alt:cross-check)','scatter',data_copy["fuetimelsalt"],'','Pileup','seconds',undefined,maxpu,0,max_time);
 	$("#loading_dialog").loading();
 	$("#loading_dialog").loading("loadStop");
 	setTimeout(function () {setprogressbar2(100,true,false)},100);
@@ -708,8 +754,8 @@ function doPlot(runlist) {
 		if (year!=='current') setup_string+=year;
                 else if (run<=286591) setup_string="cdaq2016";
 		var setuppart = "&setup="+setup_string;
-		if (!data_copy.hasOwnProperty("fuetimels")) data_copy["fuetimels"]=[];
 		if (!data_copy.hasOwnProperty("fuetimelsalt")) data_copy["fuetimelsalt"]=[];
+		if (!data_copy.hasOwnProperty("fuetimels")) data_copy["fuetimels"]=[];
 		if (!data_copy.hasOwnProperty("fuesizels")) data_copy["fuesizels"]=[];
 		if (!data_copy.hasOwnProperty("eolsrate")) data_copy["eolsrate"]=[];
 		if (!data_copy.hasOwnProperty("fu3d")) data_copy["fu3d"]=[];
@@ -725,7 +771,7 @@ function doPlot(runlist) {
 				var ls2map = {}
 				//plot 13
 				var datavec = []
-				var origvec = data["fuetimels"][0].data
+				var origvec = data["fuetimelsalt"][0].data
 				for (var i=0;i<origvec.length;i++) {
 					var ls = origvec[i][0];
 					if (pileupmap.hasOwnProperty(ls)) {
@@ -735,19 +781,19 @@ function doPlot(runlist) {
 					if (minpu1==-1 || minpu1>pileupmap[ls]) minpu1 = pileupmap[ls];
 				}
 				datavec.sort(function(a, b){return a[0]>b[0]});
-				data["fuetimels"][0].data = datavec;
-				data["fuetimels"][0]["name"]=run
+				data["fuetimelsalt"][0].data = datavec;
+				data["fuetimelsalt"][0]["name"]=run
 				//console.log(datavec.length + ' name '  + run )
 				if (datavec.length)
-				if (!data_copy.hasOwnProperty("fuetimels"))
-					data_copy["fuetimels"]=[data["fuetimels"][0]]
+				if (!data_copy.hasOwnProperty("fuetimelsalt"))
+					data_copy["fuetimelsalt"]=[data["fuetimelsalt"][0]]
 				else
-					data_copy["fuetimels"].push(data["fuetimels"][0])
+					data_copy["fuetimelsalt"].push(data["fuetimelsalt"][0])
 
                                 //plot18
 				//var ls2mapalt = {}
 				var datavec = []
-				var origvec = data["fuetimelsalt"][0].data
+				var origvec = data["fuetimels"][0].data
 				for (var i=0;i<origvec.length;i++) {
 					var ls = origvec[i][0];
 					if (pileupmap.hasOwnProperty(ls)) {
@@ -757,13 +803,32 @@ function doPlot(runlist) {
 					//if (minpu1==-1 || minpu1>pileupmap[ls]) minpu1 = pileupmap[ls];
 				}
 				datavec.sort(function(a, b){return a[0]>b[0]});
-				data["fuetimelsalt"][0].data = datavec;
-				data["fuetimelsalt"][0]["name"]=run
+				data["fuetimels"][0].data = datavec;
+				data["fuetimels"][0]["name"]=run
 				if (datavec.length)
-				if (!data_copy.hasOwnProperty("fuetimelsalt"))
-					data_copy["fuetimelsalt"]=[data["fuetimelsalt"][0]]
+				if (!data_copy.hasOwnProperty("fuetimels"))
+					data_copy["fuetimels"]=[data["fuetimels"][0]]
 				else
-					data_copy["fuetimelsalt"].push(data["fuetimelsalt"][0])
+					data_copy["fuetimels"].push(data["fuetimels"][0])
+
+                                //plot14a (CPU)
+				//var ls2mapalt = {}
+				var datavec = []
+				var origvec = data["pucpu"][0].data
+				for (var i=0;i<origvec.length;i++) {
+					var ls = origvec[i][0];
+					if (pileupmap.hasOwnProperty(ls)) {
+						datavec.push([pileupmap[ls],origvec[i][1]])
+					}
+				}
+				datavec.sort(function(a, b){return a[0]>b[0]});
+				data["pucpu"][0].data = datavec;
+				data["pucpu"][0]["name"]=run
+				if (datavec.length)
+				if (!data_copy.hasOwnProperty("pucpu"))
+					data_copy["pucpu"]=[data["pucpu"][0]]
+				else
+					data_copy["pucpu"].push(data["pucpu"][0])
 
 				//plot15
 					datavec = []
@@ -800,6 +865,7 @@ function doPlot(runlist) {
 						data_copy["fu3d"].push(data["fu3d"][0])
 
 					//plot14
+					//console.log(JSON.stringify(data["fuetimels2"]));
 					for (var j=0;j<data["fuetimels2"].length;j++) {
 							datavec = []
 							origvec = data["fuetimels2"][j].data;
