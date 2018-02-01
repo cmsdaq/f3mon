@@ -13,6 +13,7 @@ $maxtime = time();
 $interval = 3;
 $intlength = 30;
 */
+if ($maxtime==null) $maxtime=time();
 
 header("Content-Type: application/json");
 date_default_timezone_set("UTC");
