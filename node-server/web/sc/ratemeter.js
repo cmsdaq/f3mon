@@ -16,6 +16,8 @@ function run_data_format(){
             var lsDelay = 0;
 	    var streama = "";
 	    var streamaSize = "";
+	    var streame = "";
+	    var streameSize = "";
 	    //console.log(run);
 	    if(run!=0){
 		$.get("php/lastls.php?setup="+$('input[name=setup]:checked', '#setups').val()+"&run="+run,function(data1){ls=data1-delay;});
@@ -38,6 +40,28 @@ function run_data_format(){
 			    streamaSize=data3;
 		    }
 		    );
+//get also express rate and size
+		$.get("php/sstreamrate_delayed.php?setup="+$('input[name=setup]:checked', '#setups').val()+"&stream=Express"+"&run="+run+"&ls="+ls,function(data3){
+                        ///dvals = data3.split(",")
+			if(!isNaN(parseInt(data.number)))
+			    streame=(data3.val/1.).toFixed(2);
+			else
+			    streame=data3.val;
+                        ls_=data3.key;
+		    }
+		    );
+                lsDelay = ls-ls_;
+                ls = ls_;
+		$.get("php/sstreamsize_delayed.php?setup="+$('input[name=setup]:checked', '#setups').val()+"&stream=Express"+"&run="+run+"&ls="+ls,function(data3){
+
+			if(!isNaN(parseFloat(data.number)))
+			    streameSize=(data3/1.).toFixed(2);
+			else
+			    streameSize=data3;
+		    }
+		    );
+
+
                 //console.log($('input[name=stream]:checked', '#streams').val());
                 if ($('input[name=stream]:checked', '#streams').val()=='*') streama=-1.;
 		//console.log("rate_overlay.php?ls="+ls+"&run="+run);
@@ -69,6 +93,7 @@ function run_data_format(){
 				      else{
 					  content += "<td>"+streama+" Hz</td>";
 				      }
+
 				  }
 				  else{
                                       if (streama<0)
@@ -79,12 +104,15 @@ function run_data_format(){
 				  }
                                   //content+="<td>"+Math.round(streamaSize/(1024*1024.))+"</td></tr>"
                                   var streamaMB = streamaSize/(1024*1024.);
+                                  var streameMB = streameSize/(1024*1024.);
                                   if (streamaMB>5000)
                                     content+="<td style='background-color:red'>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
                                   else if (streamaMB>5000)
                                     content+="<td style='background-color:yellow'>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
                                   else
-                                    content+="<td>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
+                                    content+="<td>"+streamaMB.toFixed(1)+" MB/s</td>"
+				  content += "<td>"+streame+" Hz</td>";
+                                  content+="<td>"+streameMB.toFixed(1)+" MB/s</td></tr>"
                                   
 			      }
 			      );
