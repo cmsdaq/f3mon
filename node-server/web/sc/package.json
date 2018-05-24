@@ -1,10 +1,11 @@
 {
   "name": "sc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "dependencies": {
     "jquery-migrate":"*",
     "jquery" : "3.*",
     "highcharts" : "*",
-    "font-awesome" : "*"
+    "font-awesome" : "*",
+    "jquery-datetimepicker" : "*"
   }
 }
