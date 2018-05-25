@@ -15,13 +15,18 @@ curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
 curl_setopt ($crl, CURLOPT_CONNECTTIMEOUT, $timeout);
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 $ret = curl_exec($crl);
-
 curl_close($crl);
 $res=jsonDecode($ret);
 $retval = array();
 $retval["started"]=$res["hits"]["hits"][0]["_source"]["startTime"];
 if(array_key_exists("endTime",$res["hits"]["hits"][0]["_source"])){
+  $activeBUs = intval($res["hits"]["hits"][0]["_source"]["activeBUs"]); //active BUs in the run (0 if run ended properly)
+  $totalBUs = intval($res["hits"]["hits"][0]["_source"]["totalBUs"]); //max BUs in the run
+  if ($totalBUs!=0 && $activeBUs==0) //if at least one BU participated and ended run, reprot that run is finished
   $retval["ended"]=$res["hits"]["hits"][0]["_source"]["endTime"];
+  else {
+    $retval["ended"]="";
+  }
 }
 else{
   $retval["ended"]="";
