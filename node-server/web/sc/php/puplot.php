@@ -11,6 +11,14 @@ date_default_timezone_set("UTC");
 
 $lsceil=2000;
 
+//flag to use old inline script in case of older doc version without physical/HT CPU count
+$new_cpu_match=true;
+if ($setup) {
+  preg_match("/\d+$/",$setup,$matches);
+  if (count($matches)) {
+    if (intval($matches[0])<2018) $new_cpu_match=false;
+  }
+}
 
 $crl = curl_init();
 $hostname = 'es-cdaq';
@@ -174,6 +182,27 @@ foreach($res['aggregations']['ls']['buckets'] as $kkey=>$vvalue){
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
 
+if ($new_cpu_match) {
+
+  $cpu_script_2 = "cpuw = _source['activePhysCores']/mycount;".
+                  "if (cpuw==16) archw=0.96;".
+                  "if (cpuw==24) archw=1.13;".
+                  "if (cpuw==28 || cpuw==32) archw=1.15;".
+                  "if (_source['activePhysCores']==2*_source['activeHTCores']) cpuw= _source['activeHTCores']/mycount;";
+
+  $cpu_script_1 = $cpu_script_2.
+                  "else if (_source['activePhysCores']==_source['activeHTCores']) mysum=mysumu;";
+	
+} else {
+  $cpu_script_2 = "cpuw = _source['active_resources']/mycount;".
+                  "if (cpuw==32 || cpuw==16) archw=0.96;".
+                  "if (cpuw==48 || cpuw==24) archw=1.13;".
+                  "if (cpuw==56 || cpuw==28) archw=1.15;".
+	
+  $cpu_script_1 = $cpu_script_2.
+                  "if (cpuw<30) mysum=mysumu;";
+}
+
 //todo: use fuCPUName here
 $scriptuncorrB = "mysum = 0d;".
           "mycount=0d;".
@@ -181,11 +210,8 @@ $scriptuncorrB = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32 || cpuw==16) archw=0.96;".
-          "  if (cpuw==48 || cpuw==24) archw=1.13;".
-          "  if (cpuw==56 || cpuw==28) archw=1.15;".
+	  $cpu_script_2.
 	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -197,12 +223,12 @@ $scriptuncorrCPU = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
+          "  cpuw = _source['active_resources']/mycount;".
 	  "  cpuName=_source['fuCPUName'];".
           "  if (cpuName=='E5-2670 0') archw=0.96;".
           "  else if (cpuName=='E5-2680 v3') archw=1.13;".
-          "  else if (cpuName=='E5-2680 v4' || cpuName=='E5-2650 v4') archw=1.15;".
+          "  else if (cpuName=='E5-2680 v4' || cpuName=='E5-2650 v4' || cpuName=='Gold 6130') archw=1.15;".
 	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -215,12 +241,8 @@ $scriptcorrCPU = " mysum = 0d;mysumu=0d;mycount=0d;".
 	    "mysumu+=uncorr;".
 	  "};".
 	  "if (mycount>0) {".
-            "cpuw = _source['active_resources']/mycount;".
             "archw=1d;".
-            "if (cpuw==32 || cpuw==16) archw=0.96;".
-            "if (cpuw==48 || cpuw==24) archw=1.13;".
-            "if (cpuw==56 || cpuw==28) archw=1.15;".
-            "if (cpuw<30) mysum=mysumu;".
+	    $cpu_script_1.
 	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -237,11 +259,8 @@ $scriptevtime = "mysum = 0d;".
 	  "};".
 	  "if (mycount>0 && _source['fuDataNetIn']>0.0) {".
           "  mytimeoversize=_source['active_resources']*mysum/(1.0*_source['fuDataNetIn']);".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32) archw=0.96;".
-          "  if (cpuw==48) archw=1.13;".
-          "  if (cpuw==56) archw=1.15;".
+	  $cpu_script_2.
 	  "  _agg['timeun'].add(archw*cpuw*mytimeoversize/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -287,7 +306,7 @@ $termscript = "if (doc['appliance'].value.startsWith('dv')) return doc['applianc
               "buCPU=doc['buCPUName'].value;".
 	      "fuCPU=doc['fuCPUName'].value;".
               "buMap = ['E5-2670 0':'','E5-2670 v3':'(R730)'];".
-              "fuMap = ['E5-2670 0':'`12 Dell','E5-2680 v3':'`15 Megw','E5-2680 v4':'`16 Action','E5-2650 v4':'`17 Huaw'];".
+              "fuMap = ['E5-2670 0':'`12 Dell','E5-2680 v3':'`15 Megw','E5-2680 v4':'`16 Action','E5-2650 v4':'`17 Huaw','Gold 6130':'`18 Gold'];".
 	      "bukey = buMap.find{ it.key == buCPU }?.value;".
 	      "fukey = fuMap.find{ it.key == fuCPU }?.value;".
 	      "if (!fukey) fukey=doc['fuCPUName'].value;".

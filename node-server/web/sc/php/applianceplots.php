@@ -3,10 +3,9 @@ $run = $_GET["run"];
 $setup = $_GET["setup"];
 $multirun =intval($_GET["multirun"]);
 
-//$run = "304292";
-//$setup = "cdaq";
-//$multirun =1;
 
+
+//cutoff
 $lsceil=2000;
 
 //if ($setup=="cdaq") $setup="cdaq*";
@@ -23,8 +22,14 @@ $interval = intval($_GET["int"]);
 $minsb = $_GET["minsb"]!=null ? intval($_GET["minsb"]):0;
 $maxsb = $_GET["maxsb"]!=null ? intval($_GET["maxsb"]):0;
 
-//$run="298753";
-//$setup="cdaq";
+//flag to use old inline script in case of older doc version without physical/HT CPU count
+$new_cpu_match=true;
+if ($setup) {
+  preg_match("/\d+$/",$setup,$matches);
+  if (count($matches)) {
+    if (intval($matches[0])<2018) $new_cpu_match=false;
+  }
+}
 
 header("Content-Type: application/json");
 date_default_timezone_set("UTC");
@@ -71,15 +76,27 @@ if ($minls && $maxls) {
   $start = $res["aggregations"]["minfmdate"]["value"];
   $end = $res["aggregations"]["maxfmdate"]["value"];
   if (intval($maxls)-intval($minls)>2000) $lsceil=intval($minls)+2000;
+  $span = (intval($end)-intval($start))/1000.;
+  //echo intval($start)-intval($end)."\n";
+  //$minls=$maxls=null;
+}
+else {
+  $span = strtotime($end)-strtotime($start);
 }
 
 //time format conversion, calculate aggregation interval
-$span = strtotime($end)-strtotime($start);
+//$span = strtotime($end)-strtotime($start);
 if ($span==0)
   $span = ($end-$start)*0.001;
 
-if ($interval==0)
-  $interval = strval(max(floor($span/50),20)).'s';//5? 
+if ($interval==0) {
+  if ($span<360)
+  $interval = strval(max(floor($span/50),5)).'s';//5? 
+  elseif ($span<720)
+  $interval = strval(max(floor($span/50),10)).'s';//5? 
+  else
+  $interval = strval(max(floor($span/50),10)).'s';//5? 
+}
 else $interval = $interval.'s';
 
 $usec = substr($start,strpos($start,".")+1);
@@ -164,12 +181,16 @@ else {
   $bwtotal = array();
   $evsize=array();
   $lstimes=array();
+  $trate=array();
 
 
   $agg = ',"aggs":{"ls":{"terms":{"field":"ls","size":10000},"aggs":{"TotalEvents":{"max":{"field":"TotalEvents"}},"NEvents":{"sum":{"field":"NEvents"}},"NBytes":{"sum":{"field":"NBytes"}},"fm_date":{"max":{"field":"fm_date"}}}}}';
-  if ($minls && $maxls)
+  if ($minls && $maxls) {
     //$data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}}]}}'.$agg.'}';
-    $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},{"range":{"ls":{"lt":'.$lsceil.'}}}]}}'.$agg.'}';
+    $max_ls_q = min(intval($maxls),intval($lsceil)-1);
+    //$data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},{"range":{"ls":{"lt":'.$lsceil.'}}}]}}'.$agg.'}';
+    $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}},{"range":{"ls":{"from":'.$minls.',"to":'.$max_ls_q.'}}}]}}'.$agg.'}';
+  }
   else
     $data =  '{"size":0,"query":{"bool":{"must":[{"parent_id":{"type":"eols","id":"'.$run.'"}}]}}'.$agg.'}';
 
@@ -186,7 +207,7 @@ else {
   $res = json_decode($ret,true);
   //echo $ret."\n";
   foreach($res['aggregations']['ls']['buckets'] as $key=>$value){
-    $ls=intval($key);
+    $ls=intval($value['key']);
     $time=$value['fm_date']['value_as_string'];
     if (!array_key_exists($ls,$lstimes)) {
       $lstimes[$ls]=strtotime($time)*1000;
@@ -232,6 +253,7 @@ foreach($ratetotal as $ls=>$rate){
   else
     $response["ratebytotal"][0]['data'][]=array($lstimes[$ls],$rate/23.31);
   $response["ratebytotalls"][0]['data'][]=array($ls,$rate/23.31);
+  $trate[$ls]=($rate/23.31);
   //$response["ratebytotal2"][$ls]=$rate/23.31;
 }
 
@@ -240,6 +262,27 @@ foreach($ratetotal as $ls=>$rate){
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
 
+if ($new_cpu_match) {
+
+  $cpu_script_2 = "cpuw = _source['activePhysCores']/mycount;".
+                  "if (cpuw==16) archw=0.96;".
+                  "if (cpuw==24) archw=1.13;".
+                  "if (cpuw==28 || cpuw==32) archw=1.15;".
+                  "if (_source['activePhysCores']==2*_source['activeHTCores']) cpuw= _source['activeHTCores']/mycount;";
+
+  $cpu_script_1 = $cpu_script_2.
+                  "else if (_source['activePhysCores']==_source['activeHTCores']) mysum=mysumu;";
+	
+} else {
+  $cpu_script_2 = "cpuw = _source['active_resources']/mycount;".
+                  "if (cpuw==32 || cpuw==16) archw=0.96;".
+                  "if (cpuw==48 || cpuw==24) archw=1.13;".
+                  "if (cpuw==56 || cpuw==28) archw=1.15;".
+	
+  $cpu_script_1 = $cpu_script_2.
+                  "if (cpuw<30) mysum=mysumu;";
+}
+	
 //CPU usage with correction
 //B: corrections from TSG (single-thread power vs. Ivy bridge) using 'kink' function (20% HT efficiency assumed)
 $scriptcorrB02 = " mysum = 0d;mysumu=0d;mycount=0d;".
@@ -255,12 +298,8 @@ $scriptcorrB02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	    "mysumu+=uncorr;".
 	  "};".
 	  "if (mycount>0) {".
-            "cpuw = _source['active_resources']/mycount;".
             "archw=1d;".
-            "if (cpuw==32 || cpuw==16) archw=0.96;".
-            "if (cpuw==48 || cpuw==24) archw=1.13;".
-            "if (cpuw==56 || cpuw==28) archw=1.15;".
-            "if (cpuw<30) mysum=mysumu;".
+	    $cpu_script_1.
 	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -276,12 +315,8 @@ $scriptcorrC02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	    "mysumu+=uncorr;".
 	  "};".
 	  "if (mycount>0) {".
-            "cpuw = _source['active_resources']/mycount;".
             "archw=1d;".
-            "if (cpuw==32 || cpuw==16) archw=0.96;".
-            "if (cpuw==48 || cpuw==24) archw=1.13;".
-            "if (cpuw==56 || cpuw==28) archw=1.15;".
-            "if (cpuw<30) mysum=mysumu;".
+	    $cpu_script_1.
 	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -293,11 +328,8 @@ $scriptuncorrB = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32 || cpuw==16) archw=0.96;".
-          "  if (cpuw==48 || cpuw==24) archw=1.13;".
-          "  if (cpuw==56 || cpuw==28) archw=1.15;".
+	  $cpu_script_2.
 	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -311,11 +343,8 @@ $scriptuncorrF = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0 && _source['fuDataNetIn']>100.0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32 || cpuw==16) archw=0.96;".
-          "  if (cpuw==48 || cpuw==24) archw=1.13;".
-          "  if (cpuw==56 || cpuw==28) archw=1.15;".
+	  $cpu_script_2.
 	  "  _agg['cpuavg'].add(_source['active_resources']*archw*cpuw*mysum/(mycount*1048576.0*_source['fuDataNetIn']));".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -329,11 +358,8 @@ $scriptevtimeC = "mysum = 0d;".
 	  "};".
 	  "if (mycount>0 && _source['fuDataNetIn']>100.0) {".
           "  mytimeoversize=_source['active_resources']*mysum/(1.0*_source['fuDataNetIn']);".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32) archw=0.96;".
-          "  if (cpuw==48) archw=1.13;".
-          "  if (cpuw==56) archw=1.15;".
+	  $cpu_script_2.
 	  "  _agg['cpuavg'].add(archw*cpuw*mytimeoversize/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -390,7 +416,7 @@ $termscript = "if (doc['appliance'].value.startsWith('dv')) return doc['applianc
               "buCPU=doc['buCPUName'].value;".
 	      "fuCPU=doc['fuCPUName'].value;".
               "buMap = ['E5-2670 0':'','E5-2670 v3':'(R730)'];".
-              "fuMap = ['E5-2670 0':'`12 Dell','E5-2680 v3':'`15 Megw','E5-2680 v4':'`16 Action','E5-2650 v4':'`17 Huaw'];".
+              "fuMap = ['E5-2670 0':'`12 Dell','E5-2680 v3':'`15 Megw','E5-2680 v4':'`16 Action','E5-2650 v4':'`17 Huaw','Gold 6130':'`18 Gold'];".
 	      "bukey = buMap.find{ it.key == buCPU }?.value;".
 	      "fukey = fuMap.find{ it.key == fuCPU }?.value;".
 	      "if (!fukey) fukey=doc['fuCPUName'].value;".
@@ -520,6 +546,13 @@ $response['bwcompare']=array();
 $response['bwcompare'][0]['name']="FU/EoLS bw";
 $response['bwcompare'][0]['data']=[];
 
+$response['erate'][]=array();
+$response['erate'][0]['name']='total inst. event rate to FUs';
+$response['erate'][0]['data']=[];
+$response['erater'][]=array();
+$response['erater'][0]['name']='FU rate/bw ratio';
+$response['erater'][0]['data']=[];
+
 $invmb = 1./1048576.;
 foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
   $myLS = intval($vvalue['lsavg']['value']);
@@ -527,6 +560,9 @@ foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
   if (array_key_exists($myLS,$evsize)) {
     $esize = $evsize[$myLS];
     $erate = (1048576.*$vvalue['sum_fudatain']['value'])/$esize;
+    $response['erate'][0]['data'][]=array($vvalue['key'],$erate);
+    if (array_key_exists($myLS,$trate))
+      $response['erater'][0]['data'][]=array($vvalue['key'],$erate/$trate[$myLS]);
     $myval = $vvalue['uncorrSysCPU']['value'] * $vvalue['sum_res']['value'] / $erate;
     $myval1 = $vvalue['timeMetric']['value'] * $esize;
     $myval2 = $vvalue['eventTimeUn']['value'] * $esize*$invmb;

@@ -6,6 +6,21 @@ $minls=null;
 $minls = $_GET["minls"];
 $maxls=null;
 $maxls = $_GET["maxls"];
+//http://cmsdaqfff.cern.ch/prod/sc/php/appliance_analysis.php?run=315713&setup=cdaq&minls=1&maxls=1132
+//$run="315713";
+//$setup="cdaq";
+//$minls=1;
+//$maxls=1000;
+
+//flag to use old inline script in case of older doc version without physical/HT CPU count
+$new_cpu_match=true;
+if ($setup) {
+  preg_match("/\d+$/",$setup,$matches);
+  if (count($matches)) {
+    if (intval($matches[0])<2018) $new_cpu_match=false;
+  }
+}
+
 header("Content-Type: application/json");
 $response=array();
 date_default_timezone_set("UTC");
@@ -54,9 +69,13 @@ if ($minls && $maxls) {
   $res = json_decode($ret,true);
   $start = $res["aggregations"]["minfmdate"]["value"];
   $end = $res["aggregations"]["maxfmdate"]["value"];
+  $span = (intval($end)-intval($start))/1000.;
+  //echo intval($start)-intval($end)."\n";
+  //$minls=$maxls=null;
 }
-
-$span = strtotime($end)-strtotime($start);
+else {
+  $span = strtotime($end)-strtotime($start);
+}
 $interval = strval(max(max(1,floor($span/100)),10)).'s';//5?
 //$interval=strval(max(1,floor($span/100))).'s';
 //if ($interval>200) interval=200;
@@ -158,6 +177,31 @@ foreach($ratetotal as $ls=>$rate){
 }
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
+
+
+if ($new_cpu_match) {
+
+  $cpu_script_2 = "cpuw = _source['activePhysCores']/mycount;".
+                  "if (cpuw==16) archw=0.96;".
+                  "if (cpuw==24) archw=1.13;".
+                  "if (cpuw==28 || cpuw==32) archw=1.15;".
+                  "if (_source['activePhysCores']==2*_source['activeHTCores']) cpuw= _source['activeHTCores']/mycount;";
+
+  $cpu_script_1 = $cpu_script_2.
+                  "else if (_source['activePhysCores']==_source['activeHTCores']) mysum=mysumu;";
+	
+} else {
+  $cpu_script_2 = "cpuw = _source['active_resources']/mycount;".
+                  "if (cpuw==32 || cpuw==16) archw=0.96;".
+                  "if (cpuw==48 || cpuw==24) archw=1.13;".
+                  "if (cpuw==56 || cpuw==28) archw=1.15;".
+	
+  $cpu_script_1 = $cpu_script_2.
+                  "if (cpuw<30) mysum=mysumu;";
+}
+	
+
+
 $scriptcorr02 = " mysum = 0d;          mycount=0d;".
 	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
 	    "uncorr = _source['fuSysCPUFrac'][i];".
@@ -187,11 +231,8 @@ $scriptcorrB02 = " mysum = 0d;          mycount=0d;".
 	    "mysum+=corr; mycount+=1;".
 	  "};".
 	  "if (mycount>0) {".
-            "cpuw = _source['active_resources']/mycount;".
             "archw=1d;".
-            "if (cpuw==32) archw=0.96;".
-            "if (cpuw==48) archw=1.13;".
-            "if (cpuw==56) archw=1.15;".
+	    $cpu_script_1.
 	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -213,11 +254,8 @@ $scriptuncorrB = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32) archw=0.96;".
-          "  if (cpuw==48) archw=1.13;".
-          "  if (cpuw==56) archw=1.15;".
+	    $cpu_script_2.
 	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -337,8 +375,9 @@ foreach($res['aggregations']['ovr2']['buckets'] as $kkey=>$vvalue){
   }
 }
 
-//exit(1);
+/*
 
+//OLD plots (based on live run indices)
 
 $response["series1"]=array();
 $response["series2"]=array();
@@ -349,7 +388,7 @@ $index=0;
  
   $hostname = "es-local";
 
-  $url = 'http://'.$hostname.':9200/run'.$run.'*/prc-in/_search';
+  $url = 'http://'.$hostname.':9200/run'.$run.'*'.'/prc-in/_search';
   if ($minls && $maxls)
     $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"ls":{"terms":{"field":"ls","size":30000,"order":{"_term":"asc"}},"aggs":{"maxtime":{"max":{"field":"_timestamp"}},"mintime":{"min":{"field":"_timestamp"}},"events":{"sum":{"field":"data.out"}},"bytes":{"sum":{"field":"data.size"}}}}}}}}';
   else
@@ -397,9 +436,9 @@ $index=0;
       $response["series3"][$index]["data"][]=array($lss["key"],$lss["bytes"]["value"]/$duration);
       $response["begins"][$index]["data"][]=array($lss["mintime"]["value"],$lss["key"]);
       $response["ends"][$index]["data"][]=array($lss["maxtime"]["value"],$lss["key"]);
-      /* if($lss["events"]["value"]!=$ratebybu[substr($value['key'],strrpos($value['key'],'_')+1)][$lss["key"]]){ */
-      /* 	echo "PROBLEM: ".$lss["events"]["value"]." ".$ratebybu[substr($value['key'],strrpos($value['key'],'_')+1)][$lss["key"]]."\n"; */
-      /* } */
+      // if($lss["events"]["value"]!=$ratebybu[substr($value['key'],strrpos($value['key'],'_')+1)][$lss["key"]]){ 
+      // 	echo "PROBLEM: ".$lss["events"]["value"]." ".$ratebybu[substr($value['key'],strrpos($value['key'],'_')+1)][$lss["key"]]."\n"; 
+      // }
       $previousmax = $lss["maxtime"]["value"];
       $previousDuration = $duration;
     }
@@ -411,7 +450,7 @@ $response["series4"]=array();
   
   $hostname = "es-local";
 
-  $url = 'http://'.$hostname.':9200/run'.$run.'*/prc-in/_search';
+  $url = 'http://'.$hostname.':9200/run'.$run.'*'.'/prc-in/_search';
   if ($minls && $maxls)
     $data='{"query":{"range":{"ls":{"from":'.$minls.',"to":'.$maxls.'}}},"size":0,"aggs":{"bybu":{"terms":{"field":"appliance","size":200,"order":{"_term":"asc"}},"aggs":{"ls":{"date_histogram":{"field":"_timestamp","interval":"46s"},"aggs":{"events":{"sum":{"field":"data.out"}}}}}}}}';
   else
@@ -434,9 +473,7 @@ $response["series4"]=array();
     }
   $index+=1;
   }
-
-
-
+*/
 
 curl_close($crl);
 
