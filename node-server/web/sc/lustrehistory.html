@@ -1,0 +1,58 @@
+<html>
+<head>
+<link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css"/>
+<link rel="stylesheet" href="css/pure-min.css"/>
+<link rel="stylesheet" href="css/jquery-ui.css"/>
+<link rel="stylesheet" href="css/loading_spinner.css"/>
+<link rel="stylesheet" type="text/css" href="node_modules/jquery-datetimepicker/jquery.datetimepicker.css"/>
+
+<script src="node_modules/jquery/dist/jquery.min.js"></script>
+<script src="js/jquery-ui.min.js"></script>
+<script src="node_modules/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
+<script src="node_modules/highcharts/highcharts.js"></script>
+<script src="dark-unica.js"></script>
+
+<script src="js/loading_spinner.js"></script>
+<script src="lustrehistory.js"></script>
+</head>
+<body onLoad="bootstrap();">
+
+
+<div>
+    <div>
+    <form class="pure-form" id="target" action="">
+     <div> 
+       <input type="text" id="datepicker1"/>
+       <input type="text" id="datepicker2"/>
+     </div>
+     <div>
+       <input type="checkbox" id="bwcheckbox"/> show bandwidth
+     </div>
+     <br>
+     <div>
+      <input type="submit" value="Plot" onclick="$.ajaxQ.abortAll()"/>
+     </div>
+    </form>
+    </div>
+
+    <br><br>
+    <div>
+    <table class="pure-table" id="plots">
+      <tr>
+	<td><div id="plotL1"></div></td>
+	<td><div id="plotLA"></div></td>
+      <tr>
+	<td><div id="plotL2"></div></td>
+	<td><div id="plotL3"></div></td>
+      </tr>
+      <tr>
+	<td><div id="plotL4"></div></td>
+	<td><div id="plotL5"></div></td>
+      </tr>
+
+    </table>
+    </div>
+</div>
+<div class="pure-u-1-1" id="loading_dialog"></div>
+</body>
+</html>
