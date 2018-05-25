@@ -46,16 +46,23 @@
       <input id="spinner" name="delay"> -->
     </form>
     <br>
-    <table id="ratemeter" class="pure-table pure-table-bordered" style="font:Arial;font-size:24pt;">
+    <table id="ratemeter" class="pure-table pure-table-bordered" style="font:Arial;font-size:22pt;">
       <thead>
 	<tr>
 	  <th>Run </th>
 	  <th>LS </th>
 	  <th>LS <div/> Delay <div/>(Micro)</th>
-	  <th>File<div/>(Ramdisk)<div/>Rate </th>
+	  <!--<th>File<div/>(Ramdisk)<div/>Rate </th>-->
+	  <th style="display:none;">File Rate </th>
 	  <th>Input<div/>(L1)<div/> Rate </th>
 	  <th>Stream <div id="targetstream"></div> Rate </th>
 	  <th>Stream <div id="targetstream2"></div> Size</th>
+	  <th>Stream Express Rate </th>
+	  <th>Stream Express Size</th>
+	  <th>Parking* Rate</th>
+	  <th>Parking* Size</th>
+	  <!--<th style='text-align:center;'>Storage (Lustre) used&nbsp;space</th>-->
+	  <th>Storage (Lustre) used&nbsp;space</th>
 	</tr>
       </thead>
       <tbody id="rates">
