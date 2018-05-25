@@ -393,10 +393,16 @@ function doPlots(runstr,minls,maxls,fullrun)
 	else var list_of_runs = []
 	nruns_tot2=list_of_runs.length;
 	nruns_plotted2=0;
+
+	//if (runstr)
+	//  doLustrePlots(runstr);
+
 	if (list_of_runs.length>1)
 		doPlot(list_of_runs,-1,-1,true,true,true);
 	else
 		doPlot(list_of_runs,minls,maxls,fullrun,false,false);
+	if (runstr)
+	  doLustrePlots(runstr);
 }
 
 function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
@@ -902,7 +908,7 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
 					}
 				}
 
-				var merge_whitelist = ["fusyscpu2","fudatain","fuetime","ramdisk","outputbw","fuetimelsres","fucpures","fucpures2","ratebytotal","lumi1","plumi1","fuetimels2","bwcompare","pucpu","purate","pucpu100khz","cpuctrl1","fuetimelsrescorr","fuetimelsrescorrmax","cpuctrl3","cpuctrl4","pucpurescorr"]
+				var merge_whitelist = ["fusyscpu2","fudatain","fuetime","ramdisk","outputbw","fuetimelsres","fucpures","fucpures2","ratebytotal","lumi1","plumi1","fuetimels2","bwcompare","pucpu","purate","pucpu100khz","cpuctrl1","fuetimelsrescorr","fuetimelsrescorrmax","cpuctrl3","cpuctrl4","pucpurescorr","erate","erater"]
 
 				merge_whitelist.forEach(function(hitem) {
 					//console.log(Object.keys(data[hitem]))
@@ -972,7 +978,7 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
 
 				plot('#plotB0','fu sys avg event time','line',data_copy["fuetime"],'datetime','time','seconds',undefined,undefined,0,undefined);
 				plot('#plotB1','fu event time (appliance/resources)','line',data_copy["fuetimelsres"],multirun ? 'datetime':'',multirun?'time':'LS','seconds',undefined,undefined,0,undefined);
-				plot('#plotB2','fu sys avg event time vs pileup','scatter',data_copy["fuetimels2"],'','pileup','seconds',undefined,pumax,0,0.5);
+				plot('#plotB2','fu sys avg event time vs pileup','scatter',data_copy["fuetimels2"],'','pileup','seconds',undefined,pumax,0,0.75);
 
 
 				plot('#plot10','ramdisk','line',data_copy["ramdisk"],'datetime','time','fraction used',undefined,undefined,0,undefined);
@@ -994,6 +1000,8 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
 				  plot('#plot43','fu sys avg event time vs pileup (corrected [x(1-const)] when HT off)','scatter',data_copy["pucpurescorr"],'','pileup','seconds',undefined,/*pumax*/200,0,0.5);
 				  ////plot('#plot43','corrected event time [x(1-const)] (when HT off) vs PU','scatter',data_copy["pucpurescorr"],'','pileup','pileup',undefined,pumax,0,undefined,10000);
 				}
+				plot('#plotR1','FU input event rate total','line',data_copy["erate"],'datetime','time','seconds',undefined,undefined,0,undefined);
+				//plot('#plotR2','FU data/rate ratio','line',data_copy["erater"],'datetime','time','seconds',undefined,undefined,0,undefined);
 				//plot('#plot42','max CPU time','line',data_copy["fuetimelsrescorrmax"],multirun ? 'datetime':'',multirun?'time':'LS','s',undefined,undefined,0,undefined);
 
 			}else{
@@ -1010,6 +1018,16 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
 		});
 	});
 
+}
+function doLustrePlots(runstring,setup) {
+  var s = $('input[name=setup]:checked', '#setups').val();
+  //$.getJSON("php/lustre-history2.php?runs="+runstring+"&setup="+s, function(data) {
+  //$.getJSON("php/lustre-history2nb.php?runs="+runstring+"&setup="+s, function(data) {
+  //$.getJSON("php/lustre-history3.php?runs="+runstring+"&setup="+s, function(data) {
+  $.getJSON("php/lustre-history.php?runs="+runstring+"&setup="+s, function(data) {
+    plot('#plotL1','lustre occupancy','line',data.occupancies,'datetime','time','Occupancy %',undefined,undefined,0,undefined);
+    //plot('#plotL2','lustre bandwidth','line',data.bandwidth,'datetime','time','Bandwidth MB/s',undefined,undefined,0,undefined);
+  });
 }
 
 function plot(tag,title,type,data,xaxis,xtitle,ytitle,xmin,xmax,ymin,ymax,ytickinterval) {

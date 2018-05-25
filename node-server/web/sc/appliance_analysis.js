@@ -189,9 +189,9 @@ function doPlots(run,xaxis,yaxis,minls,maxls,fullrun){
 			refseries.push(data.ratebybu[i].name);
 		    }
 		}
-		if(data["series1"].length!=refseries.length){
-		    console.log(data["series1"].length+' vs.'+refseries.length)
-		}
+		//if(data["series1"].length!=refseries.length){
+		//    console.log(data["series1"].length+' vs.'+refseries.length)
+		//}
 	    }else{
 		$('#run').html(data.runinfo.run);
 		$('#start').html('not found / not started');
