@@ -20,11 +20,11 @@ host =  os.uname()[1]
 ipstr = socket.gethostbyname(host)
 #threshold = 0.82
 
-max_age_initial=720
+max_age_initial=400 #need < 720 (1 month) now
 max_age=max_age_initial
 
 #sleepPeriod = 3600 #1 hour check periods
-sleepPeriod = 1800 #1 hour check periods
+sleepPeriod = 900 #1 hour check periods
 
 res = requests.get('http://es-local.cms:9200/_cluster/health')
 cluster_name=json.loads(res.content)["cluster_name"]
