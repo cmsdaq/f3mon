@@ -108,7 +108,7 @@ Common.prototype.sendResult = function(req,res,requestKey,cb,cached,obj,qname,eT
       if (tookSec>ttl && tookSec<ttl*4) usettl+=tookSec;
     }
     responseObject = JSON.stringify(obj);//need to serialize of object is not cached
-    if (global.useCaches && global.cacheExists)
+    if (global.useCaches && global.cacheExists && ttl>-1)
       global.f3MonCache.set(requestKey, [responseObject,usettl], usettl);
     if (this.verbose) console.log(qname+' (src:'+req.connection.remoteAddress+')>responding from query (time='+srvTime+'ms)');
   }

@@ -10,6 +10,36 @@ if (!String.prototype.startsWith) {
   };
 }
 
+
+//for text fields
+var searchParse = function(qstring) {
+  if (qstring != ''){
+    //if (qstring.indexOf("*") === -1 && qstring.indexOf("?")){
+      //  return '*'+qstring+'*';
+      //} else {
+	if (qstring.indexOf("*") === -1 && qstring.indexOf("?")===-1 && qstring.indexOf("\\")==-1 &&  qstring.indexOf("OR")==-1 &&  qstring.indexOf("AND")==-1)
+	  return "("+qstring + ") OR (" + searchParseW(qstring)+")";
+	else
+	  return qstring;
+	//}
+  }
+  return '*';
+}
+
+//combine with
+var searchParseW = function(qstring) {
+  if (qstring != ''){
+    if (qstring.indexOf("*") === -1 && qstring.indexOf("?")===-1){
+      return '*'+qstring+'*';
+    } else {
+      return qstring;
+    }
+  }
+  return '*';
+}
+
+
+
 module.exports.query = function (req, res) {
 
     var took = 0;
@@ -27,6 +57,7 @@ module.exports.query = function (req, res) {
     var qparam_sortBy = this.checkDefault(req.query.sortBy,'');
     var qparam_sortOrder = this.checkDefault(req.query.sortOrder,'');
     var qparam_search = this.checkDefault(req.query.search,'*');
+    var qparam_searchMode = this.checkDefault(req.query.searchMode,'0');
     var qparam_startTime = this.checkDefault(req.query.startTime,'now');
     if (qparam_startTime==='NaN') qparam_startTime = 'now';
     var qparam_endTime = this.checkDefault(req.query.endTime,'now');
@@ -53,24 +84,38 @@ module.exports.query = function (req, res) {
       this.queryJSON1.from = qparam_from;
       this.queryJSON1.query.bool.should[1].bool.must[0].range.date.from = qparam_startTime;
       this.queryJSON1.query.bool.should[1].bool.must[0].range.date.to = qparam_endTime;
-
-      if (qparam_search != ''){
-	var searchText = '';
-	if (qparam_search.indexOf("*") === -1){
-	  searchText = '*'+qparam_search+'*';
-	}else{
-	  searchText = qparam_search;
-	}
-	this.queryJSON1.query.bool.must[1].query_string.query = searchText;
-      }else{
-	this.queryJSON1.query.bool.must[1].query_string.query = '*';
-      }
       this.queryJSON1.query.bool.should[0].term.run = qparam_run;
+      this.queryJSON1.query.bool.must_not=[];
+      this.queryJSON1.query.bool.must.length=1;
+
+      qparam_search=qparam_search.replace(":","\\:");
+
+      var conditions = qparam_search.split(';');
+      var _this = this;
+      if (qparam_searchMode=='1') { //conditions which all must be exvcluded
+        if (qparam_search!="" && qparam_search!="*")
+          conditions.forEach(function (conditem) {
+	      _this.queryJSON1.query.bool.must_not.push( {query_string: {query : searchParseW(conditem.trim())}});
+	    });
+      }
+      else { //conditions where any match is include
+	if (conditions.length===1) {//old
+	    _this.queryJSON1.query.bool.must.push({query_string: {query : searchParse(qparam_search.trim())}});
+        }
+	else {
+	    _this.queryJSON1.query.bool.must.push({ bool: {should :[]}}); 
+	    conditions.forEach(function (conditem) {
+	      _this.queryJSON1.query.bool.must[1].bool.should.push( {query_string: {query : searchParse(conditem.trim())}});
+	    });
+	}
+      }
 
       var missing = '_last';
       if (qparam_sortOrder == 'desc'){
 	missing = '_first';
       }
+
+      this.queryJSON1.sort = { "date": {  "order": "asc" }}
 
       if (qparam_sortBy != '' && qparam_sortOrder != ''){
 	var inner = {
@@ -82,7 +127,6 @@ module.exports.query = function (req, res) {
 	var outer = temp;
 	this.queryJSON1.sort = outer;
       }
-      var _this = this
 
       global.client.search({
         index: 'hltdlogs_'+qparam_sysName+'_read',
@@ -297,4 +341,124 @@ module.exports.findLog = function (req, res) {
         console.trace(error.message);
       });
   }
+
+
+
+
+module.exports.dump = function (req, res) {
+
+    var took = 0;
+    var qname = 'logdump';
+
+    //if (verbose) console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'logtable request');
+    var eTime = this.gethrms();
+    var cb = req.query.callback;
+
+    //GET query string params
+    var qparam_run = this.checkDefault(req.query.run,0);
+    qparam_run = parseInt(qparam_run);
+    var qparam_size = this.checkDefault(req.query.size,100);
+    var qparam_search = this.checkDefault(req.query.search,'*');
+    var qparam_searchMode = this.checkDefault(req.query.searchMode,'0');
+    var qparam_startTime = this.checkDefault(req.query.startTime,'now');
+    if (qparam_startTime==='NaN') qparam_startTime = 'now';
+    var qparam_endTime = this.checkDefault(req.query.endTime,'now');
+    var qparam_sysName = this.checkDefault(req.query.sysName,'cdaq');
+    var qparam_docType = this.checkDefault(req.query.docType,"hltdlog,cmsswlog");
+    var qparam_key = this.checkDefault(req.query.key,"");
+    var htmlFormat=true;//todo:JSON
+
+    //show last 5 min if no run is selected / active
+    if (qparam_startTime=='now' && qparam_endTime=='now') qparam_endTime='now-5m';
+
+    var requestKey = qname+'?size='+qparam_size+'&search='+qparam_search+'&startTime='
+                     +qparam_startTime+'&endTime='+qparam_endTime+'&sysName='+qparam_sysName;
+
+      //parameterize query
+    this.queryJSON1.size = qparam_size;
+    this.queryJSON1.query.bool.should[1].bool.must[0].range.date.from = qparam_startTime;
+    this.queryJSON1.query.bool.should[1].bool.must[0].range.date.to = qparam_endTime;
+    this.queryJSON1.query.bool.should[0].term.run = qparam_run;
+    this.queryJSON1.query.bool.must_not=[];
+    this.queryJSON1.query.bool.must.length=1;
+
+    //sorting
+    //delete this.queryJSON1.sort;
+    this.queryJSON1.size=10000;
+    this.queryJSON1.sort = { "date": {  "order": "asc" }}
+
+    qparam_search=qparam_search.replace(":","\\:");
+
+    var conditions = qparam_search.split(';');
+    var _this = this;
+
+    if (qparam_searchMode=='1') { //conditions which all must be exvcluded
+      if (qparam_search!="" && qparam_search!="*")
+        conditions.forEach(function (conditem) {
+          _this.queryJSON1.query.bool.must_not.push( {query_string: {query : searchParseW(conditem.trim())}});
+	});
+    }
+    else { //conditions where any match is include
+      if (conditions.length===1) {//old
+        _this.queryJSON1.query.bool.must.push({query_string: {query : searchParse(qparam_search.trim())}});
+      }
+      else {
+        this.queryJSON1.query.bool.must.push({ bool: {should :[]}}); 
+	conditions.forEach(function (conditem) {
+	  _this.queryJSON1.query.bool.must[1].bool.should.push( {query_string: {query : searchParse(conditem.trim())}});
+	});
+      }
+    }
+
+    var retObj = {
+      "iTotalRecords" : 0,
+      "aaData" : [],
+      "docType" : qparam_docType,
+      "key":qparam_key
+    } ;
+    //console.log( JSON.stringify(_this.queryJSON1))
+
+    global.client.search({
+        index: 'hltdlogs_'+qparam_sysName+'_read',
+        type: qparam_docType,
+        body: JSON.stringify(_this.queryJSON1),
+	scroll: '2m'
+      }, function repeat(error,body){
+        if (error) {
+          _this.excpEscES(res,error,requestKey);
+          console.trace(error.message);
+	  return;
+	}
+        try {
+	  console.log((retObj.aaData.length+body.hits.hits.length) + " / " + body.hits.total);
+          took+=body.took
+          var total = body.hits.total;
+          var results = body.hits.hits; //hits for query
+	  body.hits.hits.forEach(function(hit) {
+	    //formatting
+            if (hit._source.hasOwnProperty('message')) {
+	      if (htmlFormat)
+                hit._source.message=hit._source.message.replace(/\n/g,"<br>");
+            }
+            if (hit._source.hasOwnProperty('date')) {
+	        hit._source.date = new Date(hit._source.date).toISOString();
+	    }
+	    //console.log(hit._source.message)
+	    retObj.aaData.push(hit._source);
+	  });
+	  retObj.iTotalRecords=total;
+	  if (total>retObj.aaData.length) {
+	    client.scroll({
+	      scrollId: body._scroll_id,
+	      scroll: '30s'
+	    }, repeat);
+	  }
+	  else
+            _this.sendResult(req,res,requestKey,cb,false,retObj,qname,eTime,-1,took);
+        }                  
+        catch (e) {_this.exCb(res,e,requestKey)}
+    });
+  }
+
+
 
