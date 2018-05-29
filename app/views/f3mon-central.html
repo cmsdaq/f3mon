@@ -285,14 +285,21 @@
                                     <span><input ng-change='toggleHLTd()' ng-model="showHLTd" type="checkbox" aria-label="..." style='vertical-align: middle'/> F<sup>3</sup> hltd service logs</span>
                                     &nbsp;&nbsp;
                                     <span><input ng-change='toggleHLT()' ng-model="showHLT" type="checkbox" aria-label="..." style='vertical-align: middle'/> HLT (CMSSW) logs</span>
+                                    &nbsp;&nbsp;
+				    <a href="#" ng-click='dumpToCSV()'>Download CSV</a>
  
                     <table class="table table-striped table-hover table-condensed">
                         <thead>
                             <tr style="width:100%">
                                 <th colspan="2">
-                                    <input class="form-control" type="text" ng-change='search()' ng-model='queryParams.search' placeholder='search...' />
+                                    <input class="form-control" type="text" ng-change='search()' ng-model='queryParams.search' ng-model-options='{debounce:500}' placeholder='search...' />
                                 </th>
+                                <th colspan="2">
 
+                                    &nbsp;&nbsp;
+                                    <input ng-click='toggleSearchMode()' ng-model="queryParams.searchMode" type="radio" value="0" aria-label="..." style='vertical-align: middle'/> Include
+                                    <input ng-click='toggleSearchMode()' ng-model="queryParams.searchMode" type="radio" value="1" aria-label="..." style='vertical-align: middle'/> Exclude
+                                </th>
                                 <th colspan="2" class="text-right" style='vertical-align: middle'>
                                     <dir-pagination-controls max-size='5' on-page-change="pageChanged(newPageNumber)" pagination-id="logPagination"></dir-pagination-controls>
                                 </th>

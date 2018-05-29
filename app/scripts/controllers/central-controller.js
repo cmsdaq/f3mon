@@ -1325,7 +1325,7 @@
     })
 
 
-    .controller('logsCtrl', function($scope, $sce, logsService, globalService) {
+    .controller('logsCtrl', function($scope, $sce, logsService, logsDumpService, globalService) {
         var service = logsService;
 
         $scope.queryParams = logsService.queryParams;
@@ -1334,6 +1334,7 @@
         $scope.pageChanged = service.pageChanged;
         $scope.sortedClass = service.sortedClass;
         $scope.changeSorting = service.changeSorting;
+        $scope.dumpToCSV = function () {logsDumpService.search(logsService)}
         $scope.showHLTd=false;
         $scope.showHLT=false;
 
@@ -1394,6 +1395,10 @@
           logsService.data.displayTotal=0
           logsService.stop()
           logsService.start()
+        }
+
+        $scope.toggleSearchMode = function() {
+          logsService.search();
         }
 
     })

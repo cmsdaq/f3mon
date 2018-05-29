@@ -7,6 +7,85 @@
  * # core
  * Factory in the f3monApp.
  */
+
+function convertArrayOfObjectsToCSV(args) {  
+	var result, ctr, keys, columnDelimiter, lineDelimiter, data;
+
+	data = args.data || null;
+	if (data == null || !data.length) {
+		return null;
+	}
+
+	columnDelimiter = args.columnDelimiter || ',';
+	lineDelimiter = args.lineDelimiter || '\n';
+
+	keys = Object.keys(data[0]);
+
+	//shuffle key order
+	var msgkey = keys.indexOf('lexicalId');
+	if (msgkey>=0) {
+	  keys.splice(msgkey,1);
+	  keys.push('lexicalId');
+	}
+
+	var msgkey = keys.indexOf('message');
+	if (msgkey>=0) {
+	  keys.splice(msgkey,1);
+	  keys.push('message');
+	}
+
+	var msgkey = keys.indexOf('msgtimezone');
+	if (msgkey>=0) {
+	  keys.splice(msgkey,1);
+	  keys.unshift('msgtimezone');
+	}
+
+	var msgkey = keys.indexOf('msgtime');
+	if (msgkey>=0) {
+	  keys.splice(msgkey,1);
+	  keys.unshift('msgtime');
+	}
+
+	result = '';
+	result += keys.join(columnDelimiter);
+	result += lineDelimiter;
+
+	data.forEach(function(item) {
+		ctr = 0;
+		keys.forEach(function(key) {
+			if (ctr > 0) result += columnDelimiter;
+
+			result += item[key];
+			ctr++;
+		});
+		result += lineDelimiter;
+	});
+
+	return result;
+}
+function downloadCSV(args,inputData) {  
+	console.log('DownloadCSV');
+	var data, filename, link;
+	var csv = convertArrayOfObjectsToCSV({
+		data: inputData
+	});
+	if (csv == null) return;
+
+	filename = args.filename || 'export.csv';
+
+	if (!csv.match(/^data:text\/csv/i)) {
+		csv = 'data:text/csv;charset=utf-8,' + csv;
+	}
+	data = encodeURI(csv);
+
+	link = document.createElement('a');
+	link.setAttribute('href', data);
+	link.setAttribute('download', filename);
+	document.body.appendChild(link);
+	link.click();
+	link.remove();
+}
+
 (function() {
     angular.module('f3monApp')
 
@@ -615,6 +694,41 @@
         return service;
     })
 
+    .factory('logsDumpService', function($rootScope,$sce,$resource,$httpParamSerializer,configService,runInfoService,indexListService) {
+    
+	var setService = function(rn) {
+            var qParams = {
+                //docType: 'hltdlog,cmsswlog,
+		//run : rn,
+                //startTime: false,
+                //endTime: false,
+                //sysName: false,
+                //search: '',
+                //searchMode: '0',
+                size: 1000000
+            }
+	    return {queryParams:qParams};
+	}
+        var service = setService(0);
+	
+        service.search = function(otherService) {
+	    console.log(otherService.queryParams);
+	    this.queryParams.docType = otherService.queryParams.docType;
+	    this.queryParams.run = otherService.queryParams.run;
+	    this.queryParams.startTime = otherService.queryParams.startTime;
+	    this.queryParams.endTime = otherService.queryParams.endTime;
+	    this.queryParams.sysName = otherService.queryParams.sysName;
+	    this.queryParams.search = otherService.queryParams.search;
+	    this.queryParams.searchMode = otherService.queryParams.searchMode;
+	    this.queryParams.searchMode = otherService.queryParams.searchMode;
+	    var Dump = $resource('api/logDump?'+ $httpParamSerializer(this.queryParams));
+	    Dump.get(function(user,resp){
+	      downloadCSV({filename:"f3mon_logtable_"+(new Date).toISOString()+".csv"},user.aaData);
+	    });
+        };
+	return service;
+    })
+
     .factory('logsService', function($rootScope, $sce, poller, configService, runInfoService, indexListService) {
         var mypoller, cache, config;
         var runInfo = runInfoService.data;
@@ -649,9 +763,10 @@
                 sortBy: 'msgtime',
                 sortOrder: 'desc',
                 search: '',
+                searchmode: '0',
                 size: 20,
                 from: 0,
-            },
+            }
         };
 
         service.pageChanged = function(newPageNumber) {
