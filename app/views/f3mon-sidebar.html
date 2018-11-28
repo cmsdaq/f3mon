@@ -49,6 +49,17 @@
                                     <td bgcolor="{{resFracColor()}}">{{dataDisks.resourceFrac.percent()!==false ? (dataDisks.resourceFrac.percent() | percentage:2 ) +" active CPU slots ("+dataDisks.resourceFrac.active+")" : "N/A" }}</td>
                                 </tr>
 
+                                <tr class='bt'>
+                                    <th scope="row">CMSSW: </th>
+                                    <td style="max-width:100%;word-wrap:break-word;font-size: 12px;"><span> {{data.CMSSW_version}}</span></td>
+                                </tr>
+ 
+                                <tr class='bt'>
+                                    <th scope="row">HLT Menu: </th>
+                                    <td style="max-width:100%;word-wrap:break-word;font-size: 12px;"><span> {{data.HLT_menu}}</span></td>
+                                </tr>
+ 
+
                             </tbody>
                         </table>
                     </div>

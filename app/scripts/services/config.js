@@ -245,6 +245,8 @@
 
                 // build the values
                 s.push('<table><tbody>');
+
+                var mrgcount=0;
                 items.forEach(function(item) {
                     var name = item.series.name;
 
@@ -253,6 +255,39 @@
                     var isInput = name=='input';
 
                     var formatString;
+
+                    if (isMerge || isInput) {
+
+                    var pref="";
+                    var suf="";
+                    if (streamcount>30) {
+                    if (even_entry) {even_entry=false;pref="<tr>";}
+                    else  {even_entry=true;suf="</tr>";}
+                    }
+                    else {pref="<tr>";suf="</tr>";}
+
+
+                    formatString=pref+'<td style="padding-right:3px">'+item.series.name
+                      +'</td><td style="padding-right:3px;text-align:right"><td/><b>'//+ (isMerge?'<td/><i>':'')
+                      + (isInput && tiptype!=0?bytesToSize(item.point.y,2,hasBSeconds):(isInput?item.point.y.toFixed(2):item.point.y))+ (isMerge? '%':'')+'</b></td></td>'+suf;
+                    s.push(formatString);
+                    mrgcount++;
+
+                    }
+                });
+                if (mrgcount%2 && streamcount>30) s.push("</tr>");
+                even_entry = true;
+
+                //handle non-micromerge or transfer
+                items.forEach(function(item) {
+                    var name = item.series.name;
+
+                    series = item.series;
+                    var isMerge = $.inArray(name,['micromerge','minimerge','macromerge','transfer']) !== -1;
+                    var isInput = name=='input';
+
+                    var formatString;
+
                     if (!isMerge && !isInput) {
                       var pref="";
                       var suf="";
@@ -261,7 +296,7 @@
                         else  {even_entry=true;suf="</tr>";}
                       }
                       else {pref="<tr>";suf="</tr>";}
-                      var ss = "padding-right:3px;text-align:right"; 
+                      var ss = "padding-right:3px;text-align:right";
                       if (tiptype==1) {
                         var fact = hasBSeconds?1:23.31
                         if (item.point.y<5000000*fact) ss+=';color:grey';
@@ -271,36 +306,30 @@
                         else /*if (item.point.y>=700000000)*/ ss+=';color:red';
                       }
                       formatString=pref+'<td style="padding-right:3px"><span style="color:'+item.series.color+'">●</span>'+item.series.name
-                                   +'</td><td style="'+ss+'"><b>'+(tiptype==0 ? item.point.y.toFixed(2):bytesToSize(item.point.y,2,hasBSeconds))
-                                   +'</b></td>'+'<td style="padding-right:3px;text-align:right"><i>'+percents[name]+'%</i></td>'
-                                   +suf;
-                      s.push(formatString);
-                    }
-                    else {
-                      formatString='<tr><td style="padding-right:3px">'+item.series.name
-                                  +'</td><td style="padding-right:3px;text-align:right"><b>'//+ (isMerge?'<td/><i>':'')
-                                  + (isInput && tiptype!=0?bytesToSize(item.point.y,2,hasBSeconds):(isInput?item.point.y.toFixed(2):item.point.y))+ (isMerge? '%':'')+'</b></td></tr>';
+                        +'</td><td style="'+ss+'"><b>'+(tiptype==0 ? item.point.y.toFixed(2):bytesToSize(item.point.y,2,hasBSeconds))
+                        +'</b></td>'+'<td style="padding-right:3px;text-align:right"><i>'+percents[name]+'%</i></td>'
+                        +suf;
                       s.push(formatString);
                     }
                 });
+
                 if (!even_entry) s.push('</tr>');
                 s.push('</tbody></table>')
 
                 if (sumRate>=0) {
                   var sumEst = sumRate / (hasBSeconds? 1000000. :23310000.);
                   if (sumEst>6000)
-                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:red;font-weight:bold;font-size: 14px;" >' 
+                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:red;font-weight:bold;font-size: 14px;" >'
                            + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
                   else if (sumEst>4000)
                     s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: </span> <span style="color:#FF5733;font-weight:bold;font-size:14px;" >'
                            + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
                   else
-                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: ' 
+                    s.push('<br><span style="font-weight:bold;font-size: 14px;" >Total: '
                            + bytesToSize(sumRate,2,hasBSeconds) + "</span>");
                 }
                 // footer
                 s.push(tooltip.options.footerFormat || '');
-
                 return s.join('');
             },
             enabled: true,
@@ -655,22 +684,22 @@
                 // build the values
                 s.push('<table><tbody>');
                 items.forEach(function(item) {
-                  if (item.point.y<=0) return;
-                  var formatString;
-                  var pref="";
-                  var suf="";
-                  if (totalShow>30) {
+                    if (item.point.y<=0) return;
+                    var formatString;
+                    var pref="";
+                    var suf="";
+                    if (totalShow>30) {
                     if (even_entry) {even_entry=false;pref="<tr>";}
                     else  {even_entry=true;suf="</tr>";}
-                  }
-                  else {pref="<tr>";suf="</tr>";}
-                  var ss = "padding-right:3px;text-align:right"; 
-                  formatString=pref+'<td style="padding-right:3px"><span style="color:'+item.series.color+'">●</span>'+item.series.name
-                                   +'</td><td style="'+ss+'"><b>'+(item.point.y*100/sumHits).toFixed(2)+'%'
-                                   +'</b></td>'
-                                   +suf;
-                  s.push(formatString);
-                });
+                    }
+                    else {pref="<tr>";suf="</tr>";}
+                    var ss = "padding-right:3px;text-align:right";
+                    formatString=pref+'<td style="padding-right:3px"><span style="color:'+item.series.color+'">●</span>'+item.series.name
+                    +'</td><td style="'+ss+'"><b>'+(item.point.y*100/sumHits).toFixed(2)+'%'
+                    +'</b></td>'
+                    +suf;
+                    s.push(formatString);
+                    });
                 if (!even_entry) s.push('</tr>');
                 s.push('</tbody></table>')
                 // footer

@@ -32,6 +32,8 @@
                 lastLs: false,
                 activeBUs: 0,
                 totalBUs: 0,
+                CMSSW_version:'',
+                HLT_menu:'',
                 smartStreamsAsString: function() {
                     if (this.streamListINI.length>this.streams.length) return this.iniStreamsAsString();
                     else return this.streamsAsString();
@@ -64,6 +66,8 @@
             service.data.lastLs = false;
             service.data.activeBUs = 0;
             service.data.totalBUs = 0;
+            service.data.CMSSW_version='';
+            service.data.HLT_menu='';
             service.resetHeightNext = true;
             cache = false;
 
@@ -127,6 +131,12 @@
                         service.data.streams = data.streams;
                         service.data.activeBUs = data.activeBUs;
                         service.data.totalBUs = data.totalBUs;
+                        if (data.hasOwnProperty("CMSSW_version"))
+                          service.data.CMSSW_version=data.CMSSW_version;
+                        else service.data.CMSSW_version="";
+                        if (data.hasOwnProperty("HLT_menu"))
+                          service.data.HLT_menu=data.HLT_menu.split(" ")[0];
+                        else service.data.HLT_menu="";
                         service.data.streamListINI = data.streamListINI;
                         service.updateMaskedStreams(undefined);
                         service.data.lastLs = data.lastLs ? data.lastLs : false;

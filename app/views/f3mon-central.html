@@ -15,8 +15,13 @@
                     </div>
                     <div id='sr-qtdisplay' class="pull-right" style='text-align:center;width:120px;margin-right:6px' ng-show="displayAux"><span class="badge" style='width:120px'>query: {{queryInfo.took}} ms</span>
                     </div>
-                    <options-dropdown-multichoice   class="pull-right" style="margin-right:30px" model="selectedStreamOptions" options="streamOptions" id='sr-optionmenu'/>
-                    <f3mon-central-sr-options-right class="pull-right" style="width:30px;margin-right:110px" id='sr-divisor-right'/>
+                    <!--<div class="btn-group btn-group-xs pull-right">
+                      <button type="button" uib-btn-radio="1" ng-click='setRangeLast()' ng-model="rchecked" class="btn btn-primary pull-right" style="margin-right:30px">Last</button>
+                      <button type="button" uib-btn-radio="2" ng-click='setRangeAll()' ng-model="rchecked" class="btn btn-primary pull-right" style="">All</button>
+                    </div>-->
+                    <f3mon-central-sr-buttons-rview class="btn-group btn-group-xs pull-right" style="margin-left:0px;margin-right:15px" id='sr-viewwitch'/>
+                    <options-dropdown-multichoice   class="pull-right" style="margin-right:10px" model="selectedStreamOptions" options="streamOptions" id='sr-optionmenu'/>
+                    <f3mon-central-sr-options-right class="pull-right" style="width:30px;margin-right:100px" id='sr-divisor-right'/>
                     <f3mon-central-sr-buttons-units class="btn-group btn-group-xs pull-right" style="margin-left:10px;margin-right:3px" id='sr-unitswitch'/>
 		    <f3mon-central-sr-rangeselect   class="btn-group btn-group-xs pull-right" style="margin-left:3px;margin-right:10px" id='sr-rangeselectswitch'/>
                     <h3 class="panel-title">

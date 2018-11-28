@@ -26,6 +26,13 @@
         }
      })
 
+    .directive('f3monCentralSrButtonsRview',function () {
+       return {
+         restrict: 'E',
+         templateUrl: 'views/central/sr-panel-buttons-rview.html'
+       }
+    })
+
     .directive('f3monCentralSrRangeselect',function () {
         return {
             restrict: 'E',
@@ -300,6 +307,20 @@
             backdrop: true
         });
 
+        $scope.setRangeAll = function() {
+          console.log("!range!")
+          resetLSRange(true);
+          $scope.lchecked=false;
+        }
+
+        $scope.setRangeLast = function() {
+          resetLSRange(false);
+          $scope.rchecked=false;
+        }
+
+        $scope.lchecked=false;
+        $scope.rchecked=false;
+
         $scope.showCompLegend = function() {
             modal_complegend.$promise.then(modal_complegend.show);
         }
@@ -570,6 +591,19 @@
 
         $scope.selectorModeSet = function(newmode) {
             $scope.selectorMode=newmode;
+        }
+
+        var resetLSRange = function(all) {
+          //all = full run range or reset to last 20 (default)
+          if (!runInfoService.data.lastLs) return;
+          var max =  runInfoService.data.lastLs;
+          if (max <=0) max=1;
+          var min = 1;
+          if (!all) {
+            min = max - configService.nbins ;
+            if (min <=0) min = 1;
+          }
+          selectionRules(min,max);
         }
 
         var selectionRules = function(min, max) {

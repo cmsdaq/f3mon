@@ -763,7 +763,7 @@ function downloadCSV(args,inputData) {
                 sortBy: 'msgtime',
                 sortOrder: 'desc',
                 search: '',
-                searchmode: '0',
+                searchMode: '0',
                 size: 20,
                 from: 0,
             }
