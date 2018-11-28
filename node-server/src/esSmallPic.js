@@ -26,7 +26,7 @@ function getIntervalTail(interval) {
 module.exports.fuhistos = function (req, res) {
 
     var _this = this;
-    console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'small request');
+    //console.log('['+(new Date().toISOString())+'] (src:'+req.connection.remoteAddress+') '+'small request');
 
     var eTime = new Date().getTime();
     var ttl = global.ttls.bigpic; //cached ES response ttl (in seconds)
@@ -37,9 +37,10 @@ module.exports.fuhistos = function (req, res) {
     var qparam_int = _this.checkDefault(req.query.interval,100);
     var monitored = _this.checkDefault(req.query.monitored,"cpu_MHz_avg_real");
     var perbuv = _this.checkDefault(req.query.perbu,false);
+    var requireRun = this.checkDefault(req.query.requireRun,false);
     //var qparam_to = req.query.to;
 
-    var requestKey = 'smallpic_fuhistos?setup='+qparam_setup+'&='+qparam_int+'&='+monitored+'&='+perbuv;
+    var requestKey = 'smallpic_fuhistos?setup='+qparam_setup+'&='+qparam_int+'&='+monitored+'&='+perbuv+'&='+requireRun;
     var qname = 'smallpic_fuhistos';
 
     var q = function() {
@@ -73,6 +74,7 @@ module.exports.fuhistos = function (req, res) {
           }
         }
       };
+      if (requireRun) queryJSON.query = { "bool":{"must":[{"range":{"date":{"gte":"now-10s"}}}, {"range":{"activeRunList":{"gte":1}}}  ]}};
 
       if (!perbuv) delete queryJSON.aggs.hlt.perbu;
 
@@ -165,6 +167,7 @@ module.exports.fuhistos = function (req, res) {
           }
         }
       };
+      if (requireRun) queryJSON.query= { "bool":{"must":[{"range":{"date":{"gte":"now-10s"}}}, {"range":{"activeRunList":{"gte":1}}}  ]}};
       if (!perbuv) delete queryJSON.aggregations;
 
       queryJSON.sort[monitored]="asc";

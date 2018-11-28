@@ -700,6 +700,7 @@ function doPlot(runs,minls,maxls,fullrun,force_time_axis,multirun){
 									if (bcpucorr>1 && bcpucorr<=1+constfrac) bcpucorr=1
 									//else check if invalid point (outside of working limits)
 									if (acpucorr3>1 || acpucorr3<0.1 || bcpucorr3>1 || bcpucorr3<0.1) bcpucorr3=acpucorr3=-1;
+									if (cvec1.length<=j+off1) continue;
 									cvec1[j+off1][1]=acpucorr
 									cvec2[j+off1][1]=bcpucorr
 

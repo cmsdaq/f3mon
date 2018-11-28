@@ -43,10 +43,10 @@ function flashlist_bu_info() {
 
     runbu_itr++;
     if ((runbu_itr-1)%5==0) //run less frequently
-    $.getJSON("php/busfromflashlist.php",function(data) {
+    //$.getJSON("php/busfromflashlist.php",function(data) {
+    $.getJSON("php/buwhitelist.php",function(data) {
       //console.log(Object.keys(data));
       Object.keys(data).forEach(function (rn) {
-        console.log('rn:'+rn) 
         var bumap = {};
         data[rn].forEach(function (bu){
 	  var key_stripped = bu.substring(0,bu.indexOf('.'))
@@ -57,7 +57,7 @@ function flashlist_bu_info() {
 	runbumap_temp[""+rn]=bumap;
 	runbumap = runbumap_temp;
       });
-      //console.log(JSON.stringify(runbumap));
+      console.log(JSON.stringify(runbumap));
     });
 }
 
@@ -276,7 +276,10 @@ function cluster_data_format(callback){
 				        var h_run = bu_runs[bu_runs.length-1];
 
 				      Object.keys(runbumap).forEach(function(flashrun) {
-					if (h_run==flashrun || h_run==-1) 
+				        //console.log('1:'+h_run);
+					//console.log('2:'+flashrun);
+					//console.log(' ');
+					if (h_run==flashrun || h_run==-1 || h_run<parseInt(flashrun)) 
 					  //console.log(nameArray[jc] + ' !')
 					  if (!(runbumap[flashrun].hasOwnProperty(nameArray[jc]))) is_blacklisted=true;
 				      });
@@ -356,6 +359,7 @@ function cluster_data_format(callback){
 				    fumap.totalHealthyBoxesHLT+=vval.idle_count+vval.online_count;
 
                                     //add per cpu-type core statistics
+				    if (!is_blacklisted) {
                                     var map_cpuname = vval.cpu_name;
                                     if (map_cpuname==='') map_cpuname='UNKNOWN'
                                     if (!fumap_cpu.hasOwnProperty(map_cpuname)) {
@@ -371,11 +375,12 @@ function cluster_data_format(callback){
                                     fucpu.totalHealthyBoxesHLT+=vval.idle_count+vval.online_count;
 				    fucpu.totalCloud+=vval.cloud;
 				    fucpu.totalHealthyBoxesCloud+=vval.cloud_nodes.length;
+				    }
 
                                     var totalReportedCores = vval.idle+vval.online+vval.quarantined+vval.cloud;
                                     var totalReportedMachines = vval.cloud_nodes.length+vval.idle_count+vval.online_count+vval.quarantined_nodes.length;
 
-                                    if (totalReportedMachines>0) {
+                                    if (!is_blacklisted && totalReportedMachines>0) {
 				      fucpu.cores_ht += vval.htc;
 				      fucpu.cores_phys += vval.physc;
                                     }
@@ -425,12 +430,18 @@ function cluster_data_format(callback){
 					{
 					    content+="<td>"+vval.stale.length+"</td>";
 					}
-				    if(vval.dead.length!=0){//dead column
-					content+="<td style='background-color:red;' title="+vval.dead.toString()+" ondblclick='doubleClick(event)'>"+vval.dead.length+"</td>";
+				    var dead2 = [];
+				    vval.dead.forEach(function(item) {pp_fu_nodes.forEach(function(item2){if (item==item2) dead2.push(item)})});
+				    if(dead2.length!=0){//dead column
+				        content+="<td style='background-color:red;' title="+dead2.toString()+" ondblclick='doubleClick(event)'>"+dead2.length+"</td>";
 				    }
+				    //if(vval.dead.length!=0){//dead column
+				    //	content+="<td style='background-color:red;' title="+vval.dead.toString()+" ondblclick='doubleClick(event)'>"+vval.dead.length+"</td>";
+				    //}
 				    else
 					{
-					    content+="<td>"+vval.dead.length+"</td>";
+					    //content+="<td>"+vval.dead.length+"</td>";
+					    content+="<td>"+dead2.length+"</td>";
 					}
 				    if(vval.disc.length!=0){//missing but in DB (todo:using "id" of fu-box-status)
 					content+="<td style='background-color:orange;' title="+vval.disc.toString()+" ondblclick='doubleClick(event)'>"+vval.disc.length+"</td>";

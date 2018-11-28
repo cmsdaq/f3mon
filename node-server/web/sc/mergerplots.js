@@ -87,6 +87,11 @@ function bootstrap(){
       if (hashpos!=-1) $('#fullrun').prop('checked',true)
       else $('#fullrun').prop('checked',false)
 
+      var hashpos = location.hash.indexOf('rivertime')
+      if (hashpos!=-1) $('#rivertime').prop('checked',true)
+      else $('#rivertime').prop('checked',false)
+
+
     }
     else {
       $('#runno').val()
@@ -170,6 +175,7 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
     if (interval>1) location.hash+="&int="+interval
     location.hash+="&yaxis="+$('#yaxis').val();
     if (fullrun) location.hash+='&fullrun'
+    if ($('#rivertime').prop('checked')) location.hash+='&rivertime'
     //console.log($('#process').val());
     var interval = $('#interval').val();
     var intervalStr = "";
@@ -183,6 +189,16 @@ function doPlots(run,xaxis,yaxis,stream,setup,minls,maxls,fullrun){
         var mergerlsparams="&minls=&maxls=";
         if (!fullrun) mergerlsparams = '&minls='+minls+'&maxls='+maxls;
 	$.getJSON("php/mergerplots.php?setup="+my_setup+"&run="+run+"&xaxis="+xaxis+"&yaxis="+yaxis+"&stream="+stream+mergerlsparams+intervalStr,function(data){
+		if ($('#rivertime').prop('checked')) {
+		  data.serie0.forEach(function (item) {
+		    item.name+="_river_agg";
+		  });
+		  data.serie0_2.forEach(function (item) {
+		    data["serie0"].push(item);
+		  });
+		}
+		else data.serie0=data.serie0_2;
+
 		plot(data["serie0"],'#plot0','micromerger time delay',xaxis,yaxis);
 		plot(data["serie1"],'#plot1','minimerger time delay',xaxis,yaxis);
 		plot(data["serie2"],'#plot2','macromerger time delay',xaxis,yaxis);

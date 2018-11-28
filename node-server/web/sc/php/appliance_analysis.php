@@ -176,95 +176,44 @@ foreach($ratetotal as $ls=>$rate){
   $response["ratebytotal2"][$ls]=$rate/23.31;
 }
 
-$scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
-
-
-if ($new_cpu_match) {
-
-  $cpu_script_2 = "cpuw = _source['activePhysCores']/mycount;".
-                  "if (cpuw==16) archw=0.96;".
-                  "if (cpuw==24) archw=1.13;".
-                  "if (cpuw==28 || cpuw==32) archw=1.15;".
-                  "if (_source['activePhysCores']==2*_source['activeHTCores']) cpuw= _source['activeHTCores']/mycount;";
-
-  $cpu_script_1 = $cpu_script_2.
-                  "else if (_source['activePhysCores']==_source['activeHTCores']) mysum=mysumu;";
-	
-} else {
-  $cpu_script_2 = "cpuw = _source['active_resources']/mycount;".
-                  "if (cpuw==32 || cpuw==16) archw=0.96;".
-                  "if (cpuw==48 || cpuw==24) archw=1.13;".
-                  "if (cpuw==56 || cpuw==28) archw=1.15;".
-	
-  $cpu_script_1 = $cpu_script_2.
-                  "if (cpuw<30) mysum=mysumu;";
-}
-	
-
-
-$scriptcorr02 = " mysum = 0d;          mycount=0d;".
-	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
-	    "uncorr = _source['fuSysCPUFrac'][i];".
-	    "corr=0d;".
-	    "if (uncorr<0.5) {".
-	      "corr = uncorr * 1.6666666;".
-	    "} else {".
-	      "corr = (0.5+0.2*(uncorr-0.5))*1.6666666;".
-	    "};".
-	    "mysum+=corr; mycount+=1;".
-	  "};".
-	  "if (mycount>0) {".
-	    "_agg['cpuavg'].add(_source['active_resources']*mysum/(mycount*mycount));".
-	    "_agg['cpuweight'].add(_source['active_resources']/mycount);".
-	  "}";
-
-//B: corrections from TSG (single-thread power vs. Ivy bridge
-$scriptcorrB02 = " mysum = 0d;          mycount=0d;".
-	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
-	    "uncorr = _source['fuSysCPUFrac'][i];".
-	    "corr=0d;".
-	    "if (uncorr<0.5) {".
-	      "corr = uncorr * 1.6666666;".
-	    "} else {".
-	      "corr = (0.5+0.2*(uncorr-0.5))*1.6666666;".
-	    "};".
-	    "mysum+=corr; mycount+=1;".
-	  "};".
-	  "if (mycount>0) {".
-            "archw=1d;".
-	    $cpu_script_1.
-	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
-	    "_agg['cpuweight'].add(archw*cpuw);".
-	  "}";
-
-
-$scriptuncorr = "mysum = 0d;".
-          "mycount=0d;".
-	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
-	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
-	  "};".
-	  "if (mycount>0) {".
-	  "  _agg['cpuavg'].add(_source['active_resources']*mysum/(mycount*mycount));".
-	  "  _agg['cpuweight'].add(_source['active_resources']/mycount);".
-	  "}";
-
-$scriptuncorrB = "mysum = 0d;".
-          "mycount=0d;".
-	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
-	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
-	  "};".
-	  "if (mycount>0) {".
-          "  archw=1d;".
-	    $cpu_script_2.
-	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
-	  "  _agg['cpuweight'].add(archw*cpuw);".
-	  "}";
-
-$scriptreduce ="fsum = 0d; fweights=0d; for (agg in _aggs) {if (agg) for (a in agg.cpuavg) fsum+=a; if (agg) for (a in agg.cpuweight) fweights+=a;}; if (fweights>0d) {return fsum/fweights;} else {return 0d;}"; 
-
+include 'scriptedQuery.php';
 
 $url = 'http://'.$hostname.':9200/boxinfo_'.$setup.'_read/resource_summary/_search';
-$data = '{"sort":{"fm_date":"asc"},"size":0,"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},"aggs":{"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},"aggs":{"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{"avg":{"avg":{"field":"ramdisk_occupancy"}}, "avgbw":{"avg":{"field":"outputBandwidthMB"}},"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},"fudatain":{"avg":{"field":"fuDataNetIn"}},"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}}}}}, "ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},"aggs":{ "corrSysCPU02":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptcorrB02.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"uncorrSysCPU":{"scripted_metric":{"init_script":{"lang":"groovy","inline":"'.$scriptinit.'"},"map_script":{"lang":"groovy","inline":"'.$scriptuncorrB.'"},"reduce_script":{"lang":"groovy","inline":"'.$scriptreduce.'"}}},"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},"appliance":{"terms":{"field":"appliance","size":200},"aggs":{"fudatain":{"avg":{"field":"fuDataNetIn"}},  "res":{"avg":{"field":"active_resources"}}     }},"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}   }} }}';
+$data = '{'.
+          '"sort":{"fm_date":"asc"},"size":0,'.
+          '"query":{"bool":{"must":{"range":{"fm_date":{"gt":"'.$start.'","lt":"'.$end.'"}}},"must":{"term":{"activeFURun":'.$run.'}}}},'.
+	  '"aggs":{'.
+	    '"appliance":{"terms":{"field":"appliance","size":200,"order" : { "_term":"asc"}},'.
+	      '"aggs":{'.
+	        '"ovr":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},'.
+		  '"aggs":{'.
+		    '"avg":{"avg":{"field":"ramdisk_occupancy"}},'.
+		    '"avgbw":{"avg":{"field":"outputBandwidthMB"}},'.
+		    '"fusyscpu":{"avg":{"field":"fuSysCPUFrac"}},'.
+		    '"fusysfreq":{"avg":{"field":"fuSysCPUMHz"}},'.
+		    '"fudatain":{"avg":{"field":"fuDataNetIn"}},'.
+		    '"activeRunLSBWMB":{"avg":{"field":"activeRunLSBWMB"}}'.
+		  '}'.
+		'}'.
+	      '}'.
+	    '},'.
+	    '"ovr2":{"date_histogram":{"field":"fm_date","interval":"'.$interval.'"},'.
+	      '"aggs":{'.
+                makeMetric("corrSysCPU02", $scriptinit,$scriptCorrSimpleCPU_Weighted,$scriptreduce).','.
+                makeMetric("uncorrSysCPU", $scriptinit,$scriptUncorrCPU_Weighted,$scriptreduce).','.
+                '"lsavg":{"avg":{"field":"activeRunCMSSWMaxLS"}},'.
+                '"appliance":{'.
+                  '"terms":{"field":"appliance","size":200},'.
+                  '"aggs":{'.
+		    '"fudatain":{"avg":{"field":"fuDataNetIn"}},'.
+		    '"res":{"avg":{"field":"active_resources"}}}'.
+                '},'.
+                '"sum_fudatain":{"sum_bucket":{"buckets_path": "appliance>fudatain"}},'.
+                '"sum_res":{"sum_bucket":{"buckets_path": "appliance>res"}}'.
+              '}'.
+	    '}'.
+          '}'.
+        '}';
 
 curl_setopt ($crl, CURLOPT_POSTFIELDS, $data);
 curl_setopt ($crl, CURLOPT_URL,$url);

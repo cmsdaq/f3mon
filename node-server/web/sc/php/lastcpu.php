@@ -1,6 +1,6 @@
 <?php 
 
-/**/
+/* Used by lastcpu river instance daemon */
 $setup = $_GET["setup"];
 $maxtime = $_GET["maxtime"];
 $interval = intval($_GET["int"]);
@@ -34,6 +34,15 @@ $intlength = $intlength."s";
 
 $scriptinit = "_agg['cpuavg'] = []; _agg['cpuweight']=[]";
 
+$cpu_script_2 = "cpuw = _source['activePhysCores']/mycount;".
+                  "if (cpuw==16) archw=0.96;".
+                  "if (cpuw==24) archw=1.13;".
+                  "if (cpuw==28 || cpuw==32) archw=1.15;".
+                  "if (2*_source['activePhysCores']==_source['activeHTCores']) cpuw= _source['activeHTCores']/mycount;";
+
+$cpu_script_1 = $cpu_script_2.
+                  "else if (_source['activePhysCores']==_source['activeHTCores']) mysum=mysumu;";
+
 //B: corrections from TSG (single-thread power vs. Ivy bridge
 $scriptcorrB02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	  "for (i=0;i<_source['fuSysCPUFrac'].size();i++) {".
@@ -48,12 +57,8 @@ $scriptcorrB02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	    "mysumu+=uncorr;".
 	  "};".
 	  "if (mycount>0) {".
-            "cpuw = _source['active_resources']/mycount;".
             "archw=1d;".
-            "if (cpuw==32 || cpuw==16) archw=0.96;".
-            "if (cpuw==48 || cpuw==24) archw=1.13;".
-            "if (cpuw==56 || cpuw==28) archw=1.15;".
-            "if (cpuw<30) mysum=mysumu;".
+	    $cpu_script_1.
 	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -67,12 +72,8 @@ $scriptcorrC02 = " mysum = 0d;mysumu=0d;mycount=0d;".
 	    "mysumu+=uncorr;".
 	  "};".
 	  "if (mycount>0) {".
-            "cpuw = _source['active_resources']/mycount;".
             "archw=1d;".
-            "if (cpuw==32 || cpuw==16) archw=0.96;".
-            "if (cpuw==48 || cpuw==24) archw=1.13;".
-            "if (cpuw==56 || cpuw==28) archw=1.15;".
-            "if (cpuw<30) mysum=mysumu;".
+	    $cpu_script_1.
 	    "_agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	    "_agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -83,11 +84,8 @@ $scriptuncorrB = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32 || cpuw==16) archw=0.96;".
-          "  if (cpuw==48 || cpuw==24) archw=1.13;".
-          "  if (cpuw==56 || cpuw==28) archw=1.15;".
+	     $cpu_script_2.
 	  "  _agg['cpuavg'].add(archw*cpuw*mysum/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -98,11 +96,8 @@ $scriptuncorrF = "mysum = 0d;".
 	  "  mysum+=_source['fuSysCPUFrac'][i]; mycount+=1;".
 	  "};".
 	  "if (mycount>0 && _source['fuDataNetIn']>100.0) {".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32 || cpuw==16) archw=0.96;".
-          "  if (cpuw==48 || cpuw==24) archw=1.13;".
-          "  if (cpuw==56 || cpuw==28) archw=1.15;".
+	     $cpu_script_2.
 	  "  _agg['cpuavg'].add(_source['active_resources']*archw*cpuw*mysum/(mycount*1048576.0*_source['fuDataNetIn']));".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";
@@ -114,11 +109,8 @@ $scriptevtimeC = "mysum = 0d;".
 	  "};".
 	  "if (mycount>0 && _source['fuDataNetIn']>100.0) {".
           "  mytimeoversize=_source['active_resources']*mysum/(1.0*_source['fuDataNetIn']);".
-          "  cpuw = _source['active_resources']/mycount;".
           "  archw=1d;".
-          "  if (cpuw==32) archw=0.96;".
-          "  if (cpuw==48) archw=1.13;".
-          "  if (cpuw==56) archw=1.15;".
+	     $cpu_script_2.
 	  "  _agg['cpuavg'].add(archw*cpuw*mytimeoversize/mycount);".
 	  "  _agg['cpuweight'].add(archw*cpuw);".
 	  "}";

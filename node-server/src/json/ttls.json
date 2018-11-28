@@ -14,8 +14,6 @@
 		"getstreamlist":2,
 		"sctransfer":60,
 		"pp":60,
-                "bigpic":2,
-		"lustreInfo":900
-
+                "bigpic":2
 	}
 }

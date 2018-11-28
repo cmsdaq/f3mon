@@ -102,10 +102,10 @@ foreach ($res["aggregations"]["lss"]["buckets"] as $ls){
 
 $url = 'http://'.$hostname.':9200/runindex_'.$setup.'_read/stream-hist/_search?size=0';
 if($streamTo){
- $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.',{"range":{"completion":{"from":0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
+ $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}},{"term":{"stream":"'.$streamTo.'"}}'.$lsterm.',{"range":{"completion":{"from":0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"timing_fm":{"'.$minmaxavg.'":{"field":"fm_date"}},"sizes":{"avg":{"field":"filesize"}}}}}}}}';
 }
 else {
- $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}}'.$lsterm.',{"range":{"completion":{"from":0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
+ $data = '{"query":{"bool":{"must":[{"parent_id":{"type":"stream-hist","id":'.$run.'}}'.$lsterm.',{"range":{"completion":{"from":0.9999999}}}]}},"sort":{"ls":"asc"},"aggs":{"streams":{"terms":{"field":"stream","size":100,"order":{"_term":"asc"}},"aggs":{"lss":{"histogram":{"interval":'.$interval.',"field":"ls"},"aggs":{"timing":{"'.$minmaxavg.'":{"field":"date"}},"timing_fm":{"'.$minmaxavg.'":{"field":"fm_date"}},"sizes":{"avg":{"field":"filesize"}} }}}}}}';
 }
 //echo $data;
 curl_setopt ($crl, CURLOPT_URL,$url);
@@ -117,13 +117,16 @@ $ret = curl_exec($crl);
 //echo $ret;
 $res=json_decode($ret,true);
 $microtimes=array();
+$microtimes_fm=array();
 $sizes=array();
 foreach ($res["aggregations"]["streams"]["buckets"] as $stream){  
   $microtimes[$stream["key"]]=array();
+  $microtimes_fm[$stream["key"]]=array();
   $sizes[$stream["key"]]=array();
   foreach ($stream["lss"]["buckets"] as $ls){
     if (!$ls["doc_count"]) continue;
     $microtimes[$stream["key"]][$ls["key"]]=$ls["timing"]["value"]/1000.;
+    $microtimes_fm[$stream["key"]][$ls["key"]]=$ls["timing_fm"]["value"]/1000.;
     $sizes[$stream["key"]][$ls["key"]]=$ls["sizes"]["value"];
   }
 }
@@ -158,7 +161,7 @@ if($streamTo){
     $minitimes[$stream["key"]]=array();
     foreach ($stream["lss"]["buckets"] as $ls){
       if (!$ls["doc_count"]) continue;
-      if ((substr($stream["key"],0,3)!="DQM" || $stream["key"]=="DQMHistograms") && $ls["events"]["value"]!=$eolNEvents[$ls["key"]]) continue;
+      if (( !(substr($stream["key"],0,3)=="DQM" || substr($stream["key"],0,5)=="HIDQM") || $stream["key"]=="DQMHistograms") && $ls["events"]["value"]!=$eolNEvents[$ls["key"]]) continue;
       //thresholds: assuming 0.8 and 0.5
       else if (substr($stream["key"],0,3)=="DQMEventDisplay" && $ls["events"]["value"]<0.5*$eolNEvents[$ls["key"]]) continue;
       else if ($ls["events"]["value"]<0.8*$eolNEvents[$ls["key"]]) continue;
@@ -221,6 +224,7 @@ foreach ($res["aggregations"]["streams"]["buckets"] as $stream){
 
 $retval = array();
 $microeol = array();
+$microeol_fm = array();
 $minimicro = array();
 $macromini = array();
 $trans1macro = array();
@@ -232,7 +236,7 @@ if($xaxis=='size'){
   foreach($microtimes as $key=>$dummy){
     $histo=$microtimes[$key];
     if($key!='Error'){
-      $microeol[]=array("name"=>$key,"data"=>array());  
+      $microeol[]=array("name"=>$key,"data"=>array());
       $previoustime = 0;
       foreach($histo as $ls=>$time){
         if (!array_key_exists($ls,$eoltimesLast)) continue;
@@ -244,6 +248,26 @@ if($xaxis=='size'){
 	  $previoustime=$time;
 	}else{
 	  $microeol[count($microeol)-1]["data"][]=array($sizes[$key][$ls],(round($time)-intval($etime)));
+	}
+      }
+    }
+  }
+
+  foreach($microtimes_fm as $key=>$dummy){
+    $histo=$microtimes_fm[$key];
+    if($key!='Error'){
+      $microeol_fm[]=array("name"=>$key,"data"=>array());
+      $previoustime = 0;
+      foreach($histo as $ls=>$time){
+        if (!array_key_exists($ls,$eoltimesLast)) continue;
+	$etime = $eoltimesLast[$ls];
+	if($yaxis=='lap'){
+	  if($previoustime!=0){
+	    $microeol_fm[count($microeol_fm)-1]["data"][]=array($sizes[$key][$ls],(round($time)-$previoustime)/($interval*1.0));
+	  }
+	  $previoustime=$time;
+	}else{
+	  $microeol_fm[count($microeol_fm)-1]["data"][]=array($sizes[$key][$ls],(round($time)-intval($etime)));
 	}
       }
     }
@@ -269,11 +293,11 @@ if($xaxis=='size'){
 	  $previoustime=$time;
 	}else{
 	  if($streamTo){
-            if (!array_key_exists($ls,$microtimes[$streamTo])) continue;
-	    $minimicro[count($minimicro)-1]["data"][]=array($sizes[$streamTo][$ls],round($time)-intval($microtimes[$streamTo][$ls]));
+            if (!array_key_exists($ls,$microtimes_fm[$streamTo])) continue;
+	    $minimicro[count($minimicro)-1]["data"][]=array($sizes[$streamTo][$ls],round($time)-intval($microtimes_fm[$streamTo][$ls]));
 	  }else{
-            if (!array_key_exists($ls,$microtimes[$stream])) continue;
-	    $minimicro[count($minimicro)-1]["data"][]=array($sizes[$stream][$ls],round($time)-intval($microtimes[$stream][$ls]));
+            if (!array_key_exists($ls,$microtimes_fm[$stream])) continue;
+	    $minimicro[count($minimicro)-1]["data"][]=array($sizes[$stream][$ls],round($time)-intval($microtimes_fm[$stream][$ls]));
 	  }
 	}
       }
@@ -362,6 +386,28 @@ if($xaxis=='size'){
     }
   }
 
+  foreach($microtimes_fm as $key=>$dummy){
+    $histo=$microtimes_fm[$key];
+    if($key!='Error'){
+      $microeol_fm[]=array("name"=>$key,"data"=>array());  
+      $previoustime = 0;
+      foreach($histo as $ls=>$time){
+        if (!array_key_exists($ls,$eoltimesLast)) continue;
+	$etime = $eoltimesLast[$ls];
+	//if($streamTo){
+	if($yaxis=='lap'){
+	  if($previoustime!=0){
+	    $microeol_fm[count($microeol_fm)-1]["data"][]=array(intval($ls),(round($time)-$previoustime)/($interval*1.0));
+	  }
+	  $previoustime=$time;
+	}else{
+	  $microeol_fm[count($microeol_fm)-1]["data"][]=array(intval($ls),$time-$etime);
+	}
+      }
+    }
+  }
+
+
   foreach($minitimes as $stream=>$histo){
     if($stream!='Error'){
       $minimicro[]=array("name"=>$stream,"data"=>array());  
@@ -374,11 +420,11 @@ if($xaxis=='size'){
 	  $previoustime=$time;
 	}else{
 	  if($streamTo){
-            if (!array_key_exists($ls,$microtimes[$streamTo])) continue;
-	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),$time-$microtimes[$streamTo][$ls]);
+            if (!array_key_exists($ls,$microtimes_fm[$streamTo])) continue;
+	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),$time-$microtimes_fm[$streamTo][$ls]);
 	  }else{
-            if (!array_key_exists($ls,$microtimes[$stream])) continue;
-	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),$time-$microtimes[$stream][$ls]);
+            if (!array_key_exists($ls,$microtimes_fm[$stream])) continue;
+	    $minimicro[count($minimicro)-1]["data"][]=array(intval($ls),$time-$microtimes_fm[$stream][$ls]);
 	  }
 	}
       }
@@ -526,6 +572,7 @@ foreach ($res["aggregations"]["lss"]["buckets"] as $ls){
 $retval["allsizes"]=$allsizes;
 
 $retval["serie0"]=$microeol;
+$retval["serie0_2"]=$microeol_fm;
 $retval["serie1"]=$minimicro;
 $retval["serie2"]=$macromini;
 $retval["serie3"]=$transfer1macro;

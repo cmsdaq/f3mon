@@ -557,14 +557,6 @@ var esSmallPic =  require('./src/esSmallPic');
 esSmallPic.setup(getQuery("config.json"));
 app.get('/sc/api/fuhistos', esSmallPic.fuhistos.bind(esSmallPic));
 
-/*
-//lustre Info from ICINGA
-var lustreInfo =  require('./src/lustreInfo');
-lustreInfo.setup(getQuery("config.json"));
-lustreInfo.setupAuth(dbinfo)
-app.get('/sc/api/lustreInfo', lustreInfo.query.bind(lustreInfo));
-*/
-
 app.get('/test/cachekeys1',function(req,res) {
   res.send(JSON.stringify(global.f3MonCache.keys()));
 });

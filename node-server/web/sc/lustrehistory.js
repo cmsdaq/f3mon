@@ -60,13 +60,16 @@ function bootstrap() {
         var yesterday = new Date(now.getTime()-1000*3600*24);
 
 	var zPad = function (num) {
-	  if (num>10) return ""+num; 
+	  if (num>=10) return ""+num; 
 	  else return "0"+num;
 	}
 	var convDate = function(d,roundMin) {
+	  var hr = zPad(d.getHours() + (d.getMinutes()>0 && roundMin==true ? 1:0));
+	  if (hr=="24") hr==23;
 	  return d.getFullYear()+"-"+zPad(d.getMonth()+1)+"-"+zPad(d.getDate()) 
 	         + " " 
-		 + zPad(d.getHours() + (d.getMinutes()>0 && roundMin==true ? 1:0))+":00:00";
+		 //+ zPad(d.getHours() + (d.getMinutes()>0 && roundMin==true ? 1:0))+":00:00";
+		 + hr+":00:00";
 		 //+ zPad(d.getHours()) + ":" + zPad(d.getMinutes() + d.getSeconds()>0 && roundMin==true ? 1:0)+":00";
 	}
 		 

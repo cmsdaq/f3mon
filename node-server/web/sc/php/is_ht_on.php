@@ -73,22 +73,26 @@ date_default_timezone_set("UTC");
 $startTime = strtotime($start)*1000 + round($usec/1000.);
 $response=array('run'=>$run,'start'=>$start,'end'=>$end, 'duration'=>$span, 'ongoing'=>$ongoing);
 
-$scriptinit = "_agg['hton'] = []; _agg['htoff']=[]; _agg['total']=[]";
+$scriptinit = "_agg['hton'] = []; _agg['htoff']=[]; _agg['incons']=[]; _agg['total']=[]";
 
-$scriptmap = "mycount=_source['fuSysCPUFrac'].size();".
-	     "if (mycount>0) {".
-             "cpuw = _source['active_resources']/mycount;".
-             "if (cpuw==32 || cpuw==48 || cpuw==56) _agg['hton'].add(1);".
-             "if (cpuw==16 || cpuw==24 || cpuw==28) _agg['htoff'].add(1);".
-	     "_agg['total'].add(1);".
+$scriptmap = //"mycount=_source['fuSysCPUFrac'].size();".
+	     "if (_source['activePhysCores']>0) {".
+	     " if (2*_source['activePhysCores']==_source['activeHTCores'])  _agg['hton'].add(1);".
+	     " else if (_source['activePhysCores']==_source['activeHTCores'])  _agg['htoff'].add(1);".
+	     " else _agg['incons'].add(1);".
+	     " _agg['total'].add(1);".
 	     "}";
 
-$scriptreduce ="fsumon = 0d; fsumoff = 0d; ftot=0d;".
+$scriptreduce ="fsumon = 0d; fsumoff = 0d; ftot=0d; fincons=0d;".
                "for (agg in _aggs) {".
-	       " if (agg) for (a in agg.hton) fsumon+=a;".
-	       " if (agg) for (a in agg.htoff) fsumoff+=a;".
-	       " if (agg) for (a in agg.total) ftot+=a;".
+	       " if (agg) {".
+	       "  for (a in agg.hton) fsumon+=a;".
+	       "  for (a in agg.htoff) fsumoff+=a;".
+	       "  for (a in agg.total) ftot+=a;".
+	       "  for (a in agg.incons) fincons+=a;".
+	       " }".
 	       "};".
+	       "if (fincons!=0) return 4;".
 	       "if (ftot!=0d) {".
 	       " if (fsumon>ftot*0.99) return 3;".
 	       " if (fsumoff>=ftot*0.99 && fsumoff<ftot*1.01) return 1;".
@@ -110,6 +114,7 @@ curl_setopt ($crl, CURLOPT_URL,$url);
 curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
 
 $ret = curl_exec($crl);
+
 $res = json_decode($ret,true);
 
 $response['answer'] = $res["aggregations"]["answer"];

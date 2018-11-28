@@ -151,9 +151,9 @@ function run_data_format(){
                                   var streameMB = streameSize/(1024*1024.);
                                   var streampMB = streampSize/(1024*1024.);
                                   if (streamaMB>5000)
-                                    content+="<td style='background-color:red'>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
+                                    content+="<td style='background-color:red'>"+streamaMB.toFixed(1)+" MB/s</td>"
                                   else if (streamaMB>5000)
-                                    content+="<td style='background-color:yellow'>"+streamaMB.toFixed(1)+" MB/s</td></tr>"
+                                    content+="<td style='background-color:yellow'>"+streamaMB.toFixed(1)+" MB/s</td>"
                                   else
                                     content+="<td>"+streamaMB.toFixed(1)+" MB/s</td>"
 				  if (streame=="") streame="0";
