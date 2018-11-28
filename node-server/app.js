@@ -119,7 +119,7 @@ if  (priv_access) {
   var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
 
   //register passport only for links requiring auth
-  var privileged_all = ['/sc','/login'];
+  var privileged_all = ['/sc','/login','/site'];
   app.use(privileged_all,passport.initialize());
   app.use(privileged_all,passport.session());
 
@@ -128,6 +128,13 @@ if  (priv_access) {
   app.use(privileged,function(req, res, next) {
     if (!req.user && req._parsedUrl.path.startsWith('/sc/php'))  res.status(403).send("Forbidden. Please log in.");
     else if (!req.user) res.redirect('/login.html');
+    else next();
+  });
+
+  //privileged areas
+  var privileged = ['/site'];
+  app.use(privileged,function(req, res, next) {
+    if (!req.user) res.redirect('/login.html');
     else next();
   });
 
@@ -186,6 +193,11 @@ if (priv_access) {
   //configure pasport auth mode
   passport.use(new LocalStrategy(
     function(username, password, done) {
+      if ( username == dbinfo["privserver"][0] && password == dbinfo["privserver"][1] ) {
+        console.log('authenticated as special user:'+username);
+        done(null, {id:username});
+        return;
+      }
       var execg = exec('groups '+ username, function (error, stdout, stderr) {
         var required_grp = 'daqoncall'
         var found_grp = false;

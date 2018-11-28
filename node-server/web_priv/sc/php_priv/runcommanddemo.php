@@ -68,6 +68,8 @@ if ($setup=="cdaq" || $setup=="dv") {
           || $mystateup=="PAUSING"
           || $mystateup=="RESUMING") {
         $myaction="notOK";
+	//file_put_contents("/tmp/dump-demo-flashlist-levelZero-",$ret);
+	file_put_contents("/tmp/dump-demo-flashlist-levelZero-".date("Y-m-d\TH:i:s\Z"),$ret);
       }
       
       #check second flashlist
@@ -116,6 +118,8 @@ if ($setup=="cdaq" || $setup=="dv") {
                    || $mystateup=="RUNBLOCKED"
                  ) {
                    $myaction="notOK";
+		   //file_put_contents("/tmp/dump-demo-flashlist-subsys-",$ret);
+		   file_put_contents("/tmp/dump-demo-flashlist-subsys-".date("Y-m-d\TH:i:s\Z"),$ret);
               }
               break;
             }
