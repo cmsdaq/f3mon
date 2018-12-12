@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <title>F3 Monitor Page Tutorial</title>
+    <meta name="author" content="Salvatore Zaza"></meta>
+    <meta name="description" content="F3 Monitor Page Tutorial"></meta>
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0, initial-scale=1.0, user-scalable=yes" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+
+    <link href="css/animation.css" rel="stylesheet" type="text/css" />
+    <link href="css/basic-animations.css" rel="stylesheet" type="text/css" />
+    <link href="css/custom.css" rel="stylesheet" type="text/css" />
+
+
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/jmpress.js"></script>
+    <script type="text/javascript" src="js/duration.js"></script>
+    <script type="text/javascript" src="js/height-fix.js"></script>
+    <script type="text/javascript">
+    $(function() {
+
+        setHeight($);
+        $('#jmpress').jmpress({
+
+    
+            mouse: {
+                clickSelects: false
+            },
+                        hash: {
+                            use: false
+                        }
+        }, fixStyles());
+        $('#jmpress').jmpress("route", [], true);
+
+        $('.behind, .ahead').addClass('do-fade-out');
+
+        $('.f3mon-step:not(.active)').addClass('do-fade-out')
+
+        //            $('.f3mon-step.active').removeClass('do-fade-out')
+
+        $('.step').on('enterStep', function(event) {
+            $('.step').addClass('fading');
+        })
+
+        //        $('.behind').on('enterStep', function(event) {
+        //            $('.behind').removeClass('do-fade-out');
+        //            $('.groundZero, .ahead').addClass('do-fade-out');
+        //        })
+        //
+        //        $('.groundZero').on('enterStep', function(event) {
+        //            $('.groundZero').removeClass('do-fade-out');
+        //            $('.behind, .ahead').addClass('do-fade-out');
+        //        })
+        //
+        //        $('.ahead').on('enterStep', function(event) {
+        //            $('.ahead').removeClass('do-fade-out');
+        //            $('.behind, .groundZero').addClass('do-fade-out');
+        //        })
+
+
+        $('.changeLevel').on('enterStep', function(event) {
+            // jQuery event triggered when entering a specific step
+            if ($(this).hasClass("behind")) {
+                $('.behind').removeClass('do-fade-out');
+                $('.groundZero, .ahead').addClass('do-fade-out');
+            }
+            if ($(this).hasClass("groundZero")) {
+                $('.groundZero').removeClass('do-fade-out');
+                $('.behind, .ahead').addClass('do-fade-out');
+            }
+            if ($(this).hasClass("ahead")) {
+                $('.ahead').removeClass('do-fade-out');
+                $('.behind, .groundZero').addClass('do-fade-out');
+            }
+        })
+
+        $('.f3mon-step').on('enterStep', function(event) {
+            console.log('f3mon-step');
+            $('.f3mon-step:not(.active)').addClass('do-fade-out')
+            $('.f3mon-step.active').removeClass('do-fade-out')
+        })
+        $('#cms-daq,#es-tribe-cluster').on('enterStep', function(event) {
+            $("#es-cdaq-cluster").addClass('do-fade-out');
+            $("#arrow").addClass('do-fade-out');
+        })
+        $('#es-cdaq-cluster').on('enterStep', function(event) {
+            $("#es-cdaq-cluster").removeClass('do-fade-out');
+        })
+        $('#arrow').on('enterStep', function(event) {
+            $("#arrow").removeClass('do-fade-out');
+        })
+
+
+        $('.f3mon-navbar-substep').on('enterStep', function(event) {
+            console.log('navbar substep');
+            $("#f3mon-navbar").removeClass('do-fade-out');
+            $('#img-f3mon-navbar').attr('class','scale');
+            $("#svg-f3mon-navbar").get(0).setAttribute("viewBox","0 0 5000 1200");
+
+            f3monTarget = $(this).attr('f3mon-target');
+            console.log('#f3mon-navbar rect:not(#' + f3monTarget + ')');
+            //$('.f3mon-step:not(.active)').addClass('do-fade-out')
+            $('#f3mon-navbar rect:not(#' + f3monTarget + ')').attr('class','fading do-fade-out');
+            $('#' + f3monTarget).attr('class','fading scale');
+        })
+
+        $('#f3mon-navbar').on('enterStep', function(event) {
+            $('#img-f3mon-navbar').attr('class','noscale');
+            $("#svg-f3mon-navbar").get(0).setAttribute("viewBox","0 0 2495 1200");
+        
+            $('.f3mon-navbar-substep').removeClass('do-fade-out');
+            $('#f3mon-navbar rect').attr('class','fading do-fade-out noscale');
+            
+        })
+
+        $('#f3mon-left').on('enterStep', function(event) {
+            $('#f3mon-left image').attr('class','fading');
+            $('.f3mon-left-substep').removeClass('do-fade-out');
+        })
+
+        $('.f3mon-left-substep').on('enterStep', function(event) {
+            f3monTarget = $(this).attr('f3mon-target');
+            //$('.f3mon-step:not(.active)').addClass('do-fade-out')
+            $('#f3mon-left image:not(#' + f3monTarget + ')').attr('class','fading do-fade-out');
+            $('#' + f3monTarget).attr('class','fading');
+        })
+
+        $('#f3mon-right').on('enterStep', function(event) {
+            console.log('f3mon-right')
+            $('#f3mon-right img').removeClass('do-fade-out');
+            $('.f3mon-right-substep').removeClass('do-fade-out');
+        })
+
+        $('.f3mon-right-substep').on('enterStep', function(event) {
+            f3monTarget = $(this).attr('f3mon-target');
+            //$('.f3mon-step:not(.active)').addClass('do-fade-out')
+            $('#f3mon-right img:not(#' + f3monTarget + ')').addClass('do-fade-out');
+            $('#' + f3monTarget).removeClass('do-fade-out');
+
+        })
+
+
+    });
+    </script>
+
+</head>
+
+<body>
+    <div id="jmpress">
+
+        <div class="step groundZero changeLevel f3mon-step" data-x="0" data-y="0" id="introduction">
+            <h1 id="the-f3-monitor-page">The F3 Monitor Page</h1>
+            <div class="slide-container ">
+                <img src="images/f3mon-main.png">
+            </div>
+            <div class="footer" data-jmpress="fade after 500 step">
+                <p>This guide will introduce you to the understanding of the <strong>F3 monitor page</strong>.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>But first a step <em>behind</em>.</p>
+            </div>
+        </div>
+
+        <div class="step behind changeLevel" data-x="0" data-y="0" data-z="-2000" id="cms-daq">
+            <h1>CMS DAQ Upgrade (DAQ2)</h1>
+            <div class="slide-container">
+                <img src="images/cms-daq-upgrade.png">
+            </div>
+            <div class="footer" data-jmpress="fade after 500 step">
+                <p>This is the <strong>CMS DAQ Upgrade</strong>. You should already know it.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>So we can now focus on the part where the <strong>F3 Monitor data</strong> are generated.</p>
+            </div>
+        </div>
+
+        <div class="step behind" data-x="-150" data-y="150" data-z="-2000" data-scale="0.4" id="item">
+            <div class="footer" data-jmpress="fade after 500 step">
+                <p>The <strong>HLT sub-farms</strong>.</p>
+            </div>
+        </div>
+
+        <div class="step behind" data-x="-150" data-y="1000" data-z="-2000" data-scale="0.4" data-prev="#cms-daq">
+            <h1 id="the-hlt-sub-farms">The HLT sub-farms</h1>
+            <div class="slide-container">
+                <img src="images/Hlt-Farm.svg" style="width:100%">
+            </div>
+            <div class="footer" data-jmpress="fade after 500 step">
+                <p>When data flows throught the <strong>BU-FU appliance</strong>, the processes involved generate <strong>json</strong> files with information about the merging.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>Each PC involved hosts an <strong>ElasticSearch</strong> server that collects this json files.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>We have a set of servers for each <strong>BU-FU appliance</strong>, that forms an <strong>ES Cluster</strong>.
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>So we have an <strong>ES cluster</strong> for each appliance.</p>
+            </div>
+        </div>
+
+        <div class="step behind" data-x="850" data-y="1000" data-z="-2000" data-scale="0.4" id="es-tribe-cluster">
+            <h1 id="the-es-tribe">The ES Tribe</h1>
+            <div class="slide-container">
+                <img src="images/Es-tribe.svg">
+            </div>
+            <div class="footer" data-jmpress="fade after 500 step">
+                <p>To connect all these ES clusters togheter, there are some special ES servers, called <strong>tribe nodes</strong>.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>The configuration of an <strong>ES Tribe</strong> enables automatic propagation of <strong>queries</strong> issued on single tribe nodes to all BU-FU clusters.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>But we don't want to stress the BU-FU servers with queries originating from Web Interface requests.
+                    <br>Also, we want to summarize the data collected from the clusters into general information.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>So, on top of this we create another ES cluster, called <strong>ES-cdaq</strong>.</p>
+            </div>
+        </div>
+
+        <div class="step behind" data-x="850" data-y="1000" data-z="-1500" data-scale="0.4" id="es-cdaq-cluster">
+            <h1 id="the-es-cdaq-cluster">The ES-CDAQ cluster</h1>
+            <div class="slide-container">
+                <img src="images/es-cdaq.svg">
+            </div>
+            <div class="footer" data-jmpress="fade after 100 step">
+                <p>This ES cluster aggregates and holds the information displayed in the F3Mon page.</p>
+            </div>
+        </div>
+
+        <div class="step behind" data-duration="1000" data-scale="1.2" data-rotate-y="-90" data-x="850" data-z="-1500" data-y="1000" id="arrow">
+
+            <img data-jmpress="shot after 500 step" src="images/arrow.png" width="10%" height="10%" id="arrow-img">
+
+        </div>
+
+        <div class="step behind changeLevel" data-prev="#es-cdaq-cluster" data-scale="0.8" data-rotate-y="-55" data-x="900" data-z="-1750" data-y="1000">
+            <div class="footer" data-jmpress="fade after 500 step" id="#item">
+                <p>A resident software, called <strong>RunRiver Plugin</strong>, is in charge of collecting data from the <strong>ES tribe</strong> and storing them in the <strong>ES-cdaq</strong>.</p>
+            </div>
+            <div class="footer" data-jmpress="fade">
+                <p>The RunRiver plugin is composed of two parts:</p>
+                <ul>
+                    <li>A <strong>RunRanger</strong> (role:main), that checks when a new run starts</li>
+                    <li>A <strong>Collector</strong> (role:collector) for each ongoing run, that collects the data (triggered by RunRanger)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step groundZero changeLevel f3mon-step" data-x="0" data-y="0" id="f3mon-main" >
+            <h1>The F3 Monitor Page</h1>
+            <div class="slide-container ">
+                <img src="images/f3mon-main.png">
+            </div>
+            <div class="footer" data-jmpress="fade after 500 step">
+                <p> Now you are ready to know how this page works.</p>
+            </div>
+        </div>
+        <div class="step groundZero changeLevel f3mon-step" data-x="0" data-y="0" id="f3mon-main" >
+            <h1>The F3 Monitor Page</h1>
+            <div class="slide-container ">
+                <img src="images/f3mon-main-end.png">
+            </div>
+            <div class="footer" data-jmpress="fade after 1 step" id="last">
+                <p> So browse to the F3Mon page and click on the Guide button. (Or refresh this page to restart the presentation)</p>
+            </div>
+        </div>
+
+       
+
+    </div>
+    <div class="hint">
+        <p>Use arrow keys to navigate (right/bottom to go ahead)</p>
+    </div>
+</body>
+
+</html>
